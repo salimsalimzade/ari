@@ -1,0 +1,27 @@
+{
+  "name": "ari",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.23.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare": "lefthook install",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "check": "biome check .",
+    "format": "biome check --write .",
+    "docker": "docker compose --env-file apps/web/.env up --build"
+  },
+  "volta": {
+    "node": "24.21.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "lefthook": "2.1.16",
+    "turbo": "2.11.7",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,13 @@
+**/node_modules
+**/.output
+**/.nitro
+**/.vinxi
+**/dist
+**/.turbo
+.git
+.github
+.vscode
+.claude
+**/.env
+**/.env.*
+**/*.log

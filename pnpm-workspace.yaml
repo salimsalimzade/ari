@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - shared/*
+
+# pnpm 11 runs dependency install scripts only for packages listed here.
+allowBuilds:
+  lefthook: true

@@ -1,0 +1,9 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args: { VITE_API_URL: "${VITE_API_URL}" }
+    environment: { API_URL: "${DOCKER_API_URL}" }
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["3000:3000"]

@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# build output
+.output/
+.nitro/
+.vinxi/
+dist/
+coverage/
+
+# Turborepo
+.turbo/
+
+# env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.claude/settings.local.json
