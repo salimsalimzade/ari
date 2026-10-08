@@ -1,0 +1,17 @@
+/*
+ * Design tokens: CSS variables only. The values come with the MVP design (issue #17).
+ * Load this file before base.css.
+ */
+
+:root {
+  /* Colors (light) */
+  /* Type scale */
+  /* Spacing */
+  /* Radius */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Colors (dark) */
+  }
+}

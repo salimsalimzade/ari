@@ -1,3 +1,10 @@
+import '@ari/ui-kit/tokens.css';
+import '@ari/ui-kit/base.css';
+
 export default function App() {
-  return <h1>Hello world</h1>;
+  return (
+    <>
+      <h3>Hello world</h3>
+    </>
+  );
 }

@@ -7,7 +7,13 @@
   "linter": {
     "rules": {
       "preset": "recommended",
-      "correctness": { "noUnusedImports": "error", "noUnusedVariables": "error" }
+      "correctness": { "noUnusedImports": "error", "noUnusedVariables": "error" },
+      "style": {
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "strictCase": true, "requireAscii": true, "filenameCases": ["kebab-case"] }
+        }
+      }
     },
     "domains": { "solid": "recommended" }
   }

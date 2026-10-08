@@ -1,0 +1,18 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label {
+  width: fit-content;
+}
+
+.input {
+  width: 100%;
+}
+
+.description,
+.error {
+  font-size: 0.875em;
+}

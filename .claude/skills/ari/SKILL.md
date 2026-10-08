@@ -26,15 +26,20 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
 | `pnpm build` · `pnpm test` | Runs the script in every package that has it, cached by Turborepo |
 | `pnpm check` · `pnpm format` | Biome checks / fixes formatting, lint and import order for the whole repo |
 | `pnpm docker` | Runs the website in a container on port 3000, with the values from `apps/web/.env` |
+| `pnpm add <pkg>@<version> --filter <package>` | Adds a dependency: its version goes into the catalog, the package gets `catalog:` |
 
 ## Stack
 
 - **Workspace:** Turborepo 2 + pnpm 11, Node 24 pinned with Volta. Apps in `apps/*`, shared
-  packages in `shared/*` (empty for now).
+  packages in `shared/*` (see Layout), linked into apps with `workspace:*`. Single version policy:
+  every external version lives once in the `catalog` of `pnpm-workspace.yaml`, and every
+  `package.json` asks for `catalog:` (`catalogMode: strict` rejects a mismatched version). Every
+  `tsconfig.json` extends the root `tsconfig.base.json`; no TypeScript project references.
 - **Web app:** SolidStart v2 on Solid 1.x (Vite 8, Nitro). Pages render on the server first.
-- **UI:** Kobalte, styled with plain CSS: variables in `styles/tokens.css` (light and dark), one
-  CSS Module per component, Kobalte parts styled through their `[data-*]` state attributes. No
-  other UI kit or CSS framework.
+- **UI:** Kobalte (`@kobalte/core`, in `@ari/ui-kit` only), styled with plain CSS: variables in
+  `@ari/ui-kit`'s `tokens.css` (light and dark; empty until the MVP design, issue #17, sets the
+  values), global styles in its `base.css`, one CSS Module per component, Kobalte parts styled
+  through their `[data-*]` state attributes. No other UI kit or CSS framework.
 - **Data:** the router's `query`, `createAsync` and `action`; no data-fetching library.
 - **Tooling:** Biome; Lefthook (pre-commit fixes the staged files, pre-push runs `biome check .`);
   GitHub Actions (Biome, then `turbo run test build --affected`); TypeScript 6, not 7, which ships
@@ -43,9 +48,9 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
   uses `solid()`, the `~` alias and `conditions: ['development', 'browser']`, and runs `cleanup`
   after each test.
 
-Add these with the first code that needs them, without asking: `@solidjs/router`, `@kobalte/core`,
-`@solidjs/meta` (then drop the static `<title>` in `entry-server.tsx`), `@types/node` and the test
-packages. Ask before adding any other package.
+Add these with the first code that needs them, without asking: `@solidjs/router`, `@solidjs/meta`
+(then drop the static `<title>` in `entry-server.tsx`), `@types/node` and the test packages. Ask
+before adding any other package.
 
 ## Layout
 
@@ -54,22 +59,54 @@ apps/web/src/
 ├── app.tsx · entry-client.tsx · entry-server.tsx   SolidStart requires all three
 ├── routes/          file routes (.ts/.tsx only)
 ├── features/<name>/ queries.ts (query + action) and the feature's components
-├── components/      thin Kobalte wrappers; AsyncBoundary (Suspense + ErrorBoundary)
-├── lib/api.ts       the only place that calls the API
-└── styles/          tokens.css, base.css, page.module.css
+└── styles/          page.module.css
+
+shared/              no lib/ folders: shared code goes in one of these three
+├── data-access/     @ari/data-access: API client (the only code calling ari-api), API types
+├── ui-kit/          @ari/ui-kit: thin Kobalte wrappers, AsyncBoundary (Suspense +
+│                    ErrorBoundary), tokens.css, base.css
+└── utils/           @ari/utils: pure helpers, no UI and no API calls
+
+shared/ui-kit/src/
+├── index.ts         exports every component and its props type
+├── css-modules.d.ts types `*.module.css` imports, so ui-kit type-checks on its own
+├── styles/          tokens.css, base.css (exported as @ari/ui-kit/tokens.css and /base.css;
+│                    app.tsx imports both, tokens first)
+└── <component>/     <component>.tsx + <component>.module.css: button, text-field, dialog
 ```
 
-Only the three required files exist (`app.tsx` renders "Hello world"); create the rest when an
-issue needs it.
+Every file and folder name is lowercase kebab-case (`text-field.tsx`, `text-field.module.css`);
+Biome's `useFilenamingConvention` enforces it for code files, and CSS follows the same rule. CSS
+Module class names are single words where possible, else camelCase (they are read as
+`styles.name`). A wrapper keeps Kobalte's behavior and adds its module class to each part, merging
+a `class` prop when it takes one.
+
+Imports go one way: apps may import all three; `ui-kit` and `data-access` may import only `utils`;
+`utils` imports no workspace package. `docs/` holds only frontend and UI material:
+`architecture.md` (how the frontend connects, sign-in rules and error codes, and in section 3 this
+layout plus the client and UI rules) and `sequences.md` (the requests each flow sends). Keep them in
+step with this file; backend details belong in ari-api's docs.
+
+Only the three required app files exist (`app.tsx` loads the global CSS and renders "Hello world").
+`ui-kit` has its styles and three starter components (Button, TextField, Dialog) with structural
+CSS only; `data-access` and `utils` have only their `package.json` and `tsconfig.json`. Create the
+rest when an issue needs it.
+
+The shared packages are Just-in-Time (non-buildable): `exports` points at `./src/index.ts`, there is
+no build script, and Vite compiles them inside the app. Turborepo still hashes their files into
+`@ari/web#build`. Inside them, never use tsconfig `paths` (like `~`); use relative imports, or
+subpath imports (`"imports": { "#*": "./src/*" }`). A shared package gets its dependencies (e.g.
+`solid-js`) with its first code. Kobalte reaches the app only through `ui-kit` and still renders
+on the server in dev and build; no `ssr.noExternal` entry is needed.
 
 ## API
 
 - Base path `/api/v1`, JSON, ISO-8601 UTC times; errors are RFC 9457 Problem Details with a stable
   `code`. ari-api's OpenAPI (`http://localhost:8080/v3/api-docs`) is the source of truth.
-- `lib/api.ts` uses `process.env.API_URL` on the server (read at runtime) and
-  `import.meta.env.VITE_API_URL` in the browser, both defaulting to `http://localhost:8080`; tell
-  them apart with `isServer`.
-- API types go in a `shared/api` package (`@ari/api`) once code needs them.
+- The API client in `@ari/data-access` uses `process.env.API_URL` on the server (read at runtime)
+  and `import.meta.env.VITE_API_URL` in the browser, both defaulting to `http://localhost:8080`;
+  tell them apart with `isServer`.
+- API types go in `@ari/data-access` too, once code needs them.
 - A page loads its main data with `createAsync(..., { deferStream: true })`, so the server HTML
   holds it. Every page handles loading, empty and error states.
 
@@ -87,13 +124,15 @@ issue needs it.
   `dev`'s `passThroughEnv`.
 - **Turborepo docs:** read `node_modules/turbo/docs/README.md` before changing `turbo.json`. Biome is
   not a Turborepo task. `agentGuidance: false` stops turbo from writing an `AGENTS.md`.
+  `tsconfig.base.json` is in `globalDependencies`, because Vite reads it through `extends`.
 - **pnpm 11:** dependency install scripts run only for packages under `allowBuilds` (just
   `lefthook`).
 - **Docker:** build from the repo root with `CI=true` and `--ignore-scripts` (lefthook needs git).
   Compose reads `apps/web/.env` only through `--env-file`, which is why `pnpm docker` exists. The
   file supplies `VITE_API_URL` as a build argument and `DOCKER_API_URL` as the container's `API_URL`
-  (it reaches ari-api through `host.docker.internal`). When web gets a workspace dependency, the
-  Dockerfile must copy its `package.json` and folder too.
+  (it reaches ari-api through `host.docker.internal`). The Dockerfile copies each shared package's
+  `package.json` before the install, then `tsconfig.base.json` and `shared/` before the build; a
+  new shared package needs its own `package.json` line there.
 
 ## Rules
 

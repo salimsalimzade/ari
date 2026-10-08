@@ -19,9 +19,9 @@
     "node": "24.21.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "lefthook": "2.1.16",
-    "turbo": "2.11.7",
-    "typescript": "6.0.3"
+    "@biomejs/biome": "catalog:",
+    "lefthook": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   }
 }

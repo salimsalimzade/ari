@@ -1,0 +1,14 @@
+{
+  "name": "@ari/ui-kit",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/styles/tokens.css",
+    "./base.css": "./src/styles/base.css"
+  },
+  "dependencies": {
+    "@kobalte/core": "catalog:",
+    "solid-js": "catalog:"
+  }
+}

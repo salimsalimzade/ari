@@ -11,9 +11,12 @@
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@solidjs/start": "2.0.5",
-    "nitro": "3.0.260903-beta",
-    "solid-js": "1.9.15",
-    "vite": "8.3.2"
+    "@ari/data-access": "workspace:*",
+    "@ari/ui-kit": "workspace:*",
+    "@ari/utils": "workspace:*",
+    "@solidjs/start": "catalog:",
+    "nitro": "catalog:",
+    "solid-js": "catalog:",
+    "vite": "catalog:"
   }
 }
