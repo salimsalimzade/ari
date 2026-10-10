@@ -1,0 +1,23 @@
+.divider {
+  height: 1px;
+  border: 0;
+  background: var(--ari-border);
+
+  &[data-labelled] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: auto;
+    background: none;
+    font-size: 13px;
+    color: var(--ari-text-secondary);
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--ari-border);
+    }
+  }
+}

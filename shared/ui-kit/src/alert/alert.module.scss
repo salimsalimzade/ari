@@ -1,0 +1,24 @@
+@use '../styles/mixins' as *;
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--ari-terracotta-100);
+  color: var(--ari-state-error-icon);
+  font-size: 14px;
+  line-height: 1.45;
+
+  a {
+    color: inherit;
+    font-weight: 700;
+  }
+}
+
+.icon {
+  @include icon;
+
+  margin-top: 2px;
+}

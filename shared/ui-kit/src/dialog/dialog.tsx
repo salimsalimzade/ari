@@ -1,6 +1,6 @@
 import { Dialog as KobalteDialog } from '@kobalte/core/dialog';
 import { type JSX, Show } from 'solid-js';
-import styles from './dialog.module.css';
+import styles from './dialog.module.scss';
 
 export type DialogProps = {
   open?: boolean;
@@ -8,10 +8,20 @@ export type DialogProps = {
   onOpenChange?: (open: boolean) => void;
   title: string;
   description?: string;
+  /**
+   * false: Escape, a click outside and the close button are all off, so only the caller's own
+   * buttons close it, by setting `open` to false (e.g. after an action finishes).
+   */
+  dismissible?: boolean;
   children?: JSX.Element;
 };
 
 export function Dialog(props: DialogProps) {
+  const dismissible = () => props.dismissible ?? true;
+  const preventUnlessDismissible = (event: Event) => {
+    if (!dismissible()) event.preventDefault();
+  };
+
   return (
     <KobalteDialog
       open={props.open}
@@ -21,8 +31,22 @@ export function Dialog(props: DialogProps) {
       <KobalteDialog.Portal>
         <KobalteDialog.Overlay class={styles.overlay} />
         <div class={styles.positioner}>
-          <KobalteDialog.Content class={styles.content}>
-            <KobalteDialog.Title class={styles.title}>{props.title}</KobalteDialog.Title>
+          <KobalteDialog.Content
+            class={styles.content}
+            onEscapeKeyDown={preventUnlessDismissible}
+            onInteractOutside={preventUnlessDismissible}
+          >
+            <div class={styles.header}>
+              <KobalteDialog.Title class={styles.title}>{props.title}</KobalteDialog.Title>
+              <Show when={dismissible()}>
+                <KobalteDialog.CloseButton class={styles.close} aria-label="Close">
+                  <svg class={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </KobalteDialog.CloseButton>
+              </Show>
+            </div>
             <Show when={props.description}>
               <KobalteDialog.Description class={styles.description}>
                 {props.description}

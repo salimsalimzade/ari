@@ -1,0 +1,196 @@
+// Layout for the ui-kit preview in app.tsx.
+
+$mobile: 720px;
+
+@mixin mobile {
+  @media (max-width: $mobile) {
+    @content;
+  }
+}
+
+.app {
+  min-height: 100dvh;
+  background: var(--ari-bg-sunken);
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 56px 40px 96px;
+
+  @include mobile {
+    gap: 40px;
+    padding: 32px 16px 64px;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  font: var(--ari-type-h1);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.intro {
+  color: var(--ari-text-secondary);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-title {
+  font: var(--ari-type-h2);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font: var(--ari-type-h3);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 28px;
+  border-radius: var(--ari-radius-panel);
+  background: var(--ari-bg-canvas);
+
+  @include mobile {
+    padding: 20px 16px;
+  }
+}
+
+// The extension draws on other sites, so its demo sits on a white host page.
+.host {
+  background: var(--ari-bg-page);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narrow {
+  max-width: 400px;
+}
+
+.label {
+  font: var(--ari-type-overline);
+  letter-spacing: var(--ari-overline-tracking);
+  text-transform: uppercase;
+  color: var(--ari-text-secondary);
+}
+
+.quote {
+  font: var(--ari-type-quote);
+}
+
+.ramp {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+
+  @include mobile {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: var(--ari-type-caption);
+  color: var(--ari-text-secondary);
+}
+
+.chip {
+  height: 56px;
+  border-radius: var(--ari-radius-md);
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+}
+
+.tokens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.token {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 20px;
+  background: var(--ari-bg-raised);
+  font: var(--ari-type-caption);
+}
+
+.dot {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+}
+
+.type-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ari-border);
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+.type-name {
+  font: var(--ari-type-caption);
+  color: var(--ari-text-secondary);
+}
+
+.phone-frame {
+  width: 390px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 0 0 40px 40px;
+}

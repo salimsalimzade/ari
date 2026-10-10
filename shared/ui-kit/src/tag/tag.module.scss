@@ -1,0 +1,33 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  font: var(--ari-type-caption);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  @each $tone in accent, sage, neutral {
+    &[data-tone='#{$tone}'] {
+      background: var(--ari-tag-#{$tone}-bg);
+      color: var(--ari-tag-#{$tone}-text);
+    }
+  }
+
+  &[data-tone='outline'] {
+    background: transparent;
+    color: var(--ari-text-link);
+    box-shadow: inset 0 0 0 1px var(--ari-text-link);
+  }
+}
+
+button.tag {
+  cursor: pointer;
+
+  &[data-tone='outline']:hover {
+    background: var(--ari-action-ghost-hover);
+  }
+}

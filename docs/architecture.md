@@ -99,8 +99,8 @@ imports no workspace package, and only `data-access` calls `ari-api`.
 | Package | Folder | Holds |
 |---|---|---|
 | `@ari/web` | `apps/web` | File routes (`routes/`); features (`features/<name>/`: `queries.ts` with the router's `query` and `action`, and the feature's components); page layout styles |
-| `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api`; API types |
-| `@ari/ui-kit` | `shared/ui-kit` | Thin Kobalte wrappers, `AsyncBoundary` (Suspense + ErrorBoundary), `tokens.css`, `base.css` |
+| `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api`; API types generated from ari-api's OpenAPI (`pnpm generate:api`) |
+| `@ari/ui-kit` | `shared/ui-kit` | Design-system components (thin Kobalte wrappers where Kobalte has the primitive), `AsyncBoundary` (Suspense + ErrorBoundary), `tokens.css`, `base.css` |
 | `@ari/utils` | `shared/utils` | Pure helpers: no UI, no API calls |
 
 Workspace rules:
@@ -119,17 +119,24 @@ Client and UI rules:
 
 - Pages render on the server first (SolidStart). Data goes through the router's `query`,
   `createAsync` and `action`; no data-fetching library.
-- Components come from Kobalte, wrapped in `@ari/ui-kit`, and use plain CSS: one CSS Module per
-  component, with Kobalte parts styled through their `[data-*]` state attributes. No other UI kit
-  or CSS framework.
-- Design tokens are CSS variables in `tokens.css`: colors (light and dark), type scale, spacing and
-  radius. The file has these sections but no values until the MVP design (issue #17) sets them.
-- Global styles (a small reset and page defaults) are in `base.css`. The app imports
-  `@ari/ui-kit/tokens.css`, then `@ari/ui-kit/base.css`, once in `app.tsx`.
-- Each component has its own folder in `ui-kit`: `<component>.tsx` and `<component>.module.css`.
-  The first ones are Button, TextField and Dialog.
-- Every file and folder name is lowercase kebab-case (`text-field.tsx`, `text-field.module.css`).
-  Biome enforces it for code files.
+- Components live in `@ari/ui-kit`, built on Kobalte where it has the primitive, and are styled
+  with Sass: one Sass Module per component, with variants and Kobalte states styled through
+  `[data-*]` attributes. No other UI kit or CSS framework.
+- Design tokens are `--ari-*` CSS variables in `tokens.css`, taken from the design handoff's
+  `ari.tokens.json`: primitives (palette, fonts, spacing, radius, shadows), then the semantic
+  tokens components read (colors, type, shape, elevation, sizes). The design has a light theme
+  only.
+- Global styles (the `@font-face` rules, a small reset and page defaults) are in `base.css`. The
+  app imports `@ari/ui-kit/tokens.css`, then `@ari/ui-kit/base.css`, once in `app.tsx`. The fonts
+  (Figtree, Source Serif 4) are self-hosted variable woff2 files in `ui-kit`'s `fonts/`, which Vite
+  bundles with the app; no font CDN.
+- Each component has its own folder in `ui-kit`: `<component>.tsx` and `<component>.module.scss`.
+  Shared Sass mixins are in `styles/mixins.scss`.
+- Only base components, and they are pure: one never imports another. Anything combining several
+  (a toast with actions, a search field with a shortcut, whole screens) belongs in features.
+- Every file and folder name is lowercase kebab-case (`text-field.tsx`, `text-field.module.scss`),
+  and so is every class name (`.label-row`, read as `styles['label-row']`). Biome enforces it for
+  code files.
 - Every page handles loading, empty and error states; `AsyncBoundary` covers loading and errors.
 - UI text says "Ari"; code, package names and URLs say `ari`.
 

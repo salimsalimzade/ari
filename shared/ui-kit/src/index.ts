@@ -1,3 +1,12 @@
+export { Alert, type AlertProps } from './alert/alert';
 export { Button, type ButtonProps } from './button/button';
+export { Checkbox, type CheckboxProps } from './checkbox/checkbox';
+export { ColorPicker, type ColorPickerProps } from './color-picker/color-picker';
 export { Dialog, type DialogProps } from './dialog/dialog';
+export { Divider, type DividerProps } from './divider/divider';
+export { type HighlightColor, highlightColors } from './highlight-color';
+export { HighlightMark, type HighlightMarkProps } from './highlight-mark/highlight-mark';
+export { Logo, type LogoProps } from './logo/logo';
+export { SourceAvatar, type SourceAvatarProps } from './source-avatar/source-avatar';
+export { Tag, type TagProps } from './tag/tag';
 export { TextField, type TextFieldProps } from './text-field/text-field';

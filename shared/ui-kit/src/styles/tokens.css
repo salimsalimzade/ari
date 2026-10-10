@@ -1,17 +1,180 @@
 /*
- * Design tokens: CSS variables only. The values come with the MVP design (issue #17).
- * Load this file before base.css.
+ * Design tokens: CSS variables only, from the design handoff's ari.tokens.json.
+ * Primitives are the raw palette and scales; components read only the semantic tokens below them.
+ * The design has a light theme only. Load this file before base.css.
  */
 
 :root {
-  /* Colors (light) */
-  /* Type scale */
-  /* Spacing */
-  /* Radius */
-}
+  /* Primitives: colors */
+  --ari-cream: #f5ead8;
+  --ari-sand: #ebddc5;
+  --ari-ink: #201e1d;
+  --ari-terracotta: #c67139;
+  --ari-sage: #7a8a5e;
+  --ari-white: #ffffff;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Colors (dark) */
-  }
+  --ari-neutral-100: #f9f4ed;
+  --ari-neutral-200: #eee7db;
+  --ari-neutral-300: #dcd3c4;
+  --ari-neutral-400: #c0b6a5;
+  --ari-neutral-500: #a19786;
+  --ari-neutral-600: #82796a;
+  --ari-neutral-700: #645c50;
+  --ari-neutral-800: #474238;
+  --ari-neutral-900: #2e2b25;
+
+  --ari-terracotta-100: #fff2eb;
+  --ari-terracotta-200: #ffe1d0;
+  --ari-terracotta-300: #ffc6a5;
+  --ari-terracotta-400: #f6a06b;
+  --ari-terracotta-500: #d67f48;
+  --ari-terracotta-600: #b2622d;
+  --ari-terracotta-700: #8c491a;
+  --ari-terracotta-800: #643312;
+  --ari-terracotta-900: #402310;
+
+  --ari-sage-100: #f0fae1;
+  --ari-sage-200: #e1eecc;
+  --ari-sage-300: #ccdbb2;
+  --ari-sage-400: #aebf92;
+  --ari-sage-500: #8fa073;
+  --ari-sage-600: #728157;
+  --ari-sage-700: #56633f;
+  --ari-sage-800: #3d472b;
+  --ari-sage-900: #272e1b;
+
+  --ari-hl-yellow: #f6dc8b;
+  --ari-hl-green: #d2e5ab;
+  --ari-hl-blue: #c6dbea;
+  --ari-hl-pink: #f2c8d0;
+  --ari-hl-purple: #dacbe9;
+
+  /* Primitives: type. Figtree for headings and UI, Source Serif 4 for saved quotes and notes. */
+  --ari-font-heading: "Figtree", system-ui, sans-serif;
+  --ari-font-body: "Figtree", system-ui, sans-serif;
+  --ari-font-quote: "Source Serif 4", Georgia, serif;
+
+  /* Primitives: spacing, radius, shadow */
+  --ari-space-1: 4.4px;
+  --ari-space-2: 8.8px;
+  --ari-space-3: 13.2px;
+  --ari-space-4: 17.6px;
+  --ari-space-6: 26.4px;
+  --ari-space-8: 35.2px;
+
+  --ari-radius-sm: 8px;
+  --ari-radius-md: 16px;
+  --ari-radius-lg: 28px;
+  --ari-radius-xl: 32px;
+  --ari-radius-pill: 999px;
+
+  --ari-shadow-sm: 0 1px 2px #2e2b2524;
+  --ari-shadow-md: 0 3px 10px #2e2b2529;
+  --ari-shadow-lg: 0 12px 32px #2e2b2538;
+
+  /* Semantic: backgrounds */
+  --ari-bg-canvas: var(--ari-cream);
+  --ari-bg-surface: var(--ari-sand);
+  --ari-bg-raised: var(--ari-neutral-100);
+  --ari-bg-sunken: var(--ari-neutral-200);
+  --ari-bg-page: var(--ari-white);
+
+  /* Semantic: text */
+  --ari-text-primary: var(--ari-ink);
+  --ari-text-secondary: var(--ari-neutral-700);
+  --ari-text-muted: var(--ari-neutral-600);
+  --ari-text-on-accent: var(--ari-cream);
+  --ari-text-link: var(--ari-terracotta-700);
+  --ari-text-danger: var(--ari-terracotta-700);
+
+  /* Semantic: borders */
+  --ari-border: #201e1d29;
+  --ari-border-focus: var(--ari-terracotta);
+
+  /* Semantic: actions */
+  --ari-action-primary: var(--ari-terracotta);
+  --ari-action-primary-hover: var(--ari-terracotta-600);
+  --ari-action-primary-pressed: var(--ari-terracotta-700);
+  --ari-action-secondary-hover: #201e1d12;
+  --ari-action-secondary-pressed: #201e1d24;
+  --ari-action-ghost-hover: #c671391a;
+
+  /* Semantic: selection */
+  --ari-selected-nav-bg: var(--ari-terracotta-200);
+  --ari-selected-nav-text: var(--ari-terracotta-900);
+  --ari-selected-row-bg: var(--ari-terracotta-100);
+  --ari-text-selection: #c671394d;
+
+  /* Semantic: tags */
+  --ari-tag-accent-bg: var(--ari-terracotta-100);
+  --ari-tag-accent-text: var(--ari-terracotta-800);
+  --ari-tag-sage-bg: var(--ari-sage-100);
+  --ari-tag-sage-text: var(--ari-sage-800);
+  --ari-tag-neutral-bg: var(--ari-neutral-100);
+  --ari-tag-neutral-text: var(--ari-neutral-800);
+
+  /* Semantic: source avatar */
+  --ari-source-avatar-bg: var(--ari-sage-300);
+  --ari-source-avatar-text: var(--ari-sage-900);
+
+  /* Semantic: empty, error and loading states */
+  --ari-state-empty-bg: var(--ari-sage-200);
+  --ari-state-empty-icon: var(--ari-sage-800);
+  --ari-state-error-bg: var(--ari-terracotta-200);
+  --ari-state-error-icon: var(--ari-terracotta-800);
+  --ari-skeleton: var(--ari-neutral-300);
+
+  /* Semantic: inverse surfaces (toast) */
+  --ari-inverse-bg: var(--ari-ink);
+  --ari-inverse-text: var(--ari-cream);
+  --ari-inverse-action: var(--ari-terracotta-300);
+  --ari-inverse-icon: var(--ari-sage-300);
+  --ari-inverse-divider: #f5ead840;
+
+  /* Semantic: overlay */
+  --ari-scrim: #2e2b2538;
+
+  /* Semantic: type, as `font` shorthands */
+  --ari-type-display: 700 72px / 1.02 var(--ari-font-heading);
+  --ari-type-h1: 700 38px / 1.12 var(--ari-font-heading);
+  --ari-type-h2: 700 32px / 1.12 var(--ari-font-heading);
+  --ari-type-h3: 700 25px / 1.12 var(--ari-font-heading);
+  --ari-type-h4: 700 20px / 1.12 var(--ari-font-heading);
+  --ari-type-button: 600 14px / 1.2 var(--ari-font-heading);
+  --ari-type-body: 400 15px / 1.55 var(--ari-font-body);
+  --ari-type-body-strong: 600 14px / 1.45 var(--ari-font-body);
+  --ari-type-label: 600 13px / 1.3 var(--ari-font-body);
+  --ari-type-caption: 400 12px / 1.4 var(--ari-font-body);
+  --ari-type-overline: 700 11px / 1.3 var(--ari-font-body);
+  --ari-type-quote-sm: 400 14px / 1.5 var(--ari-font-quote);
+  --ari-type-quote: 400 16px / 1.65 var(--ari-font-quote);
+  --ari-type-quote-lg: 400 21px / 1.6 var(--ari-font-quote);
+  --ari-type-quote-reading: 400 30px / 1.5 var(--ari-font-quote);
+  --ari-type-note: 400 17px / 1.7 var(--ari-font-quote);
+  --ari-heading-tracking: -0.015em;
+  --ari-overline-tracking: 0.08em;
+
+  /* Semantic: shape */
+  --ari-radius-control: var(--ari-radius-pill);
+  --ari-radius-card: var(--ari-radius-xl);
+  --ari-radius-panel: var(--ari-radius-xl);
+  --ari-radius-popover: 24px;
+  --ari-radius-mark: 4px;
+
+  /* Semantic: elevation */
+  --ari-elevation-card: var(--ari-shadow-sm);
+  --ari-elevation-panel: var(--ari-shadow-md);
+  --ari-elevation-popover: var(--ari-shadow-md);
+  --ari-elevation-overlay: var(--ari-shadow-lg);
+
+  /* Semantic: sizes. Icons are Lucide at --ari-icon-stroke. */
+  --ari-icon: 18px;
+  --ari-icon-sm: 15px;
+  --ari-icon-stroke: 2.75;
+  --ari-control-height: 36px;
+  --ari-control-height-lg: 48px;
+  --ari-touch-target: 44px;
+  --ari-sidebar-width: 232px;
+  --ari-clip-panel-width: 400px;
+  --ari-reading-measure: 700px;
 }

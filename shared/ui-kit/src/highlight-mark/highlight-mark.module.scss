@@ -1,0 +1,17 @@
+@use '../styles/mixins' as *;
+
+.mark {
+  @include highlight-colors;
+
+  padding: 2px 3px;
+  border-radius: var(--ari-radius-mark);
+  background: var(--mark);
+  color: inherit;
+  // Each wrapped line keeps its own padding and rounded ends.
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+
+  &[data-style='marker'] {
+    background: linear-gradient(transparent 58%, var(--mark) 58%);
+  }
+}

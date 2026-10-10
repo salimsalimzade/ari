@@ -1,0 +1,30 @@
+@use 'sass:list';
+
+// size: (width, font size)
+$sizes: (
+  sm: (20px, 10px),
+  md: (28px, 12px),
+  lg: (40px, 13px),
+  xl: (64px, 28px),
+);
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-source-avatar-bg);
+  color: var(--ari-source-avatar-text);
+  font: var(--ari-type-label);
+  font-weight: 700;
+
+  @each $size, $values in $sizes {
+    $width: list.nth($values, 1);
+
+    &[data-size='#{$size}'] {
+      width: $width;
+      height: $width;
+      font-size: list.nth($values, 2);
+    }
+  }
+}

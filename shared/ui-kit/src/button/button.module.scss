@@ -1,0 +1,86 @@
+// Background changes on hover and press, skipped while the button is disabled.
+@mixin states($hover, $pressed) {
+  &:hover:not([data-disabled]) {
+    background: $hover;
+  }
+
+  &:active:not([data-disabled]) {
+    background: $pressed;
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--ari-control-height);
+  padding: var(--ari-space-2) calc(var(--ari-space-3) * 1.2);
+  border: 1px solid transparent;
+  border-radius: var(--ari-radius-control);
+  background: transparent;
+  color: var(--ari-text-primary);
+  font: var(--ari-type-button);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  svg {
+    flex: none;
+  }
+
+  &[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &[data-variant='primary'] {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+
+    @include states(var(--ari-action-primary-hover), var(--ari-action-primary-pressed));
+  }
+
+  &[data-variant='secondary'] {
+    border-color: var(--ari-border);
+
+    @include states(var(--ari-action-secondary-hover), var(--ari-action-secondary-pressed));
+  }
+
+  &[data-variant='ghost'],
+  &[data-variant='danger'] {
+    padding-inline: var(--ari-space-2);
+
+    @include states(
+      var(--ari-action-ghost-hover),
+      color-mix(in srgb, var(--ari-action-primary) 18%, transparent)
+    );
+  }
+
+  &[data-variant='ghost'] {
+    color: var(--ari-text-link);
+  }
+
+  &[data-variant='danger'] {
+    color: var(--ari-text-danger);
+  }
+
+  &[data-size='lg'] {
+    min-height: var(--ari-control-height-lg);
+    padding-inline: 24px;
+    font-size: 16px;
+  }
+
+  &[data-icon-only] {
+    width: var(--ari-control-height);
+    padding: 0;
+
+    &[data-size='lg'] {
+      width: var(--ari-control-height-lg);
+    }
+  }
+
+  &[data-block] {
+    width: 100%;
+  }
+}

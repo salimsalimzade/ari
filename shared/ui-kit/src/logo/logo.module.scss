@@ -1,0 +1,33 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ari-text-primary);
+}
+
+.bee {
+  flex: none;
+}
+
+.wing {
+  fill: var(--ari-sage-300);
+}
+
+.body {
+  fill: var(--ari-terracotta);
+}
+
+.stripes {
+  fill: none;
+  stroke: var(--ari-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.wordmark {
+  font: 700 26px/1 var(--ari-font-heading);
+
+  .logo[data-wordmark='md'] & {
+    font-size: 24px;
+  }
+}

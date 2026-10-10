@@ -1,4 +1,21 @@
-/* Global styles: a small reset and page defaults. Component styles live in CSS Modules. */
+/* Global styles: the fonts, a small reset and page defaults. Component styles live in CSS Modules. */
+
+/* Variable fonts, served with the app: Figtree (UI) and Source Serif 4 (quotes and notes). */
+@font-face {
+  font-family: "Figtree";
+  src: url("../fonts/figtree/figtree.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/source-serif-4/source-serif-4.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 *,
 *::before,
@@ -10,14 +27,16 @@
   margin: 0;
 }
 
+/* The design has a light theme only, so native controls and scrollbars stay light too. */
 html {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
   min-height: 100dvh;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
+  font: var(--ari-type-body);
+  color: var(--ari-text-primary);
+  background: var(--ari-bg-canvas);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -58,6 +77,20 @@ h6 {
 
 p {
   text-wrap: pretty;
+}
+
+a {
+  color: var(--ari-text-link);
+  text-underline-offset: 3px;
+}
+
+::selection {
+  background: var(--ari-text-selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ari-border-focus);
+  outline-offset: 2px;
 }
 
 /* Portals (dialogs, popovers) render outside #app, so they always stack above it. */

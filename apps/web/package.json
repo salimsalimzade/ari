@@ -18,5 +18,8 @@
     "nitro": "catalog:",
     "solid-js": "catalog:",
     "vite": "catalog:"
+  },
+  "devDependencies": {
+    "sass": "catalog:"
   }
 }
