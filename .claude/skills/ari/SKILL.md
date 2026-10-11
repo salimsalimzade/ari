@@ -44,6 +44,11 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
   Source Serif 4 are self-hosted: variable woff2 files in `@ari/ui-kit`'s `src/fonts/`, declared
   with `@font-face` in `base.css` (Vite bundles them); no font CDN. No other UI kit or CSS framework.
 - **Data:** the router's `query`, `createAsync` and `action`; no data-fetching library.
+- **Forms:** Valibot schemas, kept in the form's component file while they are small.
+- **Languages:** English and Azerbaijani, no i18n library. `src/i18n/` holds one dictionary per
+  language (`en.ts` sets the keys, `az.ts` is typed `Dictionary`), `I18nProvider` / `useI18n()`
+  (`t()` is the current dictionary) and `LanguageSelect`. The choice lives in the `ari_lang`
+  cookie, so the server renders it and sets `<html lang>`. UI text goes in the dictionaries.
 - **Tooling:** Biome; Lefthook (pre-commit fixes the staged files, pre-push runs `biome check .`);
   GitHub Actions (Biome, then `turbo run test build --affected`); TypeScript 6, not 7, which ships
   no `tsserver` for VS Code.
@@ -62,6 +67,7 @@ apps/web/src/
 ├── app.tsx · entry-client.tsx · entry-server.tsx   SolidStart requires all three
 ├── routes/          file routes (.ts/.tsx only)
 ├── features/<name>/ queries.ts (query + action) and the feature's components
+├── i18n/            the dictionaries, the language context and LanguageSelect
 └── styles/          page.module.scss
 
 shared/              no lib/ folders: shared code goes in one of these four
@@ -104,7 +110,9 @@ and `ui-kit` may import only `utils`; `utils` imports no workspace package. `doc
 layout plus the client and UI rules) and `sequences.md` (the requests each flow sends). Keep them in
 step with this file; backend details belong in ari-api's docs.
 
-Only the three required app files exist (`app.tsx` loads the global CSS and renders "Hello world").
+`app.tsx` loads the global CSS and sets up the router and meta tags. `routes/index.tsx` previews
+every ui-kit component; `/login` and `/register` (`features/auth/`) render the design's forms with
+browser-side checks only, not yet sent to ari-api.
 `ui-kit` has the design tokens and the design handoff's components, styled; `types` has the
 generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
 `data-access` has only its `package.json` and `tsconfig.json`. Create the rest when an issue needs it.

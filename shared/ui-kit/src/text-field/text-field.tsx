@@ -13,7 +13,7 @@ export type TextFieldProps = {
   type?: 'text' | 'email' | 'password' | 'search' | 'url' | 'number';
   /** A textarea that grows with its text instead of a one-line input. */
   multiline?: boolean;
-  /** Input height: md 36px (panels), lg 44px (desktop forms), xl 48px (mobile forms). */
+  /** Input height: md 36px (panels), lg 44px (forms; 48px on phones), xl 48px (mobile forms). */
   size?: 'md' | 'lg' | 'xl';
   /** Input background: surface when the field sits on the canvas color. */
   fill?: 'canvas' | 'surface';

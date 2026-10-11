@@ -1,0 +1,119 @@
+@use '../styles/mixins' as *;
+
+.trigger {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--ari-control-height);
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-control);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &:hover,
+  &[data-expanded] {
+    background: var(--ari-bg-raised);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  svg {
+    @include icon;
+  }
+
+  @include mobile {
+    gap: 6px;
+    height: var(--ari-touch-target);
+    font-size: 13px;
+    font-weight: 700;
+  }
+}
+
+.value {
+  display: contents;
+}
+
+// Desktop shows the label, phones the short label.
+.short {
+  display: none;
+}
+
+@include mobile {
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+}
+
+.chevron {
+  display: flex;
+  transition: transform 0.15s;
+
+  .trigger[data-expanded] & {
+    transform: rotate(180deg);
+  }
+}
+
+.content {
+  z-index: 50;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-text-primary);
+}
+
+.listbox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  list-style: none;
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--ari-radius-control);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+
+  &[data-highlighted] {
+    background: var(--ari-bg-sunken);
+  }
+
+  &[data-selected] {
+    font-weight: 700;
+  }
+
+  @include mobile {
+    min-height: var(--ari-touch-target);
+  }
+}
+
+.indicator {
+  display: flex;
+  color: var(--ari-action-primary);
+}
+
+.icon {
+  @include icon;
+}

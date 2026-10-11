@@ -1,0 +1,221 @@
+// Layout of the log-in and sign-up pages: the form column and the quote panel beside it.
+
+$mobile: 720px;
+// Below this width the quote panel no longer fits beside the form.
+$wide: 1024px;
+
+@mixin mobile {
+  @media (max-width: $mobile) {
+    @content;
+  }
+}
+
+@mixin narrow {
+  @media (max-width: $wide) {
+    @content;
+  }
+}
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(620px, 45%);
+  min-height: 100dvh;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  padding: 40px clamp(40px, 5vw, 72px) 32px clamp(40px, 8.4vw, 120px);
+
+  @include mobile {
+    padding: 12px 20px 44px 24px;
+  }
+}
+
+// The logo and the language picker.
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 40px;
+
+  @include mobile {
+    justify-content: flex-start;
+    padding: 36px 4px 0 0;
+  }
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.aside {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin: 16px;
+  padding: 56px;
+  border-radius: 40px;
+  background: var(--ari-bg-surface);
+
+  // Two soft circles behind the quote.
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  &::before {
+    top: -180px;
+    right: -200px;
+    width: 560px;
+    height: 560px;
+    background: var(--ari-sage-200);
+  }
+
+  &::after {
+    top: 240px;
+    left: -70px;
+    width: 200px;
+    height: 200px;
+    background: var(--ari-terracotta-200);
+  }
+
+  @include narrow {
+    display: none;
+  }
+}
+
+.tagline {
+  position: relative;
+  z-index: 1;
+  max-width: 360px;
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.quote {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 30px;
+  border-radius: var(--ari-radius-card);
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-shadow-md);
+
+  blockquote {
+    font: 400 22px / 1.55 var(--ari-font-quote);
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ari-text-secondary);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 480px;
+  max-width: 100%;
+
+  &[data-width='narrow'] {
+    width: 400px;
+    gap: 20px;
+
+    @include mobile {
+      gap: 18px;
+    }
+  }
+}
+
+.title {
+  font: 700 44px / 1.12 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+
+  .form > & {
+    margin-bottom: 4px;
+  }
+
+  @include mobile {
+    font-size: 32px;
+
+    .heading > & {
+      font-size: 30px;
+    }
+  }
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// Two fields side by side; on phones they stack.
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  &[data-end='narrow'] {
+    grid-template-columns: minmax(0, 1fr) 120px;
+  }
+
+  @include mobile {
+    &,
+    &[data-end='narrow'] {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+  }
+}
+
+.age {
+  @include mobile {
+    max-width: 160px;
+  }
+}
+
+.submit {
+  margin-top: 4px;
+}
+
+.switch {
+  font-size: 14px;
+
+  a {
+    font-weight: 600;
+  }
+}

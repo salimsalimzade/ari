@@ -12,6 +12,12 @@ catalogs:
     '@kobalte/core':
       specifier: 0.13.14
       version: 0.13.14
+    '@solidjs/meta':
+      specifier: 0.29.4
+      version: 0.29.4
+    '@solidjs/router':
+      specifier: 1.0.0
+      version: 1.0.0
     '@solidjs/start':
       specifier: 2.0.5
       version: 2.0.5
@@ -36,6 +42,9 @@ catalogs:
     typescript:
       specifier: 6.0.3
       version: 6.0.3
+    valibot:
+      specifier: 1.5.0
+      version: 1.5.0
     vite:
       specifier: 8.3.2
       version: 8.3.2
@@ -71,6 +80,12 @@ importers:
       '@ari/utils':
         specifier: workspace:*
         version: link:../../shared/utils
+      '@solidjs/meta':
+        specifier: 'catalog:'
+        version: 0.29.4(solid-js@1.9.15)
+      '@solidjs/router':
+        specifier: 'catalog:'
+        version: 1.0.0(solid-js@1.9.15)
       '@solidjs/start':
         specifier: 'catalog:'
         version: 2.0.5(@solidjs/router@1.0.0(solid-js@1.9.15))(crossws@0.4.12(srvx@1.0.5))(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.2(@types/node@24.19.1)(sass@1.105.1)(yaml@2.9.0))
@@ -80,6 +95,9 @@ importers:
       solid-js:
         specifier: 'catalog:'
         version: 1.9.15
+      valibot:
+        specifier: 'catalog:'
+        version: 1.5.0(typescript@6.0.3)
       vite:
         specifier: 'catalog:'
         version: 8.3.2(@types/node@24.19.1)(sass@1.105.1)(yaml@2.9.0)
@@ -1507,6 +1525,14 @@ packages:
   uri-js-replace@1.0.1:
     resolution: {integrity: sha512-W+C9NWNLFOoBI2QWDp4UT9pv65r2w5Cx+3sTYFvtMdDBxkKt1syCqsUdSFAChbEe1uK5TfS04wt/nGwmaeIQ0g==}
 
+  valibot@1.5.0:
+    resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vfile-message@4.0.3:
     resolution: {integrity: sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw==}
 
@@ -2137,7 +2163,6 @@ snapshots:
   '@solidjs/router@1.0.0(solid-js@1.9.15)':
     dependencies:
       solid-js: 1.9.15
-    optional: true
 
   '@solidjs/start@2.0.5(@solidjs/router@1.0.0(solid-js@1.9.15))(crossws@0.4.12(srvx@1.0.5))(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.2(@types/node@24.19.1)(sass@1.105.1)(yaml@2.9.0))':
     dependencies:
@@ -2891,6 +2916,10 @@ snapshots:
       picocolors: 1.1.1
 
   uri-js-replace@1.0.1: {}
+
+  valibot@1.5.0(typescript@6.0.3):
+    optionalDependencies:
+      typescript: 6.0.3
 
   vfile-message@4.0.3:
     dependencies:

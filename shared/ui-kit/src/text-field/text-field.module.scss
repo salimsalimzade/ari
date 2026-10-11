@@ -18,8 +18,7 @@
 }
 
 .label {
-  font: var(--ari-type-caption);
-  color: var(--ari-text-secondary);
+  @include field-label;
 }
 
 .label-action {
@@ -28,46 +27,7 @@
 
 // The visible field: holds the input and, for passwords, the show/hide toggle.
 .box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: var(--ari-control-height);
-  padding-inline: 14px;
-  border: 1px solid var(--ari-border);
-  border-radius: var(--ari-radius-control);
-  background: var(--ari-bg-canvas);
-  color: var(--ari-text-primary);
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--ari-text-primary) 45%, transparent);
-  }
-
-  &:has(.input:focus-visible) {
-    border-color: var(--ari-border-focus);
-
-    @include focus-ring(0);
-  }
-
-  .root[data-invalid] & {
-    border-color: var(--ari-text-danger);
-    box-shadow: 0 0 0 1px var(--ari-text-danger);
-  }
-
-  .root[data-disabled] & {
-    opacity: 0.45;
-  }
-
-  &[data-size='lg'] {
-    min-height: var(--ari-touch-target);
-  }
-
-  &[data-size='xl'] {
-    min-height: var(--ari-control-height-lg);
-  }
-
-  &[data-fill='surface'] {
-    background: var(--ari-bg-surface);
-  }
+  @include field-box('.input');
 
   &[data-multiline] {
     align-items: stretch;
@@ -78,24 +38,7 @@
 }
 
 .input {
-  flex: 1;
-  min-width: 0;
-  align-self: stretch;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: var(--ari-type-body);
-  font-size: 14px;
-  caret-color: var(--ari-action-primary);
-
-  &::placeholder {
-    color: var(--ari-text-muted);
-  }
-
-  &:focus-visible {
-    outline: none;
-  }
+  @include field-input;
 }
 
 textarea.input {
@@ -121,16 +64,11 @@ textarea.input {
 }
 
 .description {
-  font: var(--ari-type-caption);
-  color: var(--ari-text-secondary);
+  @include field-description;
 }
 
 .error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: var(--ari-type-label);
-  color: var(--ari-text-danger);
+  @include field-error;
 }
 
 .icon {

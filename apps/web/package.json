@@ -15,9 +15,12 @@
     "@ari/types": "workspace:*",
     "@ari/ui-kit": "workspace:*",
     "@ari/utils": "workspace:*",
+    "@solidjs/meta": "catalog:",
+    "@solidjs/router": "catalog:",
     "@solidjs/start": "catalog:",
     "nitro": "catalog:",
     "solid-js": "catalog:",
+    "valibot": "catalog:",
     "vite": "catalog:"
   },
   "devDependencies": {

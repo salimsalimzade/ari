@@ -7,6 +7,7 @@ export { Divider, type DividerProps } from './divider/divider';
 export { type HighlightColor, highlightColors } from './highlight-color';
 export { HighlightMark, type HighlightMarkProps } from './highlight-mark/highlight-mark';
 export { Logo, type LogoProps } from './logo/logo';
+export { Select, type SelectOption, type SelectProps } from './select/select';
 export { SourceAvatar, type SourceAvatarProps } from './source-avatar/source-avatar';
 export { Tag, type TagProps } from './tag/tag';
 export { TextField, type TextFieldProps } from './text-field/text-field';
