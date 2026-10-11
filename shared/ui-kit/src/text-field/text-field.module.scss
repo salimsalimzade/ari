@@ -46,6 +46,14 @@ textarea.input {
   resize: vertical;
 }
 
+.prefix {
+  flex: none;
+  margin-right: -6px;
+  color: var(--ari-text-muted);
+  font: var(--ari-type-body);
+  font-size: 14px;
+}
+
 .reveal {
   @include reset-button;
 

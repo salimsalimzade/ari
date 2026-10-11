@@ -13,7 +13,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Register with email and password, and sign in */
+    /** Register with username and password, and sign in */
     post: operations['register'];
     delete?: never;
     options?: never;
@@ -64,7 +64,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Sign in with email and password */
+    /** Sign in with username and password */
     post: operations['login'];
     delete?: never;
     options?: never;
@@ -95,23 +95,31 @@ export interface components {
   schemas: {
     RegisterRequest: {
       /**
-       * Format: email
-       * @example ada@example.com
+       * @description 3 to 30 letters, digits, underscores or dots; stored in lowercase
+       * @example ada.lovelace
        */
-      email: string;
+      username: string;
       /**
        * @description 8 characters to 72 bytes (bcrypt's limit)
        * @example correct horse
        */
       password: string;
       /** @example Ada Lovelace */
-      displayName: string;
+      fullName: string;
+      /**
+       * Format: date
+       * @description ISO date, in the past
+       * @example 1815-12-10
+       */
+      birthDate: string;
     };
     MeResponse: {
       /** Format: uuid */
       id?: string;
-      email?: string;
-      displayName?: string;
+      username?: string;
+      fullName?: string;
+      /** Format: date */
+      birthDate?: string;
       /** @enum {string} */
       plan?: 'FREE' | 'PRO';
       /** Format: int32 */
@@ -120,9 +128,9 @@ export interface components {
       savesLimit?: number;
     };
     LoginRequest: {
-      /** @example hello@example.com */
-      email: string;
-      /** @example nice-foo-@ */
+      /** @example demo */
+      username: string;
+      /** @example demo1234 */
       password: string;
     };
   };
@@ -165,7 +173,7 @@ export interface operations {
           '*/*': components['schemas']['MeResponse'];
         };
       };
-      /** @description EMAIL_TAKEN */
+      /** @description USERNAME_TAKEN */
       409: {
         headers: {
           [name: string]: unknown;

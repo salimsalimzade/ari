@@ -189,22 +189,9 @@ $wide: 1024px;
   gap: 16px;
   align-items: start;
 
-  &[data-end='narrow'] {
-    grid-template-columns: minmax(0, 1fr) 120px;
-  }
-
   @include mobile {
-    &,
-    &[data-end='narrow'] {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 18px;
-    }
-  }
-}
-
-.age {
-  @include mobile {
-    max-width: 160px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
   }
 }
 

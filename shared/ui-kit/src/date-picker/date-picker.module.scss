@@ -1,0 +1,188 @@
+@use '../styles/mixins' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.label {
+  @include field-label;
+}
+
+// The visible field: holds the trigger, which fills it.
+.box {
+  @include field-box('.trigger');
+
+  // While its calendar is open.
+  &:has(.trigger[data-expanded]) {
+    border-color: var(--ari-border-focus);
+  }
+}
+
+.trigger {
+  @include reset-button;
+  @include field-input;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: start;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  .icon {
+    color: var(--ari-text-secondary);
+  }
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-placeholder] {
+    color: var(--ari-text-muted);
+  }
+}
+
+.description {
+  @include field-description;
+}
+
+.error {
+  @include field-error;
+}
+
+// The calendar.
+.content {
+  z-index: 50;
+  padding: 12px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-text-primary);
+  outline: none;
+}
+
+// Month and year selects, then the previous and next month buttons.
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-control);
+  background: transparent;
+  color: inherit;
+  font: var(--ari-type-label);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.nav {
+  @include reset-button;
+
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+
+  &:hover:enabled {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.grid {
+  border-collapse: collapse;
+}
+
+.weekday {
+  padding-block: 4px;
+  font: var(--ari-type-caption);
+  color: var(--ari-text-muted);
+  text-align: center;
+}
+
+.day {
+  @include reset-button;
+
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+
+  &:hover:enabled {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  // No ring after a pointer opened the calendar, until a key moves the focus.
+  .content:not([data-pointer]) &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &[aria-current='date'] {
+    font-weight: 700;
+    color: var(--ari-action-primary);
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+
+    &:hover {
+      background: var(--ari-action-primary-hover);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  @include mobile {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.icon {
+  @include icon;
+}

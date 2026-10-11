@@ -1,14 +1,18 @@
 @use '../styles/mixins' as *;
 
+// A terracotta tint over whatever the page is, so it stays warm on canvas and on surface, with the
+// same danger color as a field's error.
 .alert {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--ari-terracotta) 35%, transparent);
   border-radius: 20px;
-  background: var(--ari-terracotta-100);
-  color: var(--ari-state-error-icon);
+  background: color-mix(in srgb, var(--ari-terracotta) 10%, transparent);
+  color: var(--ari-text-danger);
   font-size: 14px;
+  font-weight: 500;
   line-height: 1.45;
 
   a {

@@ -1,0 +1,149 @@
+@use '../../styles/app' as *;
+
+// Wide screens: the "Settings" title, then the sections column beside the open section.
+
+.page {
+  padding: 28px 40px 48px 28px;
+
+  @include mobile {
+    padding: 0 0 28px;
+  }
+}
+
+.title {
+  margin-bottom: 22px;
+  font: var(--ari-type-h1);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 720px);
+  gap: 40px;
+  align-items: start;
+
+  // /settings itself shows the list as its content.
+  .page[data-index] & {
+    grid-template-columns: minmax(0, 520px);
+  }
+
+  @include narrow {
+    grid-template-columns: minmax(0, 720px);
+    gap: 20px;
+  }
+}
+
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  // Between phone and desktop widths, the column becomes a row of pills above the section.
+  &[data-variant='side'] {
+    @include narrow {
+      flex-direction: row;
+      overflow-x: auto;
+    }
+  }
+
+  &[data-variant='list'] {
+    gap: 6px;
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--ari-radius-pill);
+  color: var(--ari-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ari-bg-raised);
+  }
+
+  &.active {
+    background: var(--ari-selected-nav-bg);
+    color: var(--ari-selected-nav-text);
+  }
+
+  .nav[data-variant='list'] & {
+    min-height: 56px;
+    padding-inline: 22px 18px;
+    border-radius: var(--ari-radius-popover);
+    background: var(--ari-bg-surface);
+    font-size: 15px;
+
+    &:hover {
+      background: var(--ari-neutral-300);
+    }
+  }
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+
+    color: var(--ari-text-secondary);
+  }
+}
+
+.mobile-title {
+  display: none;
+
+  @include mobile {
+    display: block;
+    margin: 10px 20px 14px;
+    font: var(--ari-type-h2);
+    font-size: 30px;
+    letter-spacing: var(--ari-heading-tracking);
+  }
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @include mobile {
+    gap: 14px;
+    padding-inline: 12px;
+  }
+}
+
+.soon {
+  @include card;
+}
+
+.soon-title {
+  font: 700 22px / 1.12 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font-size: 20px;
+  }
+}
+
+.soon-text {
+  color: var(--ari-text-secondary);
+}
+
+// After .nav, so hiding it wins over its display: flex.
+.side {
+  .page[data-index] & {
+    display: none;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}

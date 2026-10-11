@@ -1,0 +1,397 @@
+@use '../../styles/app' as *;
+
+.card {
+  @include card;
+}
+
+.heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.heading {
+  font: 700 22px / 1.12 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font-size: 20px;
+  }
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--ari-type-label);
+  color: var(--ari-text-danger);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    button {
+      min-height: var(--ari-touch-target);
+    }
+  }
+}
+
+// — Profile photo —
+
+.photo {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+
+  @include mobile {
+    gap: 18px;
+  }
+}
+
+// The avatar is also where a photo can be dropped, and opens the file picker.
+.drop {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 3px;
+  }
+
+  &[data-dragging] {
+    outline: 2px dashed var(--ari-action-primary);
+    outline-offset: 4px;
+  }
+}
+
+.drop .avatar[data-size] {
+  @include mobile {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+  }
+}
+
+.photo-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+// — Adjust photo dialog —
+
+.crop {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-neutral-300);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.crop-image {
+  position: absolute;
+  max-width: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+// Darkens everything outside the circle, which gets a cream ring.
+.mask {
+  position: absolute;
+  inset: calc((1 - 340 / 404) / 2 * 100%);
+  border-radius: 50%;
+  outline: 2px solid var(--ari-bg-canvas);
+  box-shadow: 0 0 0 400px color-mix(in srgb, var(--ari-neutral-900) 45%, transparent);
+  pointer-events: none;
+}
+
+.zoom-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ari-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// — Profile —
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: start;
+  width: 100%;
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.save {
+  @include mobile {
+    align-self: stretch;
+    min-height: var(--ari-control-height-lg);
+  }
+}
+
+// — Email —
+
+.tag-icon svg {
+  @include stroke-icon(12px);
+}
+
+.intro {
+  font: var(--ari-type-body);
+  color: var(--ari-neutral-800);
+  text-wrap: pretty;
+}
+
+// The field and the button side by side; the button lines up with the input, below the label.
+.email-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+}
+
+.email-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.email-send {
+  flex: none;
+  min-height: var(--ari-touch-target);
+  margin-top: 21px;
+
+  @include mobile {
+    margin-top: 0;
+    min-height: var(--ari-control-height-lg);
+  }
+}
+
+.address {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--ari-bg-canvas);
+}
+
+.address-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-terracotta-200);
+  color: var(--ari-terracotta-800);
+
+  .address[data-status='verified'] & {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-800);
+  }
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+.address-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.address-value {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+// — Loading and error —
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @include mobile {
+    gap: 14px;
+  }
+}
+
+.bone {
+  display: block;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-skeleton);
+  opacity: 0.6;
+  animation: pulse 1.4s ease-in-out infinite;
+
+  &[data-shape='heading'] {
+    width: 130px;
+    height: 20px;
+    opacity: 0.45;
+  }
+
+  &[data-shape='avatar'] {
+    width: 96px;
+    height: 96px;
+    flex: none;
+    border-radius: 50%;
+
+    @include mobile {
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+  &[data-shape='button'] {
+    width: 140px;
+    height: 40px;
+  }
+
+  &[data-shape='line'] {
+    width: min(380px, 100%);
+    height: 12px;
+  }
+
+  &[data-shape='field'] {
+    height: 44px;
+    margin-top: 22px;
+  }
+
+  &[data-shape='input'] {
+    width: 100%;
+    height: 44px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.card[data-state='error'] {
+  align-items: flex-start;
+  gap: 0;
+  padding: 40px;
+
+  @include mobile {
+    padding: 28px 22px;
+  }
+}
+
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 26px;
+  border-radius: 50%;
+  background: var(--ari-state-error-bg);
+  color: var(--ari-state-error-icon);
+
+  svg {
+    @include stroke-icon(24px);
+  }
+}
+
+.state-title {
+  margin-bottom: 14px;
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.state-text {
+  max-width: 380px;
+  margin-bottom: 16px;
+  color: var(--ari-text-secondary);
+}
+
+.state-retry svg {
+  @include stroke-icon;
+}

@@ -2,11 +2,12 @@ import { Select } from '@ari/ui-kit';
 import { type Language, languages, useI18n } from './i18n';
 
 /** Switches the site's language: "English" on wide screens, "EN" on phones. */
-export function LanguageSelect(props: { class?: string }) {
+export function LanguageSelect(props: { class?: string; block?: boolean }) {
   const { language, setLanguage, t } = useI18n();
   return (
     <Select
       class={props.class}
+      block={props.block}
       options={languages}
       value={language()}
       onChange={(value) => setLanguage(value as Language)}

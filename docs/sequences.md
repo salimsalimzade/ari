@@ -20,9 +20,9 @@ sequenceDiagram
   participant B as Browser
   participant A as ari-api
   alt Register
-    B->>A: POST /api/v1/auth/register (email, password, displayName)
+    B->>A: POST /api/v1/auth/register (username, password, fullName, birthDate)
   else Sign in
-    B->>A: POST /api/v1/auth/login (email, password)
+    B->>A: POST /api/v1/auth/login (username, password)
   end
   A-->>B: Me + Set-Cookie ari_access, ari_refresh (httpOnly)
   B->>A: GET /api/v1/highlights (browser sends the cookies)

@@ -1,0 +1,45 @@
+// Sass helpers for the app's own modules, used by relative path (`@use '../../styles/app' as *;`).
+// Only variables and mixins: this file outputs no CSS of its own.
+
+// Phone layouts (the 390px designs) start at this width, the same as @ari/ui-kit's.
+$mobile: 720px;
+// Below this width a page's side column moves above its content.
+$narrow: 1024px;
+
+@mixin mobile {
+  @media (max-width: $mobile) {
+    @content;
+  }
+}
+
+@mixin narrow {
+  @media (max-width: $narrow) {
+    @content;
+  }
+}
+
+// For the inline Lucide icons (a 24px viewBox drawn with strokes only).
+@mixin stroke-icon($size: var(--ari-icon-sm)) {
+  flex: none;
+  width: $size;
+  height: $size;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--ari-icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// A rounded panel on the page, e.g. one settings section.
+@mixin card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 30px;
+  border-radius: var(--ari-radius-card);
+  background: var(--ari-bg-surface);
+
+  @include mobile {
+    padding: 22px;
+  }
+}

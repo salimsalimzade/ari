@@ -17,6 +17,8 @@ export type SelectProps = {
   label: string;
   /** Shown before the selected label. */
   icon?: JSX.Element;
+  /** Fills its container: the label on the left, the arrow on the right. */
+  block?: boolean;
   class?: string;
 };
 
@@ -33,7 +35,8 @@ export function Select(props: SelectProps) {
       value={selected()}
       onChange={(option) => option && props.onChange(option.value)}
       disallowEmptySelection
-      placement="bottom-end"
+      placement={props.block ? 'top-start' : 'bottom-end'}
+      sameWidth={props.block}
       gutter={6}
       itemComponent={(item) => (
         <KobalteSelect.Item item={item.item} class={styles.item}>
@@ -46,7 +49,11 @@ export function Select(props: SelectProps) {
         </KobalteSelect.Item>
       )}
     >
-      <KobalteSelect.Trigger class={styles.trigger} aria-label={props.label}>
+      <KobalteSelect.Trigger
+        class={styles.trigger}
+        aria-label={props.label}
+        data-block={props.block ? '' : undefined}
+      >
         {props.icon}
         <KobalteSelect.Value<SelectOption> class={styles.value}>
           {(state) => (

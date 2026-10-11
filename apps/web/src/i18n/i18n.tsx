@@ -1,3 +1,6 @@
+import type { Locale } from 'date-fns';
+import { az as azDates } from 'date-fns/locale/az';
+import { enGB } from 'date-fns/locale/en-GB';
 import { type Accessor, createContext, createSignal, type JSX, useContext } from 'solid-js';
 import { getRequestEvent, isServer } from 'solid-js/web';
 import { az } from './az';
@@ -8,10 +11,12 @@ export type Language = 'en' | 'az';
 /** Each language named in itself; phones show the short label. */
 export const languages: { value: Language; label: string; shortLabel: string }[] = [
   { value: 'en', label: 'English', shortLabel: 'EN' },
-  { value: 'az', label: 'Azərbaycan', shortLabel: 'AZ' },
+  { value: 'az', label: 'Azərbaycanca', shortLabel: 'AZ' },
 ];
 
 const dictionaries: Record<Language, Dictionary> = { en, az };
+// For DatePicker's month and weekday names. British English, for weeks that start on Monday.
+const dateLocales: Record<Language, Locale> = { en: enGB, az: azDates };
 
 // The choice is kept in a cookie, so the server renders the page in it too.
 const cookiePattern = /(?:^|;\s*)ari_lang=(en|az)(?:;|$)/;
@@ -26,6 +31,8 @@ type I18n = {
   setLanguage: (language: Language) => void;
   /** The current language's text. */
   t: Accessor<Dictionary>;
+  /** The current language's date-fns locale. */
+  dateLocale: Accessor<Locale>;
 };
 
 const I18nContext = createContext<I18n>();
@@ -48,7 +55,14 @@ export function I18nProvider(props: { children: JSX.Element }) {
   };
 
   return (
-    <I18nContext.Provider value={{ language, setLanguage, t: () => dictionaries[language()] }}>
+    <I18nContext.Provider
+      value={{
+        language,
+        setLanguage,
+        t: () => dictionaries[language()],
+        dateLocale: () => dateLocales[language()],
+      }}
+    >
       {props.children}
     </I18nContext.Provider>
   );

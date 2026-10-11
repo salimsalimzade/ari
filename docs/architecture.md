@@ -57,8 +57,8 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 
 | Code | Status | When |
 |---|---|---|
-| `INVALID_CREDENTIALS` | 401 | Login fails, for any reason; it never says which emails exist |
-| `EMAIL_TAKEN` | 409 | Register with an email that is already used |
+| `INVALID_CREDENTIALS` | 401 | Login fails, for any reason; it never says which usernames exist |
+| `USERNAME_TAKEN` | 409 | Register with a username that is already used |
 | `UNAUTHORIZED` | 401 | No valid session: refresh once, then go to `/login` |
 | `VALIDATION_FAILED` | 400 | An invalid body or import file, with field errors |
 | `LIMIT_REACHED` | 403 | A save past the free limit, or the error code of a failed import |
@@ -128,6 +128,11 @@ Client and UI rules:
 - Components live in `@ari/ui-kit`, built on Kobalte where it has the primitive, and are styled
   with Sass: one Sass Module per component, with variants and Kobalte states styled through
   `[data-*]` attributes. No other UI kit or CSS framework.
+- Kobalte 0.13 has no date picker, and Kobalte 2 needs Solid 2, so `DatePicker` is ari's own: a
+  Kobalte `Popover` holding a calendar built with date-fns. Dates are `dd.MM.yyyy` strings
+  (`dateFormat`, e.g. `12.05.1995`). Month and weekday names come from date-fns locales
+  (`useI18n().dateLocale()`), not `Intl`, which has no Azerbaijani dates in Chrome and may format
+  differently on the server.
 - Design tokens are `--ari-*` CSS variables in `tokens.css`, taken from the design handoff's
   `ari.tokens.json`: primitives (palette, fonts, spacing, radius, shadows), then the semantic
   tokens components read (colors, type, shape, elevation, sizes). The design has a light theme
@@ -144,6 +149,14 @@ Client and UI rules:
   and so is every class name (`.label-row`, read as `styles['label-row']`). Biome enforces it for
   code files.
 - Every page handles loading, empty and error states; `AsyncBoundary` covers loading and errors.
+- Forms use TanStack Form: one `createForm` per form with a Valibot schema as its `onDynamic`
+  validator, so errors show after the first submit and then follow typing. Schema messages are
+  dictionary keys, translated when shown.
+- Every field has a visible label above it, which says what to enter. A placeholder only shows a
+  format that isn't obvious (date `DD.MM.YYYY`); fields like name, username or password get
+  none. Format examples are the same in every language, so they are
+  written in the form, not the dictionaries. A hint that must stay visible while typing goes in the
+  field's `description`, below it.
 - UI text says "Ari"; code, package names and URLs say `ari`.
 
 ## 4. Implementation guide for Claude Code

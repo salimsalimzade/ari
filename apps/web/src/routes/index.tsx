@@ -1,21 +1,29 @@
 import {
   Alert,
+  Avatar,
   Button,
   Checkbox,
   ColorPicker,
+  DatePicker,
   Dialog,
   Divider,
+  dateFormat,
   type HighlightColor,
   HighlightMark,
   highlightColors,
   Logo,
   Select,
+  Slider,
   SourceAvatar,
   Tag,
   TextField,
 } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
+import { format } from 'date-fns';
+import { az as azDates } from 'date-fns/locale/az';
 import { createSignal, For, type JSX } from 'solid-js';
+import { az } from '~/i18n/az';
+import { en } from '~/i18n/en';
 import { languages } from '~/i18n/i18n';
 import styles from '~/styles/preview.module.scss';
 
@@ -42,12 +50,14 @@ export default function Preview() {
         <Buttons />
         <Tags />
         <TextFields />
+        <DatePickers />
         <Checkboxes />
         <Selects />
         <AlertAndDivider />
         <Colors />
         <Marks />
         <Identity />
+        <People />
         <Overlays />
       </main>
     </div>
@@ -253,7 +263,7 @@ function TextFields() {
         <div class={styles.panel}>
           <span class={styles.label}>md · in panels</span>
           <TextField label="Title" value={title()} onChange={setTitle} />
-          <TextField label="Comment" multiline placeholder="Add a comment" />
+          <TextField label="Comment" multiline />
           <TextField label="Comment" multiline defaultValue="Key quote for the argument" />
           <TextField label="Title" defaultValue="Can't edit this" disabled />
         </div>
@@ -271,7 +281,6 @@ function TextFields() {
             type="password"
             size="lg"
             fill="surface"
-            placeholder="Your password"
             labelAction={<a href="#forgot">Forgot password?</a>}
           />
           <TextField
@@ -279,7 +288,6 @@ function TextFields() {
             type="password"
             size="lg"
             fill="surface"
-            placeholder="Create a password"
             description="At least 8 characters"
           />
         </div>
@@ -293,6 +301,65 @@ function TextFields() {
             error="That username is taken."
           />
           <TextField label="Age" type="number" size="xl" fill="surface" error="Enter your age." />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function DatePickers() {
+  const [date, setDate] = createSignal('');
+  const [birthDate, setBirthDate] = createSignal('12.05.1995');
+  return (
+    <Section title="DatePicker">
+      <div class={styles.grid}>
+        <div class={styles.panel}>
+          <span class={styles.label}>md · empty / chosen</span>
+          <DatePicker
+            label="Date"
+            labels={en.datePicker}
+            placeholder="DD.MM.YYYY"
+            value={date()}
+            onChange={setDate}
+          />
+          <DatePicker
+            label="Date of birth"
+            labels={en.datePicker}
+            max={format(new Date(), dateFormat)}
+            value={birthDate()}
+            onChange={setBirthDate}
+          />
+        </div>
+        <div class={styles.panel}>
+          <span class={styles.label}>lg · Azerbaijani · error · disabled</span>
+          <DatePicker
+            label="Doğum tarixi"
+            size="lg"
+            fill="surface"
+            locale={azDates}
+            labels={az.datePicker}
+            value={birthDate()}
+            onChange={setBirthDate}
+          />
+          <DatePicker
+            label="Date of birth"
+            labels={en.datePicker}
+            size="lg"
+            fill="surface"
+            placeholder="DD.MM.YYYY"
+            value=""
+            onChange={() => {}}
+            error="Choose your date of birth."
+          />
+          <DatePicker
+            label="Date"
+            labels={en.datePicker}
+            size="lg"
+            fill="surface"
+            value="08.10.2026"
+            onChange={() => {}}
+            disabled
+          />
         </div>
       </div>
     </Section>
@@ -388,6 +455,37 @@ function Marks() {
             </p>
           )}
         </For>
+      </div>
+    </Section>
+  );
+}
+
+function People() {
+  const [zoom, setZoom] = createSignal(1.4);
+  return (
+    <Section title="Avatar · Slider">
+      <div class={styles.grid}>
+        <div class={styles.panel}>
+          <span class={styles.label}>Avatar · sm / lg / xl, letter or photo</span>
+          <div class={styles.row}>
+            <Avatar initial="S" />
+            <Avatar initial="S" size="lg" />
+            <Avatar initial="S" size="xl" />
+            <Avatar initial="S" size="xl" src="/favicon.svg" />
+          </div>
+        </div>
+        <div class={styles.panel}>
+          <span class={styles.label}>Slider · arrow keys move it</span>
+          <Slider
+            label="Zoom"
+            value={zoom()}
+            onChange={setZoom}
+            min={1}
+            max={3}
+            step={0.01}
+            valueLabel={(value) => `${Math.round(value * 100)}%`}
+          />
+        </div>
       </div>
     </Section>
   );

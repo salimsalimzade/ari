@@ -20,7 +20,10 @@ export type TextFieldProps = {
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
+  /** Only an example of a format that isn't obvious (you@example.com); never the label's job. */
   placeholder?: string;
+  /** Fixed text before the input, e.g. "@" before a username. */
+  prefix?: string;
   autocomplete?: string;
   description?: string;
   /** Shown under the input, and marks the field invalid. */
@@ -62,6 +65,11 @@ export function TextField(props: TextFieldProps) {
         data-fill={props.fill ?? 'canvas'}
         data-multiline={props.multiline ? '' : undefined}
       >
+        <Show when={props.prefix && !props.multiline}>
+          <span class={styles.prefix} aria-hidden="true">
+            {props.prefix}
+          </span>
+        </Show>
         <Show
           when={props.multiline}
           fallback={

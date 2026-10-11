@@ -18,6 +18,8 @@
     "@solidjs/meta": "catalog:",
     "@solidjs/router": "catalog:",
     "@solidjs/start": "catalog:",
+    "@tanstack/solid-form": "catalog:",
+    "date-fns": "catalog:",
     "nitro": "catalog:",
     "solid-js": "catalog:",
     "valibot": "catalog:",

@@ -40,11 +40,24 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
 - **UI:** Kobalte (`@kobalte/core`, in `@ari/ui-kit` only), styled with Sass (`sass`, compiled
   by the app's Vite): `--ari-*` variables in `@ari/ui-kit`'s `tokens.css` (from the design
   handoff's `ari.tokens.json`; light theme only), global styles in its `base.css`, one Sass Module
-  per component, variants and Kobalte states styled through `[data-*]` attributes. Figtree and
-  Source Serif 4 are self-hosted: variable woff2 files in `@ari/ui-kit`'s `src/fonts/`, declared
-  with `@font-face` in `base.css` (Vite bundles them); no font CDN. No other UI kit or CSS framework.
+  per component, variants and Kobalte states styled through `[data-*]` attributes. Kobalte stays
+  on 0.13: 2.x (which has a date picker) needs Solid 2, so `DatePicker` is a Kobalte `Popover`
+  around ari's own calendar. Dates are `dd.MM.yyyy` strings (`dateFormat`), handled with
+  `date-fns`, never hand-written date maths; month and weekday names come from date-fns locales
+  (`useI18n().dateLocale()`), not `Intl` (Chrome's has no Azerbaijani dates). Figtree and Source Serif 4 are self-hosted: variable
+  woff2 files in `@ari/ui-kit`'s `src/fonts/`, declared with `@font-face` in `base.css` (Vite
+  bundles them); no font CDN. No other UI kit or CSS framework.
 - **Data:** the router's `query`, `createAsync` and `action`; no data-fetching library.
-- **Forms:** Valibot schemas, kept in the form's component file while they are small.
+- **Forms:** TanStack Form (`@tanstack/solid-form`): one `createForm` per form component with
+  the default values, `validators: { onDynamic: schema }` and `validationLogic: revalidateLogic()`
+  (errors show after the first submit, then follow typing), and a `form.Field` per input; no
+  custom form hooks or field wrappers. The schema is Valibot, kept in the form's file while it is
+  small, and its messages are keys of `t().auth.errors` (`'nameRequired' satisfies ErrorKey`),
+  translated where the error is shown, so shown errors follow the language picker. Every
+  field has a visible label (what to enter); a placeholder only shows a format that isn't obvious
+  (date `DD.MM.YYYY`), never repeats the label, and simple fields (name, username, password) get
+  none. Placeholders stay the same in every language, so they live in the form, not
+  the dictionaries. Hints that must stay visible go in `description`, below the field.
 - **Languages:** English and Azerbaijani, no i18n library. `src/i18n/` holds one dictionary per
   language (`en.ts` sets the keys, `az.ts` is typed `Dictionary`), `I18nProvider` / `useI18n()`
   (`t()` is the current dictionary) and `LanguageSelect`. The choice lives in the `ari_lang`
@@ -111,11 +124,32 @@ layout plus the client and UI rules) and `sequences.md` (the requests each flow 
 step with this file; backend details belong in ari-api's docs.
 
 `app.tsx` loads the global CSS and sets up the router and meta tags. `routes/index.tsx` previews
-every ui-kit component; `/login` and `/register` (`features/auth/`) render the design's forms with
-browser-side checks only, not yet sent to ari-api.
-`ui-kit` has the design tokens and the design handoff's components, styled; `types` has the
+every ui-kit component; `/login` and `/register` (`features/auth/`) sign in through ari-api with
+the router actions in `features/auth/queries.ts`, then go to `/library`, which for now only shows
+the signed-in account (`getMe`) and Log out until F2 builds it. Sign-in is username and password
+only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; the picker's
+`dd.MM.yyyy` is converted on submit), and the username follows ari-api's rule (3 to 30 letters,
+digits, underscores or dots). Google (F9) comes later. The signed-in pages live in the
+`routes/(app)/` group, whose layout `(app).tsx` wraps them in `features/shell`'s `AppShell`: a
+sidebar on wide screens (Library; language, Settings and the user at the bottom) and a tab bar
+under 720px, where each page puts its own `MobileHeader` (logo, or a "← Settings" back link, plus
+the language picker). `/settings` (`features/settings`) lists Account, Plan and billing, Shortcuts
+and Export; on wide screens they sit in a column beside the open section (a row of pills under
+1024px), and `/settings` itself is the list, where the phone tab goes. Only Account is built
+(`features/account`, from the design's "Ari Account"): photo (upload or drop, crop in a dialog),
+profile form and an optional email that stays unverified until confirmed. It is UI only: the form
+is filled from `getMe`, but saving, the photo and the email stay in the page until ari-api has their
+endpoints. The other sections say "Coming soon". App Sass modules share `src/styles/_app.scss`
+(breakpoints, `stroke-icon`, `card`). `src/middleware.ts`
+refreshes the session before a page renders when `ari_access` is gone (pages only, so asset
+requests don't spend the same refresh token).
+`ui-kit` has the design tokens and the design handoff's components, styled (plus `Avatar`, `Slider`,
+TextField's `prefix` and Select's `block` for the account page); `types` has the
 generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
-`data-access` has only its `package.json` and `tsconfig.json`. Create the rest when an issue needs it.
+`data-access` has the API client (`request`, `ApiError`, the shared refresh, `refreshSession` for
+the middleware), the auth calls and `fetchMe`, with Vitest tests. Its `Problem` type is written by
+hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
+fixes that. Create the rest when an issue needs it.
 
 The shared packages are Just-in-Time (non-buildable): `exports` points at `./src/index.ts`, there is
 no build script, and Vite compiles them inside the app. Turborepo still hashes their files into
