@@ -1,0 +1,108 @@
+@use '../../styles/app' as *;
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  padding: 0 96px 40px;
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+
+  @include narrow {
+    padding-inline: 48px;
+  }
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 22px;
+    margin: 0 12px 12px;
+    padding: 28px 22px 18px;
+    border-radius: 32px;
+    background: var(--ari-bg-surface);
+  }
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-right: auto;
+  color: var(--ari-text-primary);
+}
+
+.columns {
+  display: flex;
+  gap: 24px;
+
+  @include mobile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.group {
+  display: flex;
+  gap: 24px;
+
+  a {
+    color: var(--ari-text-link);
+  }
+
+  @include mobile {
+    flex-direction: column;
+    gap: 0;
+
+    a {
+      display: flex;
+      align-items: center;
+      min-height: var(--ari-touch-target);
+      color: var(--ari-text-primary);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+  }
+}
+
+// Wide screens keep the short row (Pricing, Privacy, Terms); the phone card adds the tagline,
+// headings, every link and the language picker.
+.tagline,
+.heading,
+.extra,
+.language {
+  display: none;
+
+  @include mobile {
+    display: flex;
+  }
+}
+
+.tagline {
+  color: var(--ari-neutral-800);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.heading {
+  margin-bottom: 2px;
+  color: var(--ari-text-secondary);
+  font: var(--ari-type-overline);
+  letter-spacing: var(--ari-overline-tracking);
+  text-transform: uppercase;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.copyright {
+  @include mobile {
+    font-size: 13px;
+  }
+}

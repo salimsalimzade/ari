@@ -1,0 +1,226 @@
+@use '../../styles/app' as *;
+
+.layout {
+  display: grid;
+  grid-template-columns: 400px minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+  margin-top: 48px;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  @include mobile {
+    gap: 18px;
+    margin-top: 18px;
+  }
+}
+
+// The phone design leaves the line under the title out.
+.lead {
+  @include mobile {
+    display: none;
+  }
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  // Tablets: the three steps side by side above the demo.
+  @include narrow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @include mobile {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+  }
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px;
+
+  @include narrow {
+    padding: 18px;
+  }
+
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--ari-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+
+  &[aria-selected='true'] {
+    background: var(--ari-bg-surface);
+    box-shadow: var(--ari-shadow-sm);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+
+  @include mobile {
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-height: 72px;
+    padding: 10px 4px;
+    border-radius: 20px;
+
+    &[aria-selected='true'] {
+      box-shadow: none;
+    }
+  }
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  @include mobile {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+.short {
+  display: none;
+
+  @include mobile {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+}
+
+.current {
+  display: none;
+
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .track {
+    margin-left: 0;
+    opacity: 1;
+  }
+}
+
+.current-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.current-text {
+  color: var(--ari-neutral-800);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.number {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-neutral-300);
+  font-size: 17px;
+  font-weight: 700;
+  transition: background-color 0.3s ease;
+
+  .step[aria-selected='true'] & {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+  }
+
+  @include mobile {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+}
+
+.step-title {
+  font-size: 20px;
+  font-weight: 700;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.step-text {
+  padding-left: 54px;
+
+  @include narrow {
+    padding-left: 0;
+  }
+
+  color: var(--ari-text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+
+  @include mobile {
+    display: none;
+  }
+
+  .step[aria-selected='true'] & {
+    color: var(--ari-neutral-800);
+  }
+}
+
+.step .track {
+  @include mobile {
+    display: none;
+  }
+}
+
+.track {
+  height: 4px;
+  margin-left: 54px;
+
+  @include narrow {
+    margin-left: 0;
+  }
+
+  overflow: hidden;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-neutral-300);
+  opacity: 0;
+
+  .step[aria-selected='true'] & {
+    opacity: 1;
+  }
+}
+
+.progress {
+  display: block;
+  height: 100%;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-action-primary);
+  transition: width 0.4s linear;
+}
+
+.demo {
+  min-width: 0;
+}

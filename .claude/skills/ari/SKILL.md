@@ -123,8 +123,22 @@ and `ui-kit` may import only `utils`; `utils` imports no workspace package. `doc
 layout plus the client and UI rules) and `sequences.md` (the requests each flow sends). Keep them in
 step with this file; backend details belong in ari-api's docs.
 
-`app.tsx` loads the global CSS and sets up the router and meta tags. `routes/index.tsx` previews
-every ui-kit component; `/login` and `/register` (`features/auth/`) sign in through ari-api with
+`app.tsx` loads the global CSS and sets up the router and meta tags. `routes/index.tsx` is the
+public landing page (the design's "Ari Landing v2"), put together from `features/marketing/`: one
+component per section, each animated demo drawn at its design size inside `Stage` (which scales it
+down to fit) and driven by `createTicker` (frames that run only while the section is on screen, and
+a still frame for reduced motion). The demos' sample content (the bee article, quotes, files)
+stays in English; every other text is in the dictionaries under `marketing`. The install and
+trial buttons go to `/register` until the extension has store listings (`marketing/links.ts`).
+`routes/pricing.tsx` (`/pricing`, the design's "Ari Pricing") reuses the same header, closing
+band and footer with the `pricing-*` sections; its monthly / yearly switch lives in the route so the
+closing band's price follows it. The landing shows the same `PricingPlan` as its `#pricing`
+section (`section` prop: an h2 and section padding), with its own switch. Responsive patterns shared by both pages: below 1024px the
+header's links move into a menu (on phones Log in too), FAQs open in place (ui-kit `Accordion`:
+"+" / "−" wide, a turning arrow on phones; the landing FAQ swaps its chat panel for it), the
+footer becomes a two-column card on phones, and the closing band offers the trial instead of
+the install buttons there.
+`routes/ui-kit.tsx` (`/ui-kit`) previews every ui-kit component; `/login` and `/register` (`features/auth/`) sign in through ari-api with
 the router actions in `features/auth/queries.ts`, then go to `/library`, which for now only shows
 the signed-in account (`getMe`) and Log out until F2 builds it. Sign-in is username and password
 only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; the picker's
@@ -143,7 +157,7 @@ endpoints. The other sections say "Coming soon". App Sass modules share `src/sty
 (breakpoints, `stroke-icon`, `card`). `src/middleware.ts`
 refreshes the session before a page renders when `ari_access` is gone (pages only, so asset
 requests don't spend the same refresh token).
-`ui-kit` has the design tokens and the design handoff's components, styled (plus `Avatar`, `Slider`,
+`ui-kit` has the design tokens and the design handoff's components, styled (plus `Accordion`, `SegmentedControl`, `Avatar`, `Slider`,
 TextField's `prefix` and Select's `block` for the account page); `types` has the
 generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
 `data-access` has the API client (`request`, `ApiError`, the shared refresh, `refreshSession` for

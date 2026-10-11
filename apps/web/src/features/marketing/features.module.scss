@@ -1,0 +1,616 @@
+@use '../../styles/app' as *;
+
+.features {
+  border-radius: 56px;
+
+  @include mobile {
+    border-radius: 36px;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 48px;
+
+  @include mobile {
+    gap: 14px;
+    margin-top: 22px;
+  }
+}
+
+// The phone design leaves the line under the title out.
+.lead {
+  @include mobile {
+    display: none;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  grid-column: span 5;
+  padding: 32px;
+  border-radius: 36px;
+  background: var(--ari-bg-canvas);
+
+  &[data-wide] {
+    grid-column: span 7;
+  }
+
+  @include narrow {
+    &,
+    &[data-wide] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @include mobile {
+    gap: 14px;
+    padding: 20px;
+    border-radius: 30px;
+  }
+}
+
+.card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  h3 {
+    font: 700 22px / 1.12 var(--ari-font-heading);
+    letter-spacing: var(--ari-heading-tracking);
+  }
+
+  @include mobile {
+    padding: 0 4px 4px;
+
+    h3 {
+      font-size: 20px;
+    }
+  }
+
+  p {
+    color: var(--ari-neutral-800);
+    font-size: 15px;
+  }
+}
+
+.visual {
+  min-width: 0;
+}
+
+.demo {
+  position: relative;
+  height: 240px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--ari-bg-raised);
+
+  &[data-notes] {
+    width: 656px;
+  }
+
+  &[data-import] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  &[data-privacy] {
+    background: var(--ari-white);
+    box-shadow: inset 0 0 0 1px var(--ari-border);
+
+    // Phones: as tall as its text, the status on a line of its own.
+    @include mobile {
+      height: auto;
+      border-radius: 20px;
+    }
+  }
+
+  // The notes demo is drawn twice: the wide one in a Stage, a stacked one for phones.
+  &[data-phone-notes] {
+    display: none;
+    height: 310px;
+    border-radius: 20px;
+
+    @include mobile {
+      display: block;
+    }
+  }
+}
+
+.wide-notes {
+  @include mobile {
+    display: none;
+  }
+}
+
+.serif {
+  font: 14px / 1.55 var(--ari-font-quote);
+}
+
+.small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ari-text-secondary);
+  font-size: 11px;
+}
+
+.overline {
+  color: var(--ari-text-secondary);
+  font: var(--ari-type-overline);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  color: inherit;
+  box-decoration-break: clone;
+
+  &[data-color='blue'] {
+    background: var(--ari-hl-blue);
+  }
+
+  &[data-color='pink'] {
+    background: var(--ari-hl-pink);
+  }
+}
+
+// — Notes with quotes: a saved quote is dragged from the side into the note —
+
+.draft {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 404px;
+  padding: 18px 22px;
+
+  strong {
+    font-size: 16px;
+  }
+}
+
+.slot {
+  position: absolute;
+  top: 118px;
+  left: 22px;
+  width: 360px;
+  height: 96px;
+  border: 2px dashed var(--ari-neutral-400);
+  border-radius: 18px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+}
+
+.drop {
+  position: absolute;
+  top: 110px;
+  left: 22px;
+  width: 360px;
+  height: 3px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-action-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+}
+
+.quotes {
+  position: absolute;
+  inset: 0 0 0 412px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-left: 1px solid var(--ari-border);
+}
+
+.gap {
+  height: 84px;
+}
+
+.quote-card {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--ari-bg-surface);
+  font: 12px / 1.45 var(--ari-font-quote);
+}
+
+.chip {
+  position: absolute;
+  top: 40px;
+  left: 428px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 212px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-shadow-md);
+  transition:
+    transform 0.9s cubic-bezier(0.6, 0, 0.2, 1),
+    opacity 0.3s ease;
+
+  .serif {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  &[data-moved] {
+    transform: translate(-404px, 78px);
+  }
+
+  &[data-gone] {
+    opacity: 0;
+  }
+
+  &[data-instant] {
+    transition: none;
+  }
+}
+
+.kept {
+  align-self: flex-start;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+// The phone notes demo: the draft on top, saved quotes in a strip below; the chip moves up.
+.phone-title {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  font-size: 15px;
+}
+
+.phone-text {
+  position: absolute;
+  top: 42px;
+  right: 18px;
+  left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.demo[data-phone-notes] {
+  .slot,
+  .drop {
+    right: 18px;
+    left: 18px;
+    width: auto;
+  }
+
+  .slot {
+    top: 104px;
+    height: 74px;
+    border-radius: 16px;
+  }
+
+  .drop {
+    top: 98px;
+  }
+}
+
+.phone-quotes {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 100px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--ari-border);
+
+  .overline {
+    font-size: 10px;
+  }
+}
+
+.phone-chip {
+  position: absolute;
+  top: 232px;
+  right: 18px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-shadow-md);
+  transition:
+    transform 0.9s cubic-bezier(0.6, 0, 0.2, 1),
+    opacity 0.3s ease;
+
+  .serif {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .small {
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .kept {
+    align-self: auto;
+  }
+
+  &[data-moved] {
+    transform: translateY(-128px);
+  }
+
+  &[data-gone] {
+    opacity: 0;
+  }
+
+  &[data-instant] {
+    transition: none;
+  }
+}
+
+// — Import files —
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--ari-terracotta-200);
+  color: var(--ari-terracotta-800);
+}
+
+.file-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: var(--ari-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.percent {
+  color: var(--ari-terracotta-800);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bar {
+  height: 6px;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-neutral-300);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: var(--ari-radius-pill);
+    background: var(--ari-action-primary);
+    transition: width 0.4s linear;
+  }
+}
+
+.found {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--ari-bg-canvas);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+
+  &[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.found-text {
+  flex: 1;
+  overflow: hidden;
+  font: 12px / 1.4 var(--ari-font-quote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// — Every source in one place: a stack that fans out into a list —
+
+.source {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-shadow-sm);
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.source-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+
+  strong,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  span {
+    color: var(--ari-text-secondary);
+    font-size: 11px;
+  }
+}
+
+.count {
+  color: var(--ari-neutral-800);
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+}
+
+// — Private by default —
+
+.site-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border-bottom: 1px solid #eee;
+  color: #777;
+  font-size: 12px;
+
+  @include mobile {
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 11px;
+
+    .status {
+      display: none;
+    }
+  }
+}
+
+.status-row {
+  display: none;
+
+  @include mobile {
+    display: block;
+    padding: 12px 14px 0;
+  }
+}
+
+.ellipsis {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-neutral-200);
+  color: var(--ari-neutral-800);
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+
+  &[data-on] {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-900);
+  }
+}
+
+.site-text {
+  padding: 18px 22px;
+  color: #222;
+  font: 15px / 1.65 Georgia, serif;
+
+  @include mobile {
+    padding: 10px 14px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+.wide-only {
+  @include mobile {
+    display: none;
+  }
+}
+
+.picked {
+  border-radius: 3px;
+  transition: background-color 0.35s ease;
+
+  &[data-on] {
+    background: var(--ari-hl-green);
+  }
+}

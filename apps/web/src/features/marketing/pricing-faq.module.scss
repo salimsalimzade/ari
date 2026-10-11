@@ -1,0 +1,30 @@
+@use '../../styles/app' as *;
+
+.faq {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 64px;
+  align-items: start;
+  padding-block: 104px;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  @include mobile {
+    gap: 8px;
+    padding: 48px 16px;
+  }
+}
+
+.title {
+  font: 700 44px / 1.1 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    margin: 0 8px 8px;
+    font-size: 28px;
+    line-height: 1.15;
+  }
+}

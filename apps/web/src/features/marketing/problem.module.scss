@@ -1,0 +1,447 @@
+@use '../../styles/app' as *;
+
+.problem {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 72px;
+  align-items: center;
+  border-radius: 56px 56px 0 0;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+
+  @include mobile {
+    gap: 18px;
+    border-radius: 36px 36px 0 0;
+  }
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+
+  p {
+    max-width: 480px;
+  }
+}
+
+// "Without Ari / With Ari", a two-option pill.
+.toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-pill);
+
+  button {
+    padding: 7px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--ari-text-primary);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+
+    & + button {
+      border-left: 1px solid var(--ari-border);
+    }
+
+    &[aria-selected='true'] {
+      background: var(--ari-action-primary);
+      color: var(--ari-text-on-accent);
+    }
+
+    &[aria-selected='false']:hover {
+      background: var(--ari-action-secondary-hover);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ari-border-focus);
+      outline-offset: -2px;
+    }
+
+    @include mobile {
+      min-height: 40px;
+    }
+  }
+}
+
+.frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 40px;
+  background: var(--ari-bg-canvas);
+
+  // Each layout shows at its own size, never wider than its stage (one column below 1024px).
+  &[data-layout='wide'] {
+    max-width: 676px;
+  }
+
+  &[data-layout='phone'] {
+    display: none;
+    max-width: 342px;
+    border-radius: 30px;
+  }
+
+  @include mobile {
+    &[data-layout='wide'] {
+      display: none;
+    }
+
+    &[data-layout='phone'] {
+      display: block;
+    }
+  }
+}
+
+.circle-big,
+.circle-small {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.circle-big {
+  top: -110px;
+  right: -90px;
+  width: 320px;
+  height: 320px;
+  background: var(--ari-sage-200);
+}
+
+.circle-small {
+  bottom: -50px;
+  left: -40px;
+  width: 150px;
+  height: 150px;
+  background: var(--ari-terracotta-200);
+}
+
+.piece {
+  position: absolute;
+  background: var(--ari-white);
+  box-shadow: var(--ari-shadow-md);
+  font-size: 13px;
+  transition:
+    transform 0.9s cubic-bezier(0.6, 0, 0.2, 1),
+    opacity 0.6s ease;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 250px;
+  height: 42px;
+  padding: 0 12px 0 14px;
+  border-radius: 14px 14px 0 0;
+}
+
+.favicon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 4px;
+  background: var(--ari-sage-300);
+}
+
+.ellipsis {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+}
+
+.star {
+  color: var(--ari-action-primary);
+}
+
+// Another app's sticky note, in its own yellow.
+.sticky {
+  width: 260px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff7c9;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sticky-kind {
+  margin-bottom: 6px;
+  color: #8a7a3a;
+  font: var(--ari-type-overline);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sticky-ask {
+  color: #8a7a3a;
+}
+
+.screenshot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 200px;
+  padding: 10px;
+  border-radius: 16px;
+}
+
+.shot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 84px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--ari-neutral-200);
+
+  span {
+    height: 6px;
+    border-radius: var(--ari-radius-pill);
+    background: var(--ari-neutral-400);
+  }
+}
+
+.shot-name {
+  color: var(--ari-text-secondary);
+  font-size: 12px;
+}
+
+.copied {
+  max-width: 330px;
+  padding: 12px 16px;
+  border-radius: 18px 18px 18px 4px;
+  line-height: 1.45;
+}
+
+.library {
+  position: absolute;
+  top: 64px;
+  left: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 460px;
+  padding: 22px;
+  border-radius: 30px;
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-shadow-lg);
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  &[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.library-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 8px;
+  font-size: 15px;
+
+  span {
+    margin-left: auto;
+    color: var(--ari-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--ari-bg-canvas);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+
+  &[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.quote {
+  font: 14px / 1.5 var(--ari-font-quote);
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ari-text-secondary);
+  font-size: 12px;
+}
+
+.where {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  flex: none;
+  margin-left: -2px;
+  white-space: nowrap;
+}
+
+// — The phone layout: smaller pieces in a 342 × 380 stage —
+
+.frame[data-layout='phone'] {
+  .circle-big {
+    top: -70px;
+    right: -60px;
+    width: 200px;
+    height: 200px;
+  }
+
+  .circle-small {
+    display: none;
+  }
+
+  .piece {
+    font-size: 12px;
+  }
+
+  .tab {
+    gap: 8px;
+    width: 210px;
+    height: 40px;
+    padding: 0 10px 0 12px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .favicon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bookmark {
+    gap: 6px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .sticky {
+    width: 180px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .sticky-kind {
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+
+  .screenshot {
+    gap: 6px;
+    width: 118px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .shot {
+    gap: 5px;
+    height: 60px;
+    padding: 10px;
+    border-radius: 8px;
+
+    span {
+      height: 5px;
+    }
+  }
+
+  .shot-name {
+    font-size: 10px;
+  }
+
+  .copied {
+    max-width: 290px;
+    padding: 10px 14px;
+    border-radius: 16px 16px 16px 4px;
+    line-height: 1.4;
+  }
+
+  .library {
+    top: 24px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .library-head {
+    padding: 0 4px 6px;
+    font-size: 14px;
+
+    span {
+      font-size: 11px;
+    }
+  }
+
+  .row {
+    gap: 10px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .row-text {
+    gap: 3px;
+  }
+
+  .quote {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .source {
+    gap: 5px;
+    font-size: 11px;
+  }
+}

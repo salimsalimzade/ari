@@ -16,6 +16,8 @@ export type ButtonProps = PolymorphicProps<'button', ButtonRootProps<'button'>> 
   iconOnly?: boolean;
   /** Fills the width of its container. */
   block?: boolean;
+  /** Renders a link that looks like the button, e.g. "Add to Chrome" on the landing page. */
+  href?: string;
 };
 
 /** Pill button. */
@@ -27,6 +29,7 @@ export function Button(props: ButtonProps) {
     'iconAfter',
     'iconOnly',
     'block',
+    'href',
     'class',
     'children',
   ]);
@@ -37,6 +40,7 @@ export function Button(props: ButtonProps) {
       data-size={local.size ?? 'md'}
       data-icon-only={local.iconOnly ? '' : undefined}
       data-block={local.block ? '' : undefined}
+      {...(local.href ? { as: 'a', href: local.href } : {})}
       {...others}
     >
       {local.icon}

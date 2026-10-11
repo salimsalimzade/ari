@@ -1,0 +1,66 @@
+@use '../../styles/app' as *;
+
+// What the landing page's sections share: the page width, section padding, titles, big buttons.
+
+.page {
+  max-width: 1440px;
+  margin: 0 auto;
+  overflow-x: clip;
+}
+
+.section {
+  padding: 112px 96px;
+
+  @include narrow {
+    padding: 88px 48px;
+  }
+
+  @include mobile {
+    padding: 56px 24px;
+  }
+
+  &[data-tone='surface'] {
+    background: var(--ari-bg-surface);
+  }
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+}
+
+.title {
+  font: 700 48px / 1.08 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+  text-wrap: balance;
+
+  @include mobile {
+    font-size: 30px;
+    line-height: 1.12;
+  }
+}
+
+.lead {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ari-neutral-800);
+
+  @include mobile {
+    font-size: 16px;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+// The 52px buttons of the hero and the closing call to action.
+.big {
+  min-height: 52px;
+  padding-inline: 26px;
+  font-size: 16px;
+}

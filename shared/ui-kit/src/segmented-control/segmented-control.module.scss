@@ -1,0 +1,105 @@
+@use '../styles/mixins' as *;
+
+.root {
+  display: inline-flex;
+
+  &[data-block] {
+    display: flex;
+  }
+}
+
+.label {
+  @include visually-hidden;
+}
+
+.track {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+
+  .root[data-block] & {
+    display: flex;
+    flex: 1;
+  }
+}
+
+.item {
+  position: relative;
+  display: inline-flex;
+
+  .root[data-block] & {
+    flex: 1;
+  }
+}
+
+.input {
+  @include visually-hidden;
+}
+
+.item-label {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--ari-touch-target);
+  padding: 0 20px;
+  border-radius: var(--ari-radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+
+  .item:has(.badge) & {
+    padding-right: 8px;
+  }
+
+  .item[data-checked] & {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+  }
+
+  .item:not([data-checked]) &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  .input:focus-visible + & {
+    @include focus-ring;
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-sage-200);
+  color: var(--ari-sage-900);
+  font-size: 12px;
+  font-weight: 700;
+
+  @include mobile {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
+
+// With a shortBadge, phones show it instead of the badge.
+.badge[data-phone] {
+  display: none;
+}
+
+@include mobile {
+  .badge[data-short] {
+    display: none;
+  }
+
+  .badge[data-phone] {
+    display: inline-flex;
+  }
+}

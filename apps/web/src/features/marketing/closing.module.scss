@@ -1,0 +1,98 @@
+@use '../../styles/app' as *;
+
+.closing {
+  padding: 0 96px 96px;
+
+  @include narrow {
+    padding: 0 48px 72px;
+  }
+
+  @include mobile {
+    padding: 0 16px 40px;
+  }
+}
+
+.band {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  overflow: hidden;
+  padding: 72px;
+  border-radius: 48px;
+  background: var(--ari-sage-200);
+
+  > :not(span) {
+    position: relative;
+    max-width: 620px;
+  }
+
+  @include narrow {
+    padding: 56px 48px;
+  }
+
+  @include mobile {
+    gap: 16px;
+    padding: 40px 24px;
+    border-radius: 36px;
+  }
+}
+
+.circle-big,
+.circle-small {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.circle-big {
+  top: -120px;
+  right: -80px;
+  width: 360px;
+  height: 360px;
+  background: var(--ari-sage-300);
+
+  @include mobile {
+    top: -90px;
+    right: -80px;
+    width: 220px;
+    height: 220px;
+  }
+}
+
+.circle-small {
+  right: 260px;
+  bottom: -60px;
+  width: 140px;
+  height: 140px;
+  background: var(--ari-terracotta-200);
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.text {
+  color: var(--ari-sage-900);
+  font-size: 18px;
+
+  @include mobile {
+    font-size: 16px;
+  }
+}
+
+// Beats the shared .actions display.
+.band .install {
+  @include mobile {
+    display: none;
+  }
+}
+
+.band .trial {
+  display: none;
+
+  @include mobile {
+    display: inline-flex;
+    align-self: stretch;
+  }
+}

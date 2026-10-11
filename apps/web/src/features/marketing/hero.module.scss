@@ -1,0 +1,381 @@
+@use '../../styles/app' as *;
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 64px;
+  align-items: center;
+  padding: 56px 96px 104px;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+    padding: 40px 48px 88px;
+  }
+
+  @include mobile {
+    gap: 30px;
+    padding: 28px 24px 48px;
+  }
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.title {
+  font: 700 72px / 1.02 var(--ari-font-heading);
+  letter-spacing: var(--ari-heading-tracking);
+  text-wrap: balance;
+
+  @include mobile {
+    font-size: 40px;
+    line-height: 1.05;
+  }
+}
+
+.text {
+  max-width: 500px;
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--ari-neutral-800);
+
+  @include mobile {
+    font-size: 17px;
+  }
+}
+
+.copy {
+  @include mobile {
+    align-items: stretch;
+    gap: 18px;
+  }
+}
+
+.trial {
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+}
+
+// Phones get the trial button and the note instead of the install buttons and the price line.
+// Nested under .copy so they beat the buttons' own display.
+.copy {
+  .install,
+  .trial {
+    @include mobile {
+      display: none;
+    }
+  }
+
+  .phone-trial,
+  .device {
+    display: none;
+
+    @include mobile {
+      display: flex;
+    }
+  }
+}
+
+// Phones can't install the extension; this says so.
+.device {
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ari-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+
+  svg {
+    margin-top: 2px;
+  }
+}
+
+.stage {
+  @include narrow {
+    justify-self: center;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+// — The phone demo —
+
+.phone {
+  position: relative;
+  display: none;
+  height: 430px;
+
+  @include mobile {
+    display: block;
+  }
+}
+
+.phone-page {
+  position: absolute;
+  top: 0;
+  right: 22px;
+  left: 0;
+  padding: 18px 20px 20px;
+  border-radius: 24px;
+  background: var(--ari-white);
+  box-shadow: var(--ari-shadow-md);
+  color: #222;
+  font: 15px / 1.6 Georgia, serif;
+
+  .site {
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  .toolbar {
+    gap: 5px;
+  }
+
+  .save {
+    gap: 5px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .swatch {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Room above the sentence for its toolbar.
+.phone-headline {
+  margin-bottom: 58px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.phone-note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 26px;
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-shadow-lg);
+}
+
+// A web page, in the look of an ordinary site rather than Ari's.
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 500px;
+  padding: 26px 32px 32px;
+  border-radius: 30px;
+  background: var(--ari-white);
+  box-shadow: var(--ari-shadow-md);
+  color: #222;
+  font: 17px / 1.65 Georgia, serif;
+
+  p + p {
+    margin-top: 12px;
+  }
+}
+
+.site {
+  margin-bottom: 10px;
+  color: #777;
+  font: 12px system-ui, sans-serif;
+}
+
+.headline {
+  margin-bottom: 12px;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.selection {
+  position: relative;
+  border-radius: 3px;
+  transition: background-color 0.5s ease;
+
+  &[data-on] {
+    background: var(--ari-hl-yellow);
+  }
+}
+
+// The toolbar that pops up over a selection.
+.toolbar {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-shadow-md);
+  font-family: var(--ari-font-body);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+}
+
+.save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-action-primary);
+  color: var(--ari-text-on-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 440px;
+  padding: 26px 28px;
+  border-radius: 34px;
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-shadow-lg);
+}
+
+.note-kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ari-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.note-title {
+  font: 700 24px / 1.15 var(--ari-font-heading);
+}
+
+.note-text {
+  font: 16px / 1.6 var(--ari-font-quote);
+}
+
+// The saved quote, flying in from the page into the note.
+.quote {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--ari-bg-canvas);
+  opacity: 0;
+  transform: translate(-170px, -120px) rotate(-4deg);
+  transition:
+    opacity 0.6s ease,
+    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  &[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+
+  &[data-phone] {
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    transform: translate(-30px, -150px) rotate(-4deg);
+
+    &[data-on] {
+      transform: none;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    figcaption {
+      font-size: 11px;
+    }
+  }
+
+  p {
+    font: 15px / 1.6 var(--ari-font-quote);
+  }
+
+  mark {
+    padding: 2px 3px;
+    border-radius: 4px;
+    background: var(--ari-hl-yellow);
+    color: inherit;
+    box-decoration-break: clone;
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ari-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.toast {
+  position: absolute;
+  bottom: 140px;
+  left: 24px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-inverse-bg);
+  color: var(--ari-inverse-text);
+  box-shadow: var(--ari-shadow-lg);
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &[data-on] {
+    opacity: 1;
+  }
+}
+
+.toast-check {
+  color: var(--ari-inverse-icon);
+}
+
+.toast[data-phone] {
+  top: 200px;
+  bottom: auto;
+  left: 16px;
+  padding: 9px 16px;
+  font-size: 13px;
+}

@@ -1,0 +1,280 @@
+@use '../../styles/app' as *;
+
+.faq {
+  display: grid;
+  grid-template-columns: 440px minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  // Phones: the question cards sit closer to the edge than other sections' text (:is(section)
+  // outranks the shared .section padding).
+  &:is(section) {
+    @include mobile {
+      padding-inline: 20px;
+    }
+  }
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @include mobile {
+    gap: 14px;
+
+    h2 {
+      margin: 0 4px 6px;
+    }
+  }
+}
+
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @include narrow {
+    display: none;
+  }
+}
+
+.accordion {
+  display: none;
+
+  @include narrow {
+    display: flex;
+  }
+}
+
+.question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--ari-neutral-800);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  span {
+    flex: 1;
+  }
+
+  &:hover,
+  &[aria-selected='true'] {
+    background: var(--ari-bg-surface);
+  }
+
+  &[aria-selected='true'] {
+    color: var(--ari-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.support {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px 18px 22px;
+  border-radius: 26px;
+  background: var(--ari-bg-surface);
+
+  // Phones: the button gets a row of its own.
+  @include mobile {
+    flex-wrap: wrap;
+    padding: 18px;
+    border-radius: 24px;
+
+    > a {
+      flex-basis: 100%;
+      min-height: var(--ari-touch-target);
+    }
+  }
+}
+
+.support-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-sage-200);
+  color: var(--ari-sage-800);
+}
+
+.support-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 16px;
+  }
+
+  span {
+    color: var(--ari-neutral-800);
+    font-size: 14px;
+  }
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 460px;
+  padding: 32px;
+  border-radius: 36px;
+  background: var(--ari-bg-surface);
+
+  // Below 1024px the answers open inside the list instead.
+  @include narrow {
+    display: none;
+  }
+
+  @include mobile {
+    padding: 18px;
+    border-radius: 28px;
+  }
+}
+
+.asked {
+  align-self: flex-end;
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 22px 22px 6px;
+  background: var(--ari-action-primary);
+  color: var(--ari-text-on-accent);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.answer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.bee {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-canvas);
+}
+
+.bubble {
+  padding: 16px 20px;
+  border-radius: 22px 22px 22px 6px;
+  background: var(--ari-bg-canvas);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+// What the answer looks like in Ari, under the reply.
+.extra {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-left: 52px;
+  padding: 22px;
+  border-radius: 26px;
+  background: var(--ari-bg-raised);
+
+  @include mobile {
+    margin-left: 0;
+    padding: 18px;
+  }
+
+  > a svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-neutral-200);
+  font-size: 13px;
+  font-weight: 600;
+
+  &[data-on] {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-900);
+  }
+}
+
+.note {
+  color: var(--ari-text-secondary);
+  font-size: 13px;
+}
+
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.services {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(320px, 100%);
+}
+
+.service {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--ari-bg-canvas);
+  font-size: 14px;
+  font-weight: 600;
+
+  span:first-child {
+    flex: 1;
+  }
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+
+  strong {
+    font-size: 36px;
+  }
+
+  span {
+    color: var(--ari-text-secondary);
+    font-size: 15px;
+  }
+}
