@@ -13,6 +13,7 @@ RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
 COPY shared/data-access/package.json shared/data-access/
+COPY shared/types/package.json shared/types/
 COPY shared/ui-kit/package.json shared/ui-kit/
 COPY shared/utils/package.json shared/utils/
 RUN pnpm install --frozen-lockfile --filter @ari/web... --ignore-scripts

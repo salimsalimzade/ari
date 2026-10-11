@@ -4,11 +4,5 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
-  },
-  "scripts": {
-    "generate:api": "openapi-typescript ${API_URL:-http://localhost:8080}/v3/api-docs -o src/openapi/schema.ts && biome check --write src/openapi/schema.ts"
-  },
-  "devDependencies": {
-    "openapi-typescript": "catalog:"
   }
 }

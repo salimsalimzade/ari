@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ari/data-access": "workspace:*",
+    "@ari/types": "workspace:*",
     "@ari/ui-kit": "workspace:*",
     "@ari/utils": "workspace:*",
     "@solidjs/start": "catalog:",

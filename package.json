@@ -13,7 +13,7 @@
     "test": "turbo run test",
     "check": "biome check .",
     "format": "biome check --write .",
-    "generate:api": "pnpm --filter @ari/data-access generate:api",
+    "generate:api": "pnpm --filter @ari/types generate:api",
     "docker": "docker compose --env-file apps/web/.env up --build"
   },
   "volta": {

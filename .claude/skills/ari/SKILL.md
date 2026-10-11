@@ -64,14 +64,16 @@ apps/web/src/
 ├── features/<name>/ queries.ts (query + action) and the feature's components
 └── styles/          page.module.scss
 
-shared/              no lib/ folders: shared code goes in one of these three
-├── data-access/     @ari/data-access: API client (the only code calling ari-api), API types
-│   └── src/         openapi/schema.ts (generated, never edited), openapi/helpers.ts
-│                    (RequestBody, ResponseBody), <area>/types.ts (named types, e.g. auth/types.ts)
+shared/              no lib/ folders: shared code goes in one of these four
+├── data-access/     @ari/data-access: API client (the only code calling ari-api)
+├── types/           @ari/types: API types, all generated from ari-api's OpenAPI: schema.ts
+│                    (generated, never edited) and one <area>.ts per area naming the types code
+│                    uses (auth.ts, users.ts)
 ├── ui-kit/          @ari/ui-kit: design-system components (thin Kobalte wrappers where Kobalte
 │                    has the primitive), AsyncBoundary (Suspense + ErrorBoundary), tokens.css,
 │                    base.css
-└── utils/           @ari/utils: pure helpers, no UI and no API calls
+└── utils/           @ari/utils: pure helpers, no UI and no API calls; openapi.ts has the
+                     RequestBody / ResponseBody / ErrorBody type helpers
 
 shared/ui-kit/src/
 ├── index.ts         exports every component and its props type
@@ -96,16 +98,16 @@ field with a shortcut badge, the reading view, the clip panel, auth pages) belon
 not `ui-kit`. Icons a caller picks are `JSX.Element` slots; a component's own fixed icons (the
 check in Checkbox, the eye in a password TextField) are inline Lucide SVGs.
 
-Imports go one way: apps may import all three; `ui-kit` and `data-access` may import only `utils`;
-`utils` imports no workspace package. `docs/` holds only frontend and UI material:
+Imports go one way: apps may import all four; `data-access` may import `types` and `utils`; `types`
+and `ui-kit` may import only `utils`; `utils` imports no workspace package. `docs/` holds only frontend and UI material:
 `architecture.md` (how the frontend connects, sign-in rules and error codes, and in section 3 this
 layout plus the client and UI rules) and `sequences.md` (the requests each flow sends). Keep them in
 step with this file; backend details belong in ari-api's docs.
 
 Only the three required app files exist (`app.tsx` loads the global CSS and renders "Hello world").
-`ui-kit` has the design tokens and the design handoff's components, styled; `data-access` has the
-generated API types and the auth types (no client yet); `utils` has only its `package.json` and
-`tsconfig.json`. Create the rest when an issue needs it.
+`ui-kit` has the design tokens and the design handoff's components, styled; `types` has the
+generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
+`data-access` has only its `package.json` and `tsconfig.json`. Create the rest when an issue needs it.
 
 The shared packages are Just-in-Time (non-buildable): `exports` points at `./src/index.ts`, there is
 no build script, and Vite compiles them inside the app. Turborepo still hashes their files into
@@ -121,12 +123,16 @@ on the server in dev and build; no `ssr.noExternal` entry is needed.
 - The API client in `@ari/data-access` uses `process.env.API_URL` on the server (read at runtime)
   and `import.meta.env.VITE_API_URL` in the browser, both defaulting to `http://localhost:8080`;
   tell them apart with `isServer`.
-- API types are never written by hand. `openapi-typescript` (a dev dependency of `data-access`)
-  generates `src/openapi/schema.ts` from the OpenAPI doc; `pnpm generate:api` rewrites it and
-  formats it with Biome. It is committed, because CI and Docker can't reach ari-api. Name the types
-  code uses in `src/<area>/types.ts` with `RequestBody<path, method>` and
-  `ResponseBody<path, method, status?>` (default: the 2xx body), and export them from `index.ts`.
+- API types are never written by hand. `openapi-typescript` (a dev dependency of `@ari/types`)
+  generates `shared/types/src/schema.ts` from the OpenAPI doc; `pnpm generate:api` rewrites it and
+  formats it with Biome. It is committed, because CI and Docker can't reach ari-api. Each area file
+  (`auth.ts`, `users.ts`) names an endpoint's operation
+  (`paths['/api/v1/auth/login']['post']`) and exports `RequestBody`, `ResponseBody` (2xx) and
+  `ErrorBody` (every declared 4xx, 5xx and `default` response) of it, re-exported from `index.ts`.
   Regenerate after every ari-api change; tsc then flags code that no longer matches.
+- `ErrorBody` covers only the error responses the OpenAPI declares. The client treats any non-2xx
+  as an error whatever the spec says (an undeclared 500, a proxy's 502), and a failed `fetch` as a
+  network error.
 - A page loads its main data with `createAsync(..., { deferStream: true })`, so the server HTML
   holds it. Every page handles loading, empty and error states.
 

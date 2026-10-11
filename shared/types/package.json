@@ -1,0 +1,17 @@
+{
+  "name": "@ari/types",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:api": "openapi-typescript ${API_URL:-http://localhost:8080}/v3/api-docs -o src/schema.ts && biome check --write src/schema.ts"
+  },
+  "dependencies": {
+    "@ari/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "openapi-typescript": "catalog:"
+  }
+}

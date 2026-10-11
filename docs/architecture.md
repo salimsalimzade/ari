@@ -66,8 +66,8 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 
 ## 3. Frontend workspace and UI
 
-`ari` is a Turborepo + pnpm workspace. Apps live in `apps/`, and the code they share lives in three
-packages in `shared/`, following Nx's library types (data-access, ui, util). There are no `lib/`
+`ari` is a Turborepo + pnpm workspace. Apps live in `apps/`, and the code they share lives in four
+packages in `shared/`, following Nx's library types (data-access, ui, util, plus types). There are no `lib/`
 folders.
 
 ```mermaid
@@ -75,17 +75,22 @@ flowchart TD
   web["@ari/web<br/>apps/web, SolidStart"]
   ext["Browser extension<br/>apps/*, F13"]
   da["@ari/data-access<br/>shared/data-access"]
+  types["@ari/types<br/>shared/types"]
   ui["@ari/ui-kit<br/>shared/ui-kit"]
   utils["@ari/utils<br/>shared/utils"]
   api["ari-api<br/>/api/v1"]
 
   web --> da
+  web --> types
   web --> ui
   web --> utils
   ext --> da
+  ext --> types
   ext --> ui
   ext --> utils
+  da --> types
   da --> utils
+  types --> utils
   ui --> utils
   da -- "JSON + cookies" --> api
 
@@ -99,9 +104,10 @@ imports no workspace package, and only `data-access` calls `ari-api`.
 | Package | Folder | Holds |
 |---|---|---|
 | `@ari/web` | `apps/web` | File routes (`routes/`); features (`features/<name>/`: `queries.ts` with the router's `query` and `action`, and the feature's components); page layout styles |
-| `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api`; API types generated from ari-api's OpenAPI (`pnpm generate:api`) |
+| `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api` |
+| `@ari/types` | `shared/types` | API types, generated from ari-api's OpenAPI (`pnpm generate:api`) into `schema.ts`, named per area (`auth.ts`, `users.ts`) |
 | `@ari/ui-kit` | `shared/ui-kit` | Design-system components (thin Kobalte wrappers where Kobalte has the primitive), `AsyncBoundary` (Suspense + ErrorBoundary), `tokens.css`, `base.css` |
-| `@ari/utils` | `shared/utils` | Pure helpers: no UI, no API calls |
+| `@ari/utils` | `shared/utils` | Pure helpers: no UI, no API calls (includes the OpenAPI type helpers) |
 
 Workspace rules:
 
