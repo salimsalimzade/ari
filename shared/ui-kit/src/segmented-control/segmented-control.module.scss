@@ -71,6 +71,37 @@
   }
 }
 
+// sm: the options sit edge to edge in an outlined pill, split by hairlines.
+.root[data-size='sm'] {
+  .track {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--ari-border);
+    background: transparent;
+  }
+
+  .item + .item {
+    border-left: 1px solid var(--ari-border);
+  }
+
+  .item-label {
+    min-height: var(--ari-control-height);
+    padding: 0 12px;
+    border-radius: 0;
+    font: var(--ari-type-label);
+    font-weight: 400;
+
+    @include mobile {
+      min-height: var(--ari-touch-target);
+    }
+  }
+
+  // Inside the pill, which would clip a ring drawn outside the option.
+  .input:focus-visible + .item-label {
+    outline-offset: -2px;
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

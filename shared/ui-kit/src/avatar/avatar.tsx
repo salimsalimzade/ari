@@ -6,8 +6,8 @@ export type AvatarProps = {
   initial: string;
   /** A photo; it fills the circle. */
   src?: string;
-  /** sm 30px (sidebar), lg 80px (phones), xl 96px (account). */
-  size?: 'sm' | 'lg' | 'xl';
+  /** sm 30px (sidebar), md 52px (settings list), lg 80px (phones), xl 96px (account). */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   class?: string;
 };
 

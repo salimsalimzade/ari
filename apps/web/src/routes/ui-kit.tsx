@@ -464,11 +464,12 @@ function Marks() {
 
 function Choices() {
   const [period, setPeriod] = createSignal('monthly');
+  const [keyboard, setKeyboard] = createSignal('mac');
   return (
     <Section title="SegmentedControl · Accordion">
       <div class={styles.grid}>
         <div class={styles.panel}>
-          <span class={styles.label}>SegmentedControl · arrow keys move · badge</span>
+          <span class={styles.label}>SegmentedControl · arrow keys move · badge · sm</span>
           <SegmentedControl
             label="Billing period"
             value={period()}
@@ -476,6 +477,16 @@ function Choices() {
             options={[
               { value: 'monthly', label: 'Monthly' },
               { value: 'yearly', label: 'Yearly', badge: 'Save 20%' },
+            ]}
+          />
+          <SegmentedControl
+            label="Keyboard"
+            size="sm"
+            value={keyboard()}
+            onChange={setKeyboard}
+            options={[
+              { value: 'mac', label: 'Mac' },
+              { value: 'windows', label: 'Windows' },
             ]}
           />
         </div>
@@ -508,9 +519,10 @@ function People() {
     <Section title="Avatar · Slider">
       <div class={styles.grid}>
         <div class={styles.panel}>
-          <span class={styles.label}>Avatar · sm / lg / xl, letter or photo</span>
+          <span class={styles.label}>Avatar · sm / md / lg / xl, letter or photo</span>
           <div class={styles.row}>
             <Avatar initial="S" />
+            <Avatar initial="S" size="md" />
             <Avatar initial="S" size="lg" />
             <Avatar initial="S" size="xl" />
             <Avatar initial="S" size="xl" src="/favicon.svg" />
@@ -562,6 +574,7 @@ function Identity() {
 function Overlays() {
   const [open, setOpen] = createSignal(false);
   const [confirmOpen, setConfirmOpen] = createSignal(false);
+  const [sheetOpen, setSheetOpen] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
   // Stands in for a real request: the dialog closes once the action finishes.
   const deleteHighlight = () => {
@@ -575,6 +588,7 @@ function Overlays() {
     <Section title="Dialog">
       <div class={styles.row}>
         <Button onClick={() => setOpen(true)}>Dismissible</Button>
+        <Button onClick={() => setSheetOpen(true)}>Sheet on phones</Button>
         <Button variant="danger" icon={<Icon name="trash" />} onClick={() => setConfirmOpen(true)}>
           Delete highlight
         </Button>
@@ -584,6 +598,13 @@ function Overlays() {
         onOpenChange={setOpen}
         title="Highlight saved"
         description="Close it with the X, Escape or a click outside."
+      />
+      <Dialog
+        open={sheetOpen()}
+        onOpenChange={setSheetOpen}
+        sheet
+        title="Cancel your trial?"
+        description="On phones it rises from the bottom edge; wider, it sits in the middle."
       />
       <Dialog
         open={confirmOpen()}

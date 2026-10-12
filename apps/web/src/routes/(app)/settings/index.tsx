@@ -1,6 +1,5 @@
 import { Title } from '@solidjs/meta';
-import styles from '~/features/settings/settings.module.scss';
-import { SettingsNav } from '~/features/settings/settings-nav';
+import { SettingsList } from '~/features/settings/settings-list';
 import { MobileHeader } from '~/features/shell/mobile-header';
 import { useI18n } from '~/i18n/i18n';
 
@@ -10,11 +9,8 @@ export default function SettingsIndex() {
   return (
     <>
       <Title>{t().settings.pageTitle}</Title>
-      <MobileHeader />
-      <h1 class={styles['mobile-title']}>{t().settings.title}</h1>
-      <div class={styles.sections}>
-        <SettingsNav variant="list" />
-      </div>
+      <MobileHeader title={t().settings.title} />
+      <SettingsList />
     </>
   );
 }

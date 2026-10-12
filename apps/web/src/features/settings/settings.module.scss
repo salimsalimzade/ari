@@ -43,24 +43,14 @@
   flex-direction: column;
   gap: 2px;
 
-  // Between phone and desktop widths, the column becomes a row of pills above the section.
-  &[data-variant='side'] {
-    @include narrow {
-      flex-direction: row;
-      overflow-x: auto;
-    }
-  }
-
-  &[data-variant='list'] {
-    gap: 6px;
+  // Between phone and desktop widths, the column becomes rows of pills above the section.
+  @include narrow {
+    flex-flow: row wrap;
   }
 }
 
 .item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: block;
   padding: 10px 16px;
   border-radius: var(--ari-radius-pill);
   color: var(--ari-text-primary);
@@ -76,24 +66,6 @@
   &.active {
     background: var(--ari-selected-nav-bg);
     color: var(--ari-selected-nav-text);
-  }
-
-  .nav[data-variant='list'] & {
-    min-height: 56px;
-    padding-inline: 22px 18px;
-    border-radius: var(--ari-radius-popover);
-    background: var(--ari-bg-surface);
-    font-size: 15px;
-
-    &:hover {
-      background: var(--ari-neutral-300);
-    }
-  }
-
-  svg {
-    @include stroke-icon(var(--ari-icon));
-
-    color: var(--ari-text-secondary);
   }
 }
 
@@ -120,21 +92,111 @@
   }
 }
 
-.soon {
-  @include card;
-}
+// — /settings: the account, the sections with a line about each, Log out —
 
-.soon-title {
-  font: 700 22px / 1.12 var(--ari-font-heading);
-  letter-spacing: var(--ari-heading-tracking);
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 
   @include mobile {
-    font-size: 20px;
+    padding: 6px 12px 0;
   }
 }
 
-.soon-text {
+.account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-surface);
+  color: var(--ari-text-primary);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ari-neutral-300);
+  }
+}
+
+.account-name {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-surface);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 8px 12px;
+  border-radius: 22px;
+  color: var(--ari-text-primary);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+}
+
+.list-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-canvas);
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+.list-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.list-label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.list-summary {
+  overflow: hidden;
+  font-size: 13px;
   color: var(--ari-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The chevron at the end of the account and of each section.
+.account > svg,
+.list-item > svg {
+  @include stroke-icon;
+
+  color: var(--ari-text-secondary);
+}
+
+.list > .log-out {
+  align-self: flex-start;
+  min-height: var(--ari-control-height-lg);
+
+  svg {
+    @include stroke-icon;
+  }
 }
 
 // After .nav, so hiding it wins over its display: flex.

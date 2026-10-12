@@ -13,6 +13,8 @@ export type DialogProps = {
    * buttons close it, by setting `open` to false (e.g. after an action finishes).
    */
   dismissible?: boolean;
+  /** On phones it rises from the bottom edge as a sheet, e.g. to confirm an action. */
+  sheet?: boolean;
   children?: JSX.Element;
 };
 
@@ -30,7 +32,7 @@ export function Dialog(props: DialogProps) {
     >
       <KobalteDialog.Portal>
         <KobalteDialog.Overlay class={styles.overlay} />
-        <div class={styles.positioner}>
+        <div class={styles.positioner} data-sheet={props.sheet ? '' : undefined}>
           <KobalteDialog.Content
             class={styles.content}
             onEscapeKeyDown={preventUnlessDismissible}

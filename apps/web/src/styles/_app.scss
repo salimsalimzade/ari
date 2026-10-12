@@ -30,6 +30,16 @@ $narrow: 1024px;
   stroke-linejoin: round;
 }
 
+// Hides an element visually but keeps it for screen readers, e.g. a radio drawn by its label.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 // A rounded panel on the page, e.g. one settings section.
 @mixin card {
   display: flex;

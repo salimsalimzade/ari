@@ -16,14 +16,3 @@ export function SettingsPage(props: { title: string; pageTitle: string; children
     </>
   );
 }
-
-/** A section that isn't built yet. */
-export function ComingSoon(props: { text: string }) {
-  const { t } = useI18n();
-  return (
-    <section class={styles.soon}>
-      <h2 class={styles['soon-title']}>{t().settings.comingSoon}</h2>
-      <p class={styles['soon-text']}>{props.text}</p>
-    </section>
-  );
-}

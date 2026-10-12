@@ -1,0 +1,553 @@
+@use '../../styles/app' as *;
+
+// The cards of each settings section (Plan and billing, Highlight colors, Shortcuts, Export,
+// Connected apps).
+
+.card {
+  @include card;
+}
+
+.heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.heading {
+  font: var(--ari-type-h4);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ari-neutral-800);
+  text-wrap: pretty;
+
+  // Only phones say it, e.g. that shortcuts need a keyboard.
+  &[data-phone] {
+    display: none;
+
+    @include mobile {
+      display: block;
+    }
+  }
+}
+
+.caption {
+  font: var(--ari-type-caption);
+  color: var(--ari-text-secondary);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.overline {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ari-text-secondary);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    button {
+      min-height: var(--ari-touch-target);
+    }
+  }
+}
+
+// — Bars: trial days, upload space, export progress —
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &[data-gap='lg'] {
+    gap: 8px;
+  }
+}
+
+.meter {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-neutral-300);
+
+  &[data-size='lg'] {
+    height: 12px;
+  }
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ari-sage-500);
+
+  &[data-tone='accent'] {
+    background: var(--ari-action-primary);
+    transition: width 0.2s linear;
+  }
+}
+
+// — A row on the canvas color inside a card: the card on file, an app, the export —
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: var(--ari-bg-canvas);
+
+  &[data-wrap] {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+
+  &[data-tone='done'] {
+    background: var(--ari-sage-200);
+  }
+
+  > button {
+    flex: none;
+
+    svg {
+      @include stroke-icon;
+    }
+
+    @include mobile {
+      min-height: var(--ari-touch-target);
+    }
+  }
+}
+
+.row-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-surface);
+
+  // An app's initial, on a rounded square.
+  &[data-shape='square'] {
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  svg {
+    @include stroke-icon(20px);
+  }
+
+  .row[data-tone='done'] & {
+    width: auto;
+    background: none;
+    color: var(--ari-sage-900);
+  }
+}
+
+.row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  // Where the row wraps, the buttons move below before the text gets narrower than this.
+  .row[data-wrap] & {
+    flex-basis: 160px;
+  }
+}
+
+.row-title {
+  font-size: 15px;
+  font-weight: 700;
+
+  &[data-truncate] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.row-sub {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ari-text-secondary);
+
+  &[data-tone='danger'] {
+    color: var(--ari-text-danger);
+  }
+
+  .row[data-tone='done'] & {
+    color: var(--ari-sage-900);
+  }
+}
+
+// — Radio cards: the billing period and the export format —
+
+.choices {
+  display: grid;
+  gap: 8px;
+
+  &[data-columns='2'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+
+    @include mobile {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--ari-bg-canvas);
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+  cursor: pointer;
+
+  &[data-layout='price'] {
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 22px;
+  }
+
+  &:has(:checked) {
+    box-shadow: 0 0 0 2px var(--ari-action-primary);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 3px;
+  }
+}
+
+.radio {
+  @include visually-hidden;
+}
+
+// The drawn radio button; filled with a cream ring when its choice is on.
+.dot {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+  border: 2px solid var(--ari-neutral-400);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--ari-bg-canvas);
+
+  .choice:has(:checked) & {
+    border-color: var(--ari-action-primary);
+    background: var(--ari-action-primary);
+  }
+}
+
+.choice-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice-label {
+  font-size: 15px;
+  font-weight: 700;
+
+  .choice-head & {
+    flex: 1;
+  }
+}
+
+.choice-description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ari-neutral-800);
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.per {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ari-text-secondary);
+}
+
+// — Plan and billing —
+
+.space {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.space-used {
+  margin-right: auto;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.space-left {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ari-text-secondary);
+}
+
+.invoices {
+  display: flex;
+  flex-direction: column;
+}
+
+.invoice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--ari-border);
+  font-size: 14px;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.invoice-date {
+  flex: 1;
+  font-weight: 600;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+
+  @include mobile {
+    flex-direction: column-reverse;
+
+    button {
+      min-height: var(--ari-control-height-lg);
+    }
+  }
+}
+
+// — Highlight colors —
+
+.colors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.color {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+
+  @each $color in 'yellow', 'green', 'blue', 'pink', 'purple' {
+    &[data-color='#{$color}'] {
+      background: var(--ari-hl-#{$color});
+    }
+  }
+}
+
+.color-name {
+  flex: 1;
+  min-width: 0;
+}
+
+// "Default": a radio drawn as a pill, dark while its color is the default.
+.default {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  flex: none;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  color: var(--ari-neutral-800);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover:not(:has(:checked)) {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  &:has(:checked) {
+    background: var(--ari-text-primary);
+    color: var(--ari-bg-canvas);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+
+  @include mobile {
+    height: var(--ari-touch-target);
+  }
+}
+
+.default-dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ari-neutral-400);
+  border-radius: 50%;
+
+  .default:has(:checked) & {
+    border-color: var(--ari-bg-canvas);
+    background: var(--ari-action-primary);
+  }
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--ari-bg-canvas);
+}
+
+.preview-quote {
+  font: 400 17px / 1.6 var(--ari-font-quote);
+}
+
+// — Shortcuts —
+
+.keyboard {
+  margin-left: auto;
+}
+
+.key-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  border-bottom: 1px solid var(--ari-border);
+}
+
+.key-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.keys {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 9px;
+  background: var(--ari-bg-canvas);
+  box-shadow: inset 0 -2px 0 var(--ari-border);
+  font: 700 13px / 1 var(--ari-font-body);
+}
+
+// — Export —
+
+.parts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 16px;
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// A Checkbox whose label holds the part's name and, at the end, how many there are.
+.part {
+  justify-content: center;
+  min-height: var(--ari-touch-target);
+  padding: 0 4px;
+
+  > div {
+    align-items: center;
+  }
+
+  label {
+    display: flex;
+    flex: 1;
+    gap: 12px;
+    font-size: 15px;
+  }
+}
+
+.part-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--ari-bg-canvas);
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}

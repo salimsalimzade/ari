@@ -167,6 +167,13 @@
   }
 }
 
+// The page's title in place of the logo, e.g. "Settings" on the list of sections.
+.mobile-title {
+  padding-left: 4px;
+  font: var(--ari-type-h2);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
 // "← Settings": looks like a secondary button.
 .back {
   display: inline-flex;

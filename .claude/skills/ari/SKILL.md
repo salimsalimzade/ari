@@ -146,19 +146,26 @@ only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; th
 digits, underscores or dots). Google (F9) comes later. The signed-in pages live in the
 `routes/(app)/` group, whose layout `(app).tsx` wraps them in `features/shell`'s `AppShell`: a
 sidebar on wide screens (Library; language, Settings and the user at the bottom) and a tab bar
-under 720px, where each page puts its own `MobileHeader` (logo, or a "← Settings" back link, plus
-the language picker). `/settings` (`features/settings`) lists Account, Plan and billing, Shortcuts
-and Export; on wide screens they sit in a column beside the open section (a row of pills under
-1024px), and `/settings` itself is the list, where the phone tab goes. Only Account is built
-(`features/account`, from the design's "Ari Account"): photo (upload or drop, crop in a dialog),
-profile form and an optional email that stays unverified until confirmed. It is UI only: the form
-is filled from `getMe`, but saving, the photo and the email stay in the page until ari-api has their
-endpoints. The other sections say "Coming soon". App Sass modules share `src/styles/_app.scss`
-(breakpoints, `stroke-icon`, `card`). `src/middleware.ts`
+under 720px, where each page puts its own `MobileHeader` (logo, a title, or a "← Settings" back
+link, plus the language picker). `/settings` (`features/settings`, from the design's "Ari Settings")
+has Account, Plan and billing, Highlight colors, Shortcuts, Export and Connected apps; on wide
+screens they sit in a column beside the open section (wrapping rows of pills under 1024px), and
+`/settings` itself is the list (the account, each section with a line about it, Log out), where the
+phone tab goes. Account (`features/account`, from the design's "Ari Account"): photo (upload or
+drop, crop in a dialog), profile form and an optional email that stays unverified until confirmed.
+Every section is UI only: Account's form is filled from `getMe`, but saving, the photo and the
+email, the plan (trial, active, payment failed, canceled; the cancel dialog is a sheet on phones),
+billing, upload space, highlight colors and export stay in the page until ari-api has their
+endpoints. Their state lives in `SettingsProvider` (`settings-store.tsx`, with the design's example
+account as `sample`), set up by the settings layout so the list can sum each section up. Their
+dates, numbers and sizes go through `useFormat()` (date-fns patterns and separators from the
+dictionaries, not Intl), and dictionary texts take values through `fill()`. App Sass modules share
+`src/styles/_app.scss` (breakpoints, `stroke-icon`, `visually-hidden`, `card`). `src/middleware.ts`
 refreshes the session before a page renders when `ari_access` is gone (pages only, so asset
 requests don't spend the same refresh token).
 `ui-kit` has the design tokens and the design handoff's components, styled (plus `Accordion`, `SegmentedControl`, `Avatar`, `Slider`,
-TextField's `prefix` and Select's `block` for the account page); `types` has the
+TextField's `prefix` and Select's `block` for the account page, and SegmentedControl's `sm`,
+Dialog's `sheet` and Avatar's `md` for the settings sections); `types` has the
 generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
 `data-access` has the API client (`request`, `ApiError`, the shared refresh, `refreshSession` for
 the middleware), the auth calls and `fetchMe`, with Vitest tests. Its `Problem` type is written by

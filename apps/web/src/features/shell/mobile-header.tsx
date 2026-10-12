@@ -6,15 +6,24 @@ import styles from './app-shell.module.scss';
 import { BackIcon } from './icons';
 
 export type MobileHeaderProps = {
-  /** A "← Settings" link back to the page above; the logo when there is none. */
+  /** A "← Settings" link back to the page above. */
   back?: { href: string; label: string };
+  /** The page's title, where a page without a back link would show the logo. */
+  title?: string;
 };
 
-/** The top of a signed-in page on phones: back link or logo, and the language picker. */
+/** The top of a signed-in page on phones: back link, title or logo, and the language picker. */
 export function MobileHeader(props: MobileHeaderProps) {
   return (
     <header class={styles['mobile-header']}>
-      <Show when={props.back} fallback={<Logo wordmark="md" />}>
+      <Show
+        when={props.back}
+        fallback={
+          <Show when={props.title} fallback={<Logo wordmark="md" />}>
+            <h1 class={styles['mobile-title']}>{props.title}</h1>
+          </Show>
+        }
+      >
         {(back) => (
           <A href={back().href} class={styles.back}>
             <BackIcon />

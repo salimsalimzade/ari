@@ -28,6 +28,20 @@
   color: var(--ari-text-primary);
 }
 
+// sheet: on phones, full width along the bottom edge, above the home indicator.
+.positioner[data-sheet] {
+  @include mobile {
+    place-items: end stretch;
+    padding: 0;
+
+    .content {
+      width: 100%;
+      padding: 26px 22px max(34px, env(safe-area-inset-bottom));
+      border-radius: var(--ari-radius-panel) var(--ari-radius-panel) 0 0;
+    }
+  }
+}
+
 .header {
   display: flex;
   align-items: flex-start;

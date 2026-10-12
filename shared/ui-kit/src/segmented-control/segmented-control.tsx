@@ -17,6 +17,8 @@ export type SegmentedControlProps = {
   options: SegmentedOption[];
   value: string;
   onChange: (value: string) => void;
+  /** md: a filled pill of 44px options. sm: an outlined pill of 36px options (44px on phones). */
+  size?: 'sm' | 'md';
   /** Fills its container, the options sharing the width. */
   block?: boolean;
   class?: string;
@@ -29,6 +31,7 @@ export function SegmentedControl(props: SegmentedControlProps) {
       class={props.class ? `${styles.root} ${props.class}` : styles.root}
       value={props.value}
       onChange={props.onChange}
+      data-size={props.size ?? 'md'}
       data-block={props.block ? '' : undefined}
     >
       <KobalteSegmentedControl.Label class={styles.label}>
