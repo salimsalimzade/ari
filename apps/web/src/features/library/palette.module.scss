@@ -1,0 +1,237 @@
+@use '../../styles/app' as *;
+
+// The search palette: a panel near the top of the screen; on phones, the whole screen.
+
+.palette {
+  width: min(640px, calc(100% - 32px));
+  max-width: none;
+  max-height: min(620px, calc(100dvh - 140px));
+  margin: 110px auto auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-text-primary);
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &::backdrop {
+    background: color-mix(in srgb, var(--ari-ink) 32%, transparent);
+  }
+
+  @include mobile {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  flex: none;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--ari-border);
+
+  > svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+
+  @include mobile {
+    gap: 10px;
+    height: auto;
+    padding: max(12px, env(safe-area-inset-top)) 12px 10px 18px;
+  }
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: var(--ari-touch-target);
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ari-text-primary);
+  font-size: 18px;
+
+  &::placeholder {
+    color: var(--ari-text-muted);
+  }
+
+  @include mobile {
+    font-size: 17px;
+  }
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--ari-radius-sm);
+  background: var(--ari-bg-surface);
+  color: var(--ari-neutral-800);
+  font: 700 12px / 1 var(--ari-font-body);
+
+  &[data-wide] {
+    @include mobile {
+      display: none;
+    }
+  }
+}
+
+.cancel {
+  display: none;
+
+  @include mobile {
+    display: block;
+    height: var(--ari-touch-target);
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    color: var(--ari-text-link);
+    font: var(--ari-type-button);
+    cursor: pointer;
+  }
+}
+
+.results {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 8px 10px;
+  overflow-y: auto;
+}
+
+.group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 12px 4px;
+  color: var(--ari-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group-count {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+
+  &[aria-selected='true'] {
+    background: var(--ari-bg-surface);
+  }
+
+  @include mobile {
+    min-height: 56px;
+  }
+}
+
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-surface);
+
+  svg {
+    @include stroke-icon;
+  }
+
+  .option[aria-selected='true'] & {
+    background: var(--ari-bg-canvas);
+  }
+}
+
+.option-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.option-title {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-quote] {
+    font-family: var(--ari-font-quote);
+    font-weight: 400;
+  }
+}
+
+// The tint reaches a little past the letters without moving them.
+.match {
+  margin: 0 -1px;
+  padding: 0 1px;
+  border-radius: 3px;
+  background: var(--ari-selected-nav-bg);
+  font-weight: 700;
+}
+
+.option-sub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 28px 12px;
+  font-size: 14px;
+  color: var(--ari-neutral-800);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  padding: 10px 20px;
+  border-top: 1px solid var(--ari-border);
+  background: var(--ari-bg-surface);
+  color: var(--ari-neutral-800);
+  font-size: 12px;
+  font-weight: 600;
+
+  .key {
+    background: var(--ari-bg-canvas);
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

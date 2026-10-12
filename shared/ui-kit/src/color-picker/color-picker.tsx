@@ -9,6 +9,8 @@ export type ColorPickerProps = {
   /** md swatches are 28px, sm 22px. */
   size?: 'sm' | 'md';
   'aria-label'?: string;
+  /** Each color's name for screen readers, e.g. in the page's language; English when left out. */
+  names?: Record<HighlightColor, string>;
   class?: string;
 };
 
@@ -31,7 +33,9 @@ export function ColorPicker(props: ColorPickerProps) {
               data-color={color}
               data-size={props.size ?? 'md'}
             />
-            <RadioGroup.ItemLabel class={styles.label}>{color}</RadioGroup.ItemLabel>
+            <RadioGroup.ItemLabel class={styles.label}>
+              {props.names?.[color] ?? color}
+            </RadioGroup.ItemLabel>
           </RadioGroup.Item>
         )}
       </For>

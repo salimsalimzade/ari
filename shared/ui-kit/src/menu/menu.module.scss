@@ -1,0 +1,65 @@
+@use '../styles/mixins' as *;
+
+.content {
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 8px;
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-text-primary);
+  outline: none;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+
+  svg {
+    @include icon;
+  }
+
+  &[data-highlighted] {
+    background: var(--ari-bg-surface);
+  }
+
+  &[data-danger] {
+    color: var(--ari-text-danger);
+  }
+
+  &[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  @include mobile {
+    min-height: var(--ari-touch-target);
+  }
+}
+
+.label {
+  flex: 1;
+}
+
+.hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ari-text-secondary);
+}

@@ -1,4 +1,3 @@
-import type { HighlightColor } from '@ari/ui-kit';
 import { createContext, createSignal, type JSX, onCleanup, useContext } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
@@ -37,14 +36,6 @@ export const sample = {
 function createSettings() {
   const [plan, setPlan] = createSignal<PlanState>('trial');
   const [period, setPeriod] = createSignal<BillingPeriod>('monthly');
-  const [defaultColor, setDefaultColor] = createSignal<HighlightColor>('yellow');
-  const [colorNames, setColorNames] = createStore<Record<HighlightColor, string>>({
-    yellow: '',
-    green: '',
-    blue: '',
-    pink: '',
-    purple: '',
-  });
   const [exportFormat, setExportFormat] = createSignal<ExportFormat>('md');
   const [exportParts, setExportParts] = createStore<Record<ExportPart, boolean>>({
     highlights: true,
@@ -67,10 +58,6 @@ function createSettings() {
     resumePlan: () => setPlan(plan() === 'trialCanceled' ? 'trial' : 'active'),
     period,
     setPeriod,
-    defaultColor,
-    setDefaultColor,
-    colorNames,
-    setColorName: (color: HighlightColor, name: string) => setColorNames(color, name),
     exportFormat,
     setExportFormat: (format: ExportFormat) => {
       resetExport();

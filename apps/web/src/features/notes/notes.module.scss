@@ -1,0 +1,762 @@
+@use '../../styles/app' as *;
+
+// Wide screens: the list of notes beside the open note, which sits in a raised panel. Phones:
+// /notes is the list, and a note has the whole screen in sand with its own header.
+
+.wide-only {
+  @include mobile {
+    display: none;
+  }
+}
+
+.phone-only {
+  display: none;
+
+  @include mobile {
+    display: revert;
+  }
+}
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+
+  @include mobile {
+    display: block;
+  }
+}
+
+.side {
+  position: sticky;
+  top: 0;
+  width: 256px;
+  max-height: 100dvh;
+  flex: none;
+  overflow-y: auto;
+
+  @include mobile {
+    position: static;
+    width: auto;
+    max-height: none;
+
+    .layout:not([data-index]) & {
+      display: none;
+    }
+  }
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+
+  @include mobile {
+    .layout[data-index] & {
+      display: none;
+    }
+  }
+}
+
+// — The list —
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 8px;
+
+  @include mobile {
+    padding: 8px 12px 24px;
+  }
+}
+
+.list-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 10px;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.list-title {
+  margin-right: auto;
+  font: var(--ari-type-h2);
+  font-size: 30px;
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font-size: 28px;
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-radius: 20px;
+  color: var(--ari-text-primary);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  &.current {
+    background: var(--ari-selected-row-bg);
+  }
+
+  @include mobile {
+    padding: 14px 16px;
+  }
+}
+
+.item-title {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.item-meta {
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+}
+
+// — The note —
+
+.editor {
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    background: var(--ari-bg-surface);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 32px);
+  margin: 16px 16px 16px 0;
+  border-radius: var(--ari-radius-panel);
+  background: var(--ari-bg-raised);
+  box-shadow: var(--ari-elevation-panel);
+
+  @include mobile {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px 0 52px;
+
+  @include narrow {
+    padding-left: 28px;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.status {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+}
+
+.phone-bar {
+  display: none;
+
+  @include mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+
+    .status {
+      margin-left: 6px;
+    }
+  }
+}
+
+.phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-link {
+  display: grid;
+  place-items: center;
+  width: var(--ari-touch-target);
+  height: var(--ari-touch-target);
+  flex: none;
+  border: 1px solid var(--ari-border);
+  border-radius: 50%;
+  color: var(--ari-text-primary);
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+  }
+}
+
+// The ⋯ button: 40px, 44px on phones, pressed while its menu is open.
+.more[data-icon-only][data-size] {
+  width: 40px;
+  min-height: 40px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  &[data-expanded] {
+    background: var(--ari-action-secondary-pressed);
+  }
+
+  @include mobile {
+    width: var(--ari-touch-target);
+    min-height: var(--ari-touch-target);
+
+    svg {
+      @include stroke-icon(var(--ari-icon));
+    }
+  }
+}
+
+.menu {
+  width: 280px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 720px;
+  max-width: 100%;
+  padding: 20px 52px 40px;
+
+  @include narrow {
+    padding-inline: 28px;
+  }
+
+  @include mobile {
+    width: auto;
+    gap: 14px;
+    padding: 8px 22px 32px;
+  }
+}
+
+// A textarea over an invisible copy of its text: the copy sizes it, so it grows line by line.
+.grow {
+  position: relative;
+  display: block;
+
+  &::after {
+    content: attr(data-value) ' ';
+    display: block;
+    visibility: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  // While the "/" menu is open the command shows as a tinted token.
+  &[data-slash] {
+    width: fit-content;
+    max-width: 100%;
+    padding: 0 4px;
+    border-radius: 6px;
+    background: var(--ari-terracotta-100);
+    color: var(--ari-terracotta-800);
+
+    > .input {
+      padding: 0 4px;
+    }
+  }
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  resize: none;
+  overflow: hidden;
+  caret-color: var(--ari-action-primary);
+  outline: none;
+
+  &::placeholder {
+    color: var(--ari-text-secondary);
+  }
+}
+
+.title {
+  font: var(--ari-type-h1);
+  font-size: 36px;
+  letter-spacing: var(--ari-heading-tracking);
+
+  .input::placeholder {
+    color: var(--ari-text-muted);
+  }
+
+  @include mobile {
+    font-size: 28px;
+  }
+}
+
+.paragraph {
+  position: relative;
+  font: var(--ari-type-note);
+
+  @include mobile {
+    font-size: 16px;
+    line-height: 1.65;
+  }
+}
+
+.quote {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border-radius: 24px;
+  background: var(--ari-bg-canvas);
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--ari-border-focus);
+  }
+
+  @include mobile {
+    padding: 14px 16px;
+    border-radius: 22px;
+  }
+}
+
+.quote-text {
+  padding-right: 24px;
+  font: var(--ari-type-quote);
+
+  @include mobile {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+}
+
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    font-size: 11px;
+
+    svg {
+      display: none;
+    }
+  }
+}
+
+// Shows on hover or focus; always there on touch screens.
+.remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ari-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  &:hover {
+    background: var(--ari-action-secondary-hover);
+    color: var(--ari-text-primary);
+  }
+
+  .quote:hover &,
+  .quote:focus-within & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    top: 4px;
+    right: 4px;
+    width: 36px;
+    height: 36px;
+    opacity: 1;
+  }
+}
+
+// — The "/" menu: under its paragraph on wide screens, in the flow on phones —
+
+.slash {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 460px;
+  max-width: 100%;
+  padding: 8px;
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-elevation-overlay);
+  font: var(--ari-type-body);
+
+  @include mobile {
+    position: static;
+    width: auto;
+    margin-top: 14px;
+    border: 1px solid var(--ari-border);
+  }
+}
+
+.slash-head {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+}
+
+.slash-title {
+  flex: 1;
+  font: var(--ari-type-overline);
+  letter-spacing: var(--ari-overline-tracking);
+  text-transform: uppercase;
+  color: var(--ari-text-secondary);
+}
+
+.slash-hint {
+  font-size: 11px;
+  color: var(--ari-text-secondary);
+}
+
+.pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+
+  &[aria-selected='true'] {
+    background: var(--ari-selected-row-bg);
+  }
+
+  @include mobile {
+    min-height: var(--ari-touch-target);
+    padding: 10px;
+  }
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--ari-hl-yellow);
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+
+  @each $color in 'green', 'blue', 'pink', 'purple' {
+    &[data-color='#{$color}'] {
+      background: var(--ari-hl-#{$color});
+    }
+  }
+}
+
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pick-quote {
+  font: var(--ari-type-quote-sm);
+}
+
+.pick-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ari-text-secondary);
+}
+
+.in-note {
+  font-weight: 700;
+  color: var(--ari-sage-800);
+}
+
+.slash-empty {
+  padding: 8px 12px 10px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+// — Tips in a new note —
+
+.tips {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+  margin-top: 12px;
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: var(--ari-bg-canvas);
+}
+
+.tips-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tip-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-surface);
+
+  svg {
+    @include stroke-icon;
+  }
+
+  &[data-tip='slash'] {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-900);
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+.tip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tip-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tip-body {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ari-neutral-800);
+}
+
+.tips-note {
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+
+  @include mobile {
+    flex-direction: column-reverse;
+
+    button {
+      min-height: var(--ari-control-height-lg);
+    }
+  }
+}
+
+// — Empty, nothing open and not found —
+
+.empty {
+  padding: 32px 40px;
+
+  @include mobile {
+    padding: 0 0 28px;
+  }
+}
+
+.empty-heading {
+  font: var(--ari-type-h2);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    padding: 12px 24px 0;
+    font-size: 28px;
+  }
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 400px;
+  padding-top: 56px;
+
+  @include mobile {
+    gap: 12px;
+    padding: 40px 24px 0;
+  }
+}
+
+.state-icon,
+.error-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--ari-state-empty-bg);
+  color: var(--ari-state-empty-icon);
+
+  svg {
+    @include stroke-icon(22px);
+  }
+
+  @include mobile {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+.error-icon {
+  background: var(--ari-state-error-bg);
+  color: var(--ari-state-error-icon);
+}
+
+.state-title {
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font: var(--ari-type-h4);
+  }
+}
+
+.state-text {
+  font-size: 15px;
+  color: var(--ari-neutral-800);
+}
+
+.state-action {
+  @include mobile {
+    min-height: var(--ari-control-height-lg);
+  }
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: calc(100dvh - 32px);
+  margin: 16px 16px 16px 0;
+  border-radius: var(--ari-radius-panel);
+  background: var(--ari-bg-raised);
+}
+
+.missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 480px;
+  padding: 56px 40px;
+
+  a svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    gap: 12px;
+    padding: 24px;
+  }
+}
+
+// Export as PDF prints the note alone.
+@media print {
+  .side,
+  .bar,
+  .phone-bar,
+  .tips,
+  .remove,
+  .slash {
+    display: none;
+  }
+
+  .layout,
+  .editor {
+    display: block;
+    min-height: 0;
+    background: none;
+  }
+
+  .panel {
+    min-height: 0;
+    margin: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .body {
+    width: auto;
+    padding: 0;
+  }
+
+  .quote {
+    break-inside: avoid;
+  }
+}

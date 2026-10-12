@@ -1,7 +1,6 @@
 @use '../../styles/app' as *;
 
-// The cards of each settings section (Plan and billing, Highlight colors, Shortcuts, Export,
-// Connected apps).
+// The cards of each settings section (Plan and billing, Shortcuts, Export, Connected apps).
 
 .card {
   @include card;
@@ -361,98 +360,6 @@
       min-height: var(--ari-control-height-lg);
     }
   }
-}
-
-// — Highlight colors —
-
-.colors {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.color {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.swatch {
-  width: 32px;
-  height: 32px;
-  flex: none;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px var(--ari-border);
-
-  @each $color in 'yellow', 'green', 'blue', 'pink', 'purple' {
-    &[data-color='#{$color}'] {
-      background: var(--ari-hl-#{$color});
-    }
-  }
-}
-
-.color-name {
-  flex: 1;
-  min-width: 0;
-}
-
-// "Default": a radio drawn as a pill, dark while its color is the default.
-.default {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  flex: none;
-  padding: 0 12px;
-  border-radius: var(--ari-radius-pill);
-  color: var(--ari-neutral-800);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover:not(:has(:checked)) {
-    background: var(--ari-action-secondary-hover);
-  }
-
-  &:has(:checked) {
-    background: var(--ari-text-primary);
-    color: var(--ari-bg-canvas);
-  }
-
-  &:has(:focus-visible) {
-    outline: 2px solid var(--ari-border-focus);
-    outline-offset: 2px;
-  }
-
-  @include mobile {
-    height: var(--ari-touch-target);
-  }
-}
-
-.default-dot {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--ari-neutral-400);
-  border-radius: 50%;
-
-  .default:has(:checked) & {
-    border-color: var(--ari-bg-canvas);
-    background: var(--ari-action-primary);
-  }
-}
-
-.preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: var(--ari-bg-canvas);
-}
-
-.preview-quote {
-  font: 400 17px / 1.6 var(--ari-font-quote);
 }
 
 // — Shortcuts —

@@ -1,7 +1,7 @@
 import { Alert, Button, Dialog, Tag, type TagProps } from '@ari/ui-kit';
 import { createSignal, For, Show } from 'solid-js';
+import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
-import { fill, useFormat } from './format';
 import { CardIcon, DownloadIcon } from './icons';
 import styles from './sections.module.scss';
 import { type BillingPeriod, type PlanState, sample, useSettings } from './settings-store';

@@ -4,10 +4,9 @@ import { A, createAsync, useAction, useSubmission } from '@solidjs/router';
 import { ErrorBoundary, For, type JSX, Show, Suspense } from 'solid-js';
 import { getMe, logoutAction } from '~/features/auth/queries';
 import { ChevronRightIcon } from '~/features/shell/icons';
+import { fill } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
-import { fill } from './format';
-import { useDefaultColorName } from './highlight-colors';
-import { CardIcon, DownloadIcon, KeyboardIcon, LinkIcon, LogOutIcon, PaletteIcon } from './icons';
+import { CardIcon, DownloadIcon, KeyboardIcon, LinkIcon, LogOutIcon } from './icons';
 import { usePlanSummary } from './plan-billing';
 import styles from './settings.module.scss';
 
@@ -19,23 +18,16 @@ export function SettingsList() {
   const { t } = useI18n();
   const me = createAsync(() => getMe(), { deferStream: true });
   const planSummary = usePlanSummary();
-  const defaultColor = useDefaultColorName();
   const logOut = useAction(logoutAction);
   const loggingOut = useSubmission(logoutAction);
 
   const items: {
     href: string;
-    key: 'billing' | 'colors' | 'shortcuts' | 'export' | 'apps';
+    key: 'billing' | 'shortcuts' | 'export' | 'apps';
     icon: () => JSX.Element;
     summary: () => string;
   }[] = [
     { href: '/settings/billing', key: 'billing', icon: CardIcon, summary: planSummary },
-    {
-      href: '/settings/colors',
-      key: 'colors',
-      icon: PaletteIcon,
-      summary: () => fill(t().colors.summary, { name: defaultColor() }),
-    },
     {
       href: '/settings/shortcuts',
       key: 'shortcuts',

@@ -1,0 +1,369 @@
+@use '../../styles/app' as *;
+
+// /library/:id. Wide screens: a sand panel with Library, the position and previous / next on top,
+// then the save at reading size. Phones: the whole screen in sand, the save, its color and
+// comment, the source, and the two main buttons at the bottom.
+
+.page {
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    background: var(--ari-bg-surface);
+  }
+}
+
+.wide-only {
+  @include mobile {
+    display: none;
+  }
+}
+
+.phone-only {
+  display: none;
+
+  @include mobile {
+    display: revert;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100dvh - 32px);
+  margin: 16px 16px 16px 0;
+  padding: 28px 40px 40px;
+  border-radius: var(--ari-radius-panel);
+  background: var(--ari-bg-surface);
+
+  @include narrow {
+    padding-inline: 28px;
+  }
+
+  @include mobile {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.position {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.phone-header {
+  display: none;
+
+  @include mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+  }
+}
+
+.phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: var(--ari-touch-target);
+  height: var(--ari-touch-target);
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--ari-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ari-text-primary);
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: var(--ari-reading-measure);
+  padding-top: 72px;
+
+  @include narrow {
+    padding-top: 40px;
+  }
+
+  @include mobile {
+    gap: 22px;
+    padding: 20px 24px;
+  }
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.saved {
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.quote {
+  font: var(--ari-type-quote-reading);
+  font-size: 32px;
+  text-wrap: pretty;
+
+  @include mobile {
+    font-size: 22px;
+    line-height: 1.6;
+  }
+}
+
+.clip {
+  display: grid;
+  place-items: center;
+  height: 240px;
+  border: 2px dashed var(--ari-sage-500);
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-canvas);
+
+  &[data-clip='image'] {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-800);
+  }
+
+  svg {
+    @include stroke-icon(28px);
+  }
+
+  @include mobile {
+    height: 180px;
+  }
+}
+
+// A clipped table, drawn as its rows.
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 70%;
+
+  span {
+    display: block;
+    height: 8px;
+    border-radius: var(--ari-radius-pill);
+    background: var(--ari-neutral-400);
+
+    &:nth-child(1) {
+      background: var(--ari-sage-500);
+    }
+
+    &:nth-child(2) {
+      width: 85%;
+    }
+
+    &:nth-child(3) {
+      width: 92%;
+    }
+
+    &:nth-child(4) {
+      width: 70%;
+    }
+  }
+}
+
+.clip-title {
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 16px;
+  color: var(--ari-neutral-800);
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+
+    margin-top: 3px;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+// Phones edit the color and the comment in place. Nested, to win over the components' own display.
+.article .phone-colors,
+.article .phone-comment {
+  display: none;
+
+  @include mobile {
+    display: flex;
+  }
+}
+
+.article .phone-colors {
+  gap: 12px;
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 12px 14px 16px;
+  border-radius: var(--ari-radius-popover);
+  background: var(--ari-bg-canvas);
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    gap: 12px;
+    padding: 12px 6px 12px 14px;
+    border-radius: 22px;
+  }
+}
+
+.source-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.source-title {
+  font-size: 15px;
+  font-weight: 600;
+
+  @include mobile {
+    font-size: 14px;
+  }
+}
+
+.source-meta {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include mobile {
+    font-size: 12px;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.colors {
+  margin-left: auto;
+}
+
+.actions .delete {
+  color: var(--ari-text-danger);
+}
+
+.phone-buttons {
+  display: none;
+
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin-top: auto;
+    padding: 12px 20px 20px;
+
+    svg {
+      @include stroke-icon;
+    }
+  }
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+
+  @include mobile {
+    flex-direction: column-reverse;
+
+    button {
+      min-height: var(--ari-control-height-lg);
+    }
+  }
+}
+
+.missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 40px 28px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    padding: 24px 20px;
+  }
+}
+
+.missing-title {
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.missing-text {
+  color: var(--ari-text-secondary);
+}

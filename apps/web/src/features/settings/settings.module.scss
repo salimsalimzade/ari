@@ -69,6 +69,20 @@
   }
 }
 
+// Nested, to win over the button's own display.
+.nav .nav-log-out {
+  align-self: flex-start;
+  margin-top: 12px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include narrow {
+    display: none;
+  }
+}
+
 .mobile-title {
   display: none;
 

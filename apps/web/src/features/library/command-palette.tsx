@@ -1,0 +1,375 @@
+import { useNavigate } from '@solidjs/router';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  type JSX,
+  onCleanup,
+  onMount,
+  Show,
+} from 'solid-js';
+import { useNoteMeta } from '~/features/notes/notes-list';
+import { useNotes } from '~/features/notes/notes-store';
+import { NotesIcon } from '~/features/shell/icons';
+import { sourceSlug } from '~/features/sources/sources';
+import { fill, useFormat } from '~/i18n/format';
+import { useI18n } from '~/i18n/i18n';
+import { ArrowRightIcon, CloseIcon, GlobeIcon, SearchIcon, TagIcon, UploadIcon } from './icons';
+import { useLibrary } from './library-store';
+import styles from './palette.module.scss';
+import type { Save } from './sample';
+import { SaveBadge } from './save-badge';
+
+type Result = {
+  text: string;
+  sub?: string;
+  /** Shown in the serif, like a saved quote. */
+  quote?: boolean;
+  badge: () => JSX.Element;
+  run: () => void;
+};
+type Group = { label: string; count?: string; results: Result[] };
+
+// The part of `text` around the first match, so the match shows even in a long quote.
+function excerpt(text: string, query: string, max: number) {
+  const index = query ? text.toLowerCase().indexOf(query) : -1;
+  if (index < 0) return { before: text, match: '', after: '' };
+  let start = Math.max(0, index - Math.floor(max / 3));
+  if (start > 0) {
+    const space = text.lastIndexOf(' ', start);
+    start = space > 0 ? space + 1 : 0;
+  }
+  return {
+    before: (start > 0 ? '…' : '') + text.slice(start, index),
+    match: text.slice(index, index + query.length),
+    after: text.slice(index + query.length),
+  };
+}
+
+function IconBadge(props: { children: JSX.Element }) {
+  return (
+    <span class={styles['icon-badge']} aria-hidden="true">
+      {props.children}
+    </span>
+  );
+}
+
+/**
+ * Search and commands, opened from the Library's search or with ⌘K / Ctrl K on any signed-in page.
+ * Arrow keys move, Enter opens, Escape closes.
+ */
+export function CommandPalette() {
+  const { t } = useI18n();
+  const format = useFormat();
+  const library = useLibrary();
+  const notes = useNotes();
+  const noteMeta = useNoteMeta();
+  const navigate = useNavigate();
+  let dialog!: HTMLDialogElement;
+  const [query, setQuery] = createSignal('');
+  const [active, setActive] = createSignal(0);
+  const search = () => query().trim().toLowerCase();
+
+  const close = () => library.setPaletteOpen(false);
+  const go = (path: string) => {
+    close();
+    navigate(path);
+  };
+
+  const groups = createMemo(() => {
+    const q = search();
+    const result: Group[] = [];
+
+    // A few saves: the newest without a query, else the first matches (each text once).
+    const found: Save[] = [];
+    const seen = new Set<string>();
+    let total = 0;
+    for (const save of library.saves()) {
+      const matches =
+        !q ||
+        save.text.toLowerCase().includes(q) ||
+        save.source.toLowerCase().includes(q) ||
+        save.tags.some((tag) => tag.includes(q));
+      if (!matches) continue;
+      total++;
+      if (!seen.has(save.text) && found.length < (q ? 4 : 3)) {
+        seen.add(save.text);
+        found.push(save);
+      }
+      if (!q && found.length === 3) break;
+    }
+    if (found.length)
+      result.push({
+        label: q ? t().palette.saves : t().palette.recent,
+        count: q ? format.number(total) : undefined,
+        results: found.map((save) => ({
+          text: save.text,
+          sub: [t().library.kinds[save.kind], save.source, save.page].filter(Boolean).join(' · '),
+          quote: save.kind !== 'clip',
+          badge: () => <SaveBadge save={save} size="sm" />,
+          run: () => {
+            library.reveal(save);
+            go('/library');
+          },
+        })),
+      });
+
+    if (q) {
+      const sources = library
+        .facetOptions()
+        .sources.map(([name]) => name)
+        .filter((name) =>
+          [name, library.sourceOf(name).title].some((text) => text.toLowerCase().includes(q)),
+        );
+      if (sources.length)
+        result.push({
+          label: t().palette.sources,
+          count: String(sources.length),
+          results: sources.slice(0, 3).map((name) => ({
+            text: name,
+            sub: t().palette.showSource,
+            badge: () => (
+              <IconBadge>
+                <GlobeIcon />
+              </IconBadge>
+            ),
+            run: () => go(`/sources/${sourceSlug(name)}`),
+          })),
+        });
+    }
+
+    if (q) {
+      const found = notes
+        .list()
+        .filter((note) => (note.title || t().notes.untitledNote).toLowerCase().includes(q));
+      if (found.length)
+        result.push({
+          label: t().palette.notes,
+          count: String(found.length),
+          results: found.slice(0, 3).map((note) => ({
+            text: note.title.trim() || t().notes.untitledNote,
+            sub: noteMeta(note),
+            badge: () => (
+              <IconBadge>
+                <NotesIcon />
+              </IconBadge>
+            ),
+            run: () => go(`/notes/${note.id}`),
+          })),
+        });
+    }
+
+    const actions: Result[] = [
+      {
+        text: t().palette.importFile,
+        badge: () => (
+          <IconBadge>
+            <UploadIcon />
+          </IconBadge>
+        ),
+        run: () => {
+          close();
+          library.pickFiles();
+        },
+      },
+      {
+        text: t().palette.goToImports,
+        badge: () => (
+          <IconBadge>
+            <ArrowRightIcon />
+          </IconBadge>
+        ),
+        run: () => go('/imports'),
+      },
+      {
+        text: t().palette.goToNotes,
+        badge: () => (
+          <IconBadge>
+            <NotesIcon />
+          </IconBadge>
+        ),
+        run: () => go('/notes'),
+      },
+      {
+        text: t().palette.clearFilters,
+        badge: () => (
+          <IconBadge>
+            <CloseIcon />
+          </IconBadge>
+        ),
+        run: () => {
+          library.clearFilters();
+          go('/library');
+        },
+      },
+    ].filter((action) => !q || action.text.toLowerCase().includes(q));
+    const tags = q
+      ? library
+          .facetOptions()
+          .tags.map(([tag]) => tag)
+          .filter((tag) => tag.toLowerCase().includes(q))
+          .map(
+            (tag): Result => ({
+              text: fill(t().palette.filterTag, { tag }),
+              badge: () => (
+                <IconBadge>
+                  <TagIcon />
+                </IconBadge>
+              ),
+              run: () => {
+                library.filterByTag(tag);
+                go('/library');
+              },
+            }),
+          )
+      : [];
+    const commands = [...actions, ...tags].slice(0, q ? 4 : 3);
+    if (commands.length) result.push({ label: t().palette.actions, results: commands });
+    return result;
+  });
+  const flat = () => groups().flatMap((group) => group.results);
+  const optionId = (index: number) => `palette-option-${index}`;
+
+  createEffect(() => {
+    if (library.paletteOpen()) {
+      if (dialog.open) return;
+      setQuery('');
+      setActive(0);
+      dialog.showModal();
+    } else if (dialog.open) dialog.close();
+  });
+  // Keeps the active result in view while the arrow keys move through a long list.
+  createEffect(() => {
+    if (library.paletteOpen())
+      document.getElementById(optionId(active()))?.scrollIntoView({ block: 'nearest' });
+  });
+  onMount(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        library.setPaletteOpen(!library.paletteOpen());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    onCleanup(() => window.removeEventListener('keydown', onKey));
+  });
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    const count = flat().length;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (count)
+        setActive((index) => (index + (event.key === 'ArrowDown' ? 1 : count - 1)) % count);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      flat()[active()]?.run();
+    }
+  };
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog by itself
+    <dialog
+      ref={dialog}
+      class={styles.palette}
+      aria-label={t().palette.label}
+      onClose={close}
+      onClick={(event) => {
+        // A click on the backdrop lands on the dialog itself.
+        if (event.target === dialog) close();
+      }}
+    >
+      <div class={styles.field}>
+        <SearchIcon />
+        <input
+          class={styles.input}
+          type="text"
+          role="combobox"
+          autofocus
+          aria-expanded="true"
+          aria-controls="palette-results"
+          aria-activedescendant={flat().length ? optionId(active()) : undefined}
+          aria-label={t().palette.placeholder}
+          placeholder={t().palette.placeholder}
+          value={query()}
+          onInput={(event) => {
+            setQuery(event.currentTarget.value);
+            setActive(0);
+          }}
+          onKeyDown={onKeyDown}
+        />
+        <kbd class={styles.key} data-wide="">
+          esc
+        </kbd>
+        <button type="button" class={styles.cancel} onClick={close}>
+          {t().palette.cancel}
+        </button>
+      </div>
+      <div id="palette-results" role="listbox" class={styles.results}>
+        <For each={groups()}>
+          {(group) => (
+            // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role group
+            <div role="group" aria-label={group.label}>
+              <div class={styles['group-label']} aria-hidden="true">
+                {group.label}
+                <span class={styles['group-count']}>{group.count}</span>
+              </div>
+              <For each={group.results}>
+                {(result) => {
+                  const index = () => flat().indexOf(result);
+                  const parts = () => excerpt(result.text, search(), 70);
+                  return (
+                    // biome-ignore lint/a11y/useKeyWithClickEvents: the input's arrow keys and Enter choose results
+                    <div
+                      id={optionId(index())}
+                      role="option"
+                      tabIndex={-1}
+                      aria-selected={active() === index()}
+                      class={styles.option}
+                      onClick={() => result.run()}
+                      onMouseMove={() => setActive(index())}
+                    >
+                      {result.badge()}
+                      <span class={styles['option-text']}>
+                        <span
+                          class={styles['option-title']}
+                          data-quote={result.quote ? '' : undefined}
+                        >
+                          {parts().before}
+                          <Show when={parts().match}>
+                            <b class={styles.match}>{parts().match}</b>
+                          </Show>
+                          {parts().after}
+                        </span>
+                        <Show when={result.sub}>
+                          <span class={styles['option-sub']}>{result.sub}</span>
+                        </Show>
+                      </span>
+                    </div>
+                  );
+                }}
+              </For>
+            </div>
+          )}
+        </For>
+        <Show when={!flat().length}>
+          <p class={styles.empty}>{fill(t().palette.noResults, { q: query().trim() })}</p>
+        </Show>
+      </div>
+      <footer class={styles.footer}>
+        <span class={styles.hint}>
+          <kbd class={styles.key}>↑↓</kbd>
+          {t().palette.move}
+        </span>
+        <span class={styles.hint}>
+          <kbd class={styles.key}>↵</kbd>
+          {t().palette.open}
+        </span>
+        <span class={styles.hint}>
+          <kbd class={styles.key}>esc</kbd>
+          {t().palette.close}
+        </span>
+      </footer>
+    </dialog>
+  );
+}

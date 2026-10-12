@@ -1,0 +1,800 @@
+@use '../../styles/app' as *;
+
+// /sources and /sources/:slug. The shelf: the title with search, the kind tabs, then a card per
+// source, three across on wide screens, fewer as the page narrows, one on phones. A source: its
+// saves beside "About this source"; under 1024px the about card moves above the saves, and phones
+// drop it and list the saves as plain rows.
+
+.wide-only {
+  @include mobile {
+    display: none;
+  }
+}
+
+.phone-only {
+  display: none;
+
+  @include mobile {
+    display: revert;
+  }
+}
+
+.visually-hidden {
+  @include visually-hidden;
+}
+
+// The search button in the phone header.
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: var(--ari-touch-target);
+  height: var(--ari-touch-target);
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--ari-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ari-text-primary);
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+// — The shelf —
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 40px 48px;
+
+  @include narrow {
+    padding-inline: 28px;
+  }
+
+  @include mobile {
+    gap: 14px;
+    padding: 0 0 28px;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 4px 16px 0 20px;
+  }
+}
+
+.title {
+  font: var(--ari-type-h2);
+  font-size: 30px;
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font-size: 28px;
+  }
+}
+
+.count {
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    font-size: 13px;
+  }
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 340px;
+  height: 48px;
+  margin-left: auto;
+  padding: 0 9px 0 18px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+  color: var(--ari-neutral-800);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: text;
+
+  &:hover {
+    background: color-mix(in srgb, var(--ari-text-primary) 7%, var(--ari-bg-surface));
+  }
+
+  &:active {
+    background: color-mix(in srgb, var(--ari-text-primary) 14%, var(--ari-bg-surface));
+  }
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+
+  @include narrow {
+    width: 240px;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.search-text {
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kbd {
+  padding: 0 9px 0 4px;
+  color: var(--ari-text-secondary);
+  font: 600 15px / 1 var(--ari-font-body);
+  letter-spacing: 0.06em;
+}
+
+.kinds {
+  align-self: flex-start;
+
+  @include mobile {
+    margin-left: 16px;
+  }
+}
+
+.none {
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    padding: 8px 20px;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+  }
+
+  @include mobile {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 16px;
+  }
+}
+
+.card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 220px;
+  padding: 20px;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-surface);
+  color: var(--ari-text-primary);
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, var(--ari-text-primary) 5%, var(--ari-bg-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+
+  @include mobile {
+    gap: 10px;
+    min-height: 0;
+    padding: 18px;
+    border-radius: 24px;
+  }
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// Files get the terracotta avatar, websites keep the sage one.
+.file-avatar[data-size] {
+  background: var(--ari-terracotta-200);
+  color: var(--ari-terracotta-900);
+}
+
+.card-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-publisher,
+.card-site {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-publisher {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.card-site {
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+}
+
+.card-title {
+  font: 700 18px / 1.3 var(--ari-font-heading);
+}
+
+// The newest save, two lines at most.
+.card-quote {
+  display: -webkit-box;
+  overflow: hidden;
+  font: var(--ari-type-quote-sm);
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  // As tall as the "In a note" tag, so every card's last line sits at the same height.
+  min-height: 22px;
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+
+  .in-note {
+    margin-left: auto;
+  }
+}
+
+.card-count {
+  font-weight: 700;
+  color: var(--ari-text-primary);
+}
+
+.in-note svg {
+  @include stroke-icon(13px);
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+
+  &[data-size='md'] {
+    gap: 4px;
+  }
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+
+  @each $color in 'yellow', 'green', 'blue', 'pink', 'purple' {
+    &[data-color='#{$color}'] {
+      background: var(--ari-hl-#{$color});
+    }
+  }
+
+  .dots[data-size='md'] & {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// — No sources yet —
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 400px;
+  padding-top: 36px;
+
+  @include mobile {
+    gap: 12px;
+    padding: 20px 24px 0;
+  }
+}
+
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--ari-state-empty-bg);
+  color: var(--ari-state-empty-icon);
+
+  svg {
+    @include stroke-icon(22px);
+  }
+
+  @include mobile {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+.state-title {
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font: var(--ari-type-h4);
+  }
+}
+
+.state-text {
+  font-size: 15px;
+  color: var(--ari-neutral-800);
+}
+
+.state-action {
+  @include mobile {
+    min-height: var(--ari-control-height-lg);
+  }
+}
+
+// — One source —
+
+.source-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 40px 48px;
+
+  @include narrow {
+    padding-inline: 28px;
+  }
+
+  @include mobile {
+    gap: 16px;
+    padding: 0 0 28px;
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+// The ⋯ button: 40px, 44px on phones, pressed while its menu is open.
+.more[data-icon-only][data-size] {
+  width: 40px;
+  min-height: 40px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  &[data-expanded] {
+    background: var(--ari-action-secondary-pressed);
+  }
+
+  @include mobile {
+    width: var(--ari-touch-target);
+    min-height: var(--ari-touch-target);
+
+    svg {
+      @include stroke-icon(var(--ari-icon));
+    }
+  }
+}
+
+// The avatar beside the name, title and byline. Phones: the avatar beside the name and count,
+// with the title under both.
+.hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 20px;
+
+  @include mobile {
+    column-gap: 14px;
+    row-gap: 16px;
+    padding: 4px 22px 0;
+  }
+}
+
+.hero-avatar {
+  grid-row: 1 / span 3;
+
+  @include mobile {
+    grid-row: 1;
+  }
+}
+
+.hero .hero-avatar[data-size] {
+  @include mobile {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+}
+
+.kicker {
+  align-self: end;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+  }
+}
+
+.kicker-name {
+  overflow-wrap: anywhere;
+}
+
+.hero-title {
+  margin: 4px 0 6px;
+  font: var(--ari-type-h1);
+  font-size: 36px;
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include narrow {
+    font-size: 32px;
+  }
+
+  @include mobile {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 28px;
+  }
+}
+
+.byline {
+  align-self: start;
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.phone-open {
+  display: none;
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+
+  @include mobile {
+    display: block;
+    padding: 0 22px;
+  }
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 32px;
+
+  @include narrow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+.saves {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+
+  @include mobile {
+    gap: 4px;
+  }
+}
+
+.saves-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  @include mobile {
+    padding: 0 22px 4px;
+  }
+}
+
+.saves-count {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order {
+  margin-left: auto;
+}
+
+.save-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @include mobile {
+    gap: 0;
+  }
+}
+
+.save {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border-radius: 24px;
+  background: var(--ari-bg-surface);
+
+  // Phones: plain rows split by hairlines.
+  @include mobile {
+    gap: 6px;
+    margin: 0 22px;
+    padding: 14px 0;
+    border-top: 1px solid var(--ari-border);
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+.save-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+
+  .in-note {
+    margin-left: 2px;
+  }
+}
+
+.save-where {
+  font-weight: 700;
+  color: var(--ari-text-primary);
+}
+
+// "Open at this spot"; phones keep only its icon.
+.spot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  border-radius: var(--ari-radius-sm);
+  color: var(--ari-text-link);
+  font-weight: 700;
+  text-decoration: none;
+
+  svg {
+    @include stroke-icon(13px);
+  }
+
+  &:hover {
+    color: var(--ari-terracotta-800);
+    text-decoration: underline;
+  }
+
+  @include mobile {
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: -8px -6px -8px auto;
+
+    svg {
+      @include stroke-icon(16px);
+    }
+  }
+}
+
+.spot-label {
+  @include mobile {
+    @include visually-hidden;
+  }
+}
+
+.quote {
+  font: var(--ari-type-quote);
+  line-height: 1.6;
+
+  @include mobile {
+    font-size: 15px;
+  }
+}
+
+.clip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ari-neutral-800);
+
+  svg {
+    @include stroke-icon;
+
+    margin-top: 2px;
+  }
+}
+
+// Stays in view beside a long list of saves.
+.about {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-raised);
+
+  @include narrow {
+    position: static;
+    order: -1;
+  }
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.about-title {
+  font: var(--ari-type-h4);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+
+  dd {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  @include narrow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 16px 40px;
+  }
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fact-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ari-text-secondary);
+}
+
+.note-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.note-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-tag-sage-bg);
+  color: var(--ari-sage-900);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  &:hover {
+    background: var(--ari-sage-200);
+  }
+}
+
+.facts .address {
+  font-size: 13px;
+  word-break: break-all;
+}
+
+// — A source that isn't in the Library —
+
+.missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 40px;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    padding: 24px 20px;
+  }
+}
+
+.missing-title {
+  font: var(--ari-type-h3);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.missing-text {
+  color: var(--ari-text-secondary);
+}

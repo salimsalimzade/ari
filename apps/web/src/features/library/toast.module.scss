@@ -1,0 +1,93 @@
+@use '../../styles/app' as *;
+
+// Above everything at the bottom center; on phones, above the tab bar.
+.region {
+  position: fixed;
+  inset: auto 16px 28px;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+
+  @include mobile {
+    bottom: calc(76px + 16px + env(safe-area-inset-bottom));
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 100%;
+  padding: 10px 10px 10px 18px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-inverse-bg);
+  color: var(--ari-inverse-text);
+  box-shadow: var(--ari-elevation-overlay);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: auto;
+
+  @include mobile {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    border-radius: var(--ari-radius-popover);
+  }
+}
+
+.icon {
+  color: var(--ari-inverse-icon);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.action {
+  height: 34px;
+  flex: none;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-inverse-text);
+  color: var(--ari-inverse-bg);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  @include mobile {
+    height: var(--ari-touch-target);
+  }
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ari-inverse-text);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ari-inverse-divider);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    width: var(--ari-touch-target);
+    height: var(--ari-touch-target);
+  }
+}

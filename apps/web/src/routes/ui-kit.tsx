@@ -13,6 +13,8 @@ import {
   HighlightMark,
   highlightColors,
   Logo,
+  Menu,
+  Popover,
   SegmentedControl,
   Select,
   Slider,
@@ -585,8 +587,37 @@ function Overlays() {
     }, 1000);
   };
   return (
-    <Section title="Dialog">
+    <Section title="Dialog · Popover · Menu">
       <div class={styles.row}>
+        <Popover
+          label="Tags"
+          triggerClass={styles['popover-trigger']}
+          trigger={<>Tag ▾</>}
+          class={styles.popover}
+        >
+          <Checkbox defaultChecked>swarm</Checkbox>
+          <Checkbox>scouts</Checkbox>
+        </Popover>
+        <Menu
+          placement="bottom-start"
+          trigger={(triggerProps: object) => (
+            <Button {...triggerProps} icon={<Icon name="plus" />}>
+              Note actions ▾
+            </Button>
+          )}
+          groups={[
+            [{ label: 'Add quote', icon: <Icon name="notes" />, hint: '/', onSelect: () => {} }],
+            [{ label: 'Copy as text', icon: <Icon name="copy" />, onSelect: () => {} }],
+            [
+              {
+                label: 'Delete note',
+                icon: <Icon name="trash" />,
+                danger: true,
+                onSelect: () => {},
+              },
+            ],
+          ]}
+        />
         <Button onClick={() => setOpen(true)}>Dismissible</Button>
         <Button onClick={() => setSheetOpen(true)}>Sheet on phones</Button>
         <Button variant="danger" icon={<Icon name="trash" />} onClick={() => setConfirmOpen(true)}>

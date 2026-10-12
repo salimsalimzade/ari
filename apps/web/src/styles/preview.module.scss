@@ -194,3 +194,25 @@ $mobile: 720px;
   overflow: hidden;
   border-radius: 0 0 40px 40px;
 }
+
+// Popover: a filter-style button and the panel under it.
+.popover-trigger {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-pill);
+  background: transparent;
+  font: var(--ari-type-button);
+  cursor: pointer;
+
+  &[data-expanded] {
+    background: var(--ari-bg-surface);
+  }
+}
+
+.popover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 220px;
+}

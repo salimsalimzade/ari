@@ -1,0 +1,39 @@
+@use '../../styles/app' as *;
+
+.badge {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-bg-surface);
+  color: var(--ari-text-primary);
+
+  &[data-kind='clip'] {
+    background: var(--ari-sage-200);
+    color: var(--ari-sage-800);
+  }
+
+  @each $color in 'yellow', 'green', 'blue', 'pink', 'purple' {
+    &[data-color='#{$color}'] {
+      background: var(--ari-hl-#{$color});
+    }
+  }
+
+  &[data-size='sm'] {
+    width: 30px;
+    height: 30px;
+  }
+
+  &[data-size='md'] {
+    @include mobile {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}

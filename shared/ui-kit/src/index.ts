@@ -19,6 +19,8 @@ export { Divider, type DividerProps } from './divider/divider';
 export { type HighlightColor, highlightColors } from './highlight-color';
 export { HighlightMark, type HighlightMarkProps } from './highlight-mark/highlight-mark';
 export { Logo, type LogoProps } from './logo/logo';
+export { Menu, type MenuItem, type MenuProps } from './menu/menu';
+export { Popover, type PopoverProps } from './popover/popover';
 export {
   SegmentedControl,
   type SegmentedControlProps,

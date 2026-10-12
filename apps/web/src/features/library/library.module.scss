@@ -1,0 +1,933 @@
+@use '../../styles/app' as *;
+
+// /library. Wide screens: search and Import, the title and view switch, the filters, then the
+// list beside a column of months. Under 1024px the months move into a floating button; phones get
+// their own header and scrolling rows of pills.
+
+.page {
+  padding: 20px 28px 48px;
+
+  @include mobile {
+    padding: 0 0 28px;
+  }
+}
+
+.radio {
+  @include visually-hidden;
+}
+
+// — Search and Import —
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  height: 48px;
+  padding: 0 9px 0 18px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+  color: var(--ari-neutral-800);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: text;
+
+  &:hover {
+    background: color-mix(in srgb, var(--ari-text-primary) 7%, var(--ari-bg-surface));
+  }
+
+  &:active {
+    background: color-mix(in srgb, var(--ari-text-primary) 14%, var(--ari-bg-surface));
+  }
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+.search-text {
+  flex: 1;
+  text-align: left;
+}
+
+.kbd {
+  padding: 0 9px 0 4px;
+  color: var(--ari-text-secondary);
+  font: 600 15px / 1 var(--ari-font-body);
+  letter-spacing: 0.06em;
+}
+
+.import {
+  margin-left: auto;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.phone-search {
+  display: grid;
+  place-items: center;
+  width: var(--ari-touch-target);
+  height: var(--ari-touch-target);
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--ari-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ari-text-primary);
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+// — Title and view switch —
+
+.title-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding-top: 12px;
+
+  @include mobile {
+    gap: 10px;
+    padding: 10px 16px 2px 20px;
+  }
+}
+
+.heading {
+  margin-right: auto;
+}
+
+.title {
+  font: var(--ari-type-h1);
+  letter-spacing: var(--ari-heading-tracking);
+
+  @include mobile {
+    font-size: 32px;
+  }
+}
+
+.count {
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    font-size: 13px;
+  }
+}
+
+// A track of pills where one is on: the view switch, and the type tabs on wide screens.
+@mixin pill-track {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+}
+
+@mixin pill-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  flex: none;
+  padding: 0 14px;
+  border-radius: var(--ari-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:has(:checked)) {
+    background: var(--ari-action-secondary-hover);
+  }
+
+  &:has(:checked) {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--ari-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.views {
+  @include pill-track;
+}
+
+.view {
+  @include pill-option;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  // Phones show only the icons.
+  @include mobile {
+    justify-content: center;
+    width: var(--ari-touch-target);
+    height: 36px;
+    padding: 0;
+  }
+}
+
+.view-name {
+  @include mobile {
+    @include visually-hidden;
+  }
+}
+
+// — Filters —
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+
+  @include mobile {
+    display: block;
+    padding-top: 0;
+  }
+}
+
+// Rows of pills that scroll sideways on phones.
+@mixin phone-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.types {
+  @include pill-track;
+
+  @include mobile {
+    @include phone-row;
+
+    padding: 10px 20px 0;
+    border-radius: 0;
+    background: none;
+  }
+}
+
+.type {
+  @include pill-option;
+
+  @include mobile {
+    height: 36px;
+
+    &:not(:has(:checked)) {
+      background: var(--ari-bg-surface);
+    }
+  }
+}
+
+.type-count {
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.facets {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.phone-facets {
+  display: none;
+
+  @include mobile {
+    @include phone-row;
+
+    padding: 8px 20px 6px;
+  }
+}
+
+.facet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  flex: none;
+  padding: 0 10px 0 14px;
+  border: 1px solid var(--ari-border);
+  border-radius: var(--ari-radius-pill);
+  background: transparent;
+  color: var(--ari-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &[data-expanded] {
+    background: var(--ari-bg-surface);
+  }
+
+  &[data-active] {
+    border-color: var(--ari-selected-nav-bg);
+    background: var(--ari-selected-nav-bg);
+    color: var(--ari-selected-nav-text);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.clear {
+  flex: none;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--ari-text-link);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  .phone-facets & {
+    height: 36px;
+    padding: 0 14px;
+    font-weight: 700;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+
+  @include mobile {
+    display: none;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-selected-nav-bg);
+  color: var(--ari-selected-nav-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+
+  .chip & {
+    width: 10px;
+    height: 10px;
+  }
+
+  @each $color in 'yellow', 'green', 'blue', 'pink', 'purple' {
+    &[data-color='#{$color}'] {
+      background: var(--ari-hl-#{$color});
+    }
+  }
+}
+
+// A filter's values: under its button on wide screens, in a sheet on phones.
+.menu {
+  width: 280px;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  margin-bottom: 4px;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+  color: var(--ari-text-secondary);
+
+  &:focus-within {
+    outline: 2px solid var(--ari-border-focus);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.find-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ari-text-primary);
+  font-size: 13px;
+
+  &::placeholder {
+    color: var(--ari-text-secondary);
+  }
+}
+
+// A Checkbox whose label holds the swatch, the name and, at the end, the count.
+.option {
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+
+  &:has([data-checked]) {
+    background: var(--ari-selected-row-bg);
+  }
+
+  > div {
+    align-items: center;
+  }
+
+  label {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+  }
+
+  @include mobile {
+    min-height: var(--ari-control-height-lg);
+  }
+}
+
+.option-name {
+  flex: 1;
+}
+
+.option-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ari-text-secondary);
+}
+
+// — The list, and the months beside it —
+
+.body {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 14px;
+
+  @include mobile {
+    padding: 0 16px;
+  }
+}
+
+.list {
+  flex: 1;
+  min-width: 0;
+  padding-right: 16px;
+
+  @include narrow {
+    padding-right: 0;
+  }
+}
+
+.months {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 88px;
+  max-height: calc(100dvh - 32px);
+  flex: none;
+  padding: 0 14px 16px 6px;
+  overflow-y: auto;
+
+  @include narrow {
+    display: none;
+  }
+}
+
+.months-label {
+  padding: 4px 8px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ari-text-secondary);
+}
+
+.month {
+  height: 30px;
+  flex: none;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: transparent;
+  color: var(--ari-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ari-bg-surface);
+  }
+
+  &[aria-current='true'] {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+  }
+}
+
+// Under 1024px: a button in the corner that opens the months.
+.month-button {
+  display: none;
+
+  @include narrow {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--ari-touch-target);
+    padding: 0 14px 0 16px;
+    border: 0;
+    border-radius: var(--ari-radius-pill);
+    background: var(--ari-inverse-bg);
+    color: var(--ari-inverse-text);
+    box-shadow: var(--ari-elevation-overlay);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  @include mobile {
+    right: 14px;
+    bottom: calc(76px + 14px + env(safe-area-inset-bottom));
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.month-cell {
+  height: var(--ari-control-height-lg);
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-bg-surface);
+  color: var(--ari-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &[aria-current='true'] {
+    background: var(--ari-action-primary);
+    color: var(--ari-text-on-accent);
+  }
+}
+
+.newest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  margin-bottom: 6px;
+  border: 0;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-sage-200);
+  color: var(--ari-sage-900);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon;
+  }
+
+  @include mobile {
+    height: var(--ari-touch-target);
+    margin: 4px 0 6px;
+  }
+}
+
+// — Days —
+
+.day-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--ari-border);
+  background: var(--ari-bg-canvas);
+  color: var(--ari-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  @include mobile {
+    height: 34px;
+    padding: 0 4px;
+  }
+}
+
+.day-count {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// — Rows —
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--ari-border);
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ari-bg-surface);
+  }
+
+  &[data-picked] {
+    background: var(--ari-selected-row-bg);
+  }
+
+  @include mobile {
+    gap: 12px;
+    padding: 12px 4px;
+  }
+}
+
+.row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  @include mobile {
+    gap: 4px;
+  }
+}
+
+// Two lines at most: quotes in the serif, a clip's title in bold.
+.excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  font: 400 15px / 1.55 var(--ari-font-quote);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  &[data-kind='clip'] {
+    font-family: var(--ari-font-body);
+    font-weight: 700;
+  }
+
+  @include mobile {
+    line-height: 1.5;
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    gap: 6px;
+  }
+}
+
+.comment-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.wide-only {
+  @include mobile {
+    display: none;
+  }
+}
+
+// — Cards —
+
+.cards {
+  padding: 14px 0 6px;
+  columns: 220px;
+  column-gap: 14px;
+
+  @include mobile {
+    padding-top: 10px;
+    columns: 2;
+    column-gap: 10px;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: inherit;
+  text-decoration: none;
+  break-inside: avoid;
+
+  @include mobile {
+    margin-bottom: 10px;
+  }
+}
+
+.card-quote {
+  display: block;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--ari-bg-surface);
+  font: 400 15px / 1.55 var(--ari-font-quote);
+
+  .card:hover & {
+    background: var(--ari-neutral-300);
+  }
+
+  @include mobile {
+    font-size: 14px;
+  }
+}
+
+// A clipped table, drawn as its rows.
+.card-table {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  height: 110px;
+  padding: 16px;
+  border: 2px dashed var(--ari-sage-500);
+  border-radius: 20px;
+  background: var(--ari-bg-surface);
+
+  span {
+    display: block;
+    height: 6px;
+    border-radius: var(--ari-radius-pill);
+    background: var(--ari-neutral-400);
+
+    &:nth-child(1) {
+      background: var(--ari-sage-500);
+    }
+
+    &:nth-child(2) {
+      width: 85%;
+    }
+
+    &:nth-child(3) {
+      width: 92%;
+    }
+
+    &:nth-child(4) {
+      width: 70%;
+    }
+  }
+}
+
+.card-image {
+  display: grid;
+  place-items: center;
+  height: 150px;
+  border: 2px dashed var(--ari-sage-500);
+  border-radius: 20px;
+  background: var(--ari-sage-200);
+  color: var(--ari-sage-800);
+
+  svg {
+    @include stroke-icon(var(--ari-icon));
+  }
+}
+
+.card-title {
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.card-source {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// — Loading more, the end, and nothing to show —
+
+.skeleton-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 12px;
+}
+
+.skeleton-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 4px;
+}
+
+.bone {
+  display: block;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-skeleton);
+  animation: pulse 1.4s ease-in-out infinite;
+
+  &[data-shape='badge'] {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: 50%;
+  }
+
+  &[data-shape='line'] {
+    width: 82%;
+    height: 12px;
+  }
+
+  &[data-shape='short'] {
+    width: 36%;
+    height: 10px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.end-note {
+  padding: 28px 12px 36px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 40px 12px;
+}
+
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--ari-state-empty-bg);
+  color: var(--ari-state-empty-icon);
+
+  svg {
+    @include stroke-icon(22px);
+  }
+}
+
+.state-title {
+  font: var(--ari-type-h4);
+  letter-spacing: var(--ari-heading-tracking);
+}
+
+.state-text {
+  max-width: 400px;
+  color: var(--ari-neutral-800);
+}

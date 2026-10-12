@@ -1,0 +1,10 @@
+.content {
+  z-index: 50;
+  padding: 10px;
+  border: 1px solid var(--ari-border);
+  border-radius: 22px;
+  background: var(--ari-bg-canvas);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-text-primary);
+  outline: none;
+}

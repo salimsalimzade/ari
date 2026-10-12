@@ -18,6 +18,8 @@ export type ButtonProps = PolymorphicProps<'button', ButtonRootProps<'button'>> 
   block?: boolean;
   /** Renders a link that looks like the button, e.g. "Add to Chrome" on the landing page. */
   href?: string;
+  /** Opens `href` in a new tab, e.g. a save's source. */
+  newTab?: boolean;
 };
 
 /** Pill button. */
@@ -30,6 +32,7 @@ export function Button(props: ButtonProps) {
     'iconOnly',
     'block',
     'href',
+    'newTab',
     'class',
     'children',
   ]);
@@ -41,6 +44,7 @@ export function Button(props: ButtonProps) {
       data-icon-only={local.iconOnly ? '' : undefined}
       data-block={local.block ? '' : undefined}
       {...(local.href ? { as: 'a', href: local.href } : {})}
+      {...(local.href && local.newTab ? { target: '_blank', rel: 'noopener' } : {})}
       {...others}
     >
       {local.icon}
