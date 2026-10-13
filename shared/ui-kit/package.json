@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens.css": "./src/styles/tokens.css",
-    "./base.css": "./src/styles/base.css"
+    "./base.css": "./src/styles/base.css",
+    "./fonts/figtree.woff2": "./src/fonts/figtree/figtree.woff2"
   },
   "dependencies": {
     "@kobalte/core": "catalog:",

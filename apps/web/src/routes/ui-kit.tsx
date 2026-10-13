@@ -12,6 +12,7 @@ import {
   type HighlightColor,
   HighlightMark,
   highlightColors,
+  Kbd,
   Logo,
   Menu,
   Popover,
@@ -19,6 +20,7 @@ import {
   Select,
   Slider,
   SourceAvatar,
+  Switch,
   Tag,
   TextField,
 } from '@ari/ui-kit';
@@ -62,6 +64,7 @@ export default function UiKit() {
         <Identity />
         <People />
         <Choices />
+        <Toggles />
         <Overlays />
       </main>
     </div>
@@ -515,6 +518,45 @@ function Choices() {
   );
 }
 
+function Toggles() {
+  const [shown, setShown] = createSignal(true);
+  const [paused, setPaused] = createSignal(false);
+  return (
+    <Section title="Switch · Kbd">
+      <div class={styles.grid}>
+        <div class={styles.panel}>
+          <span class={styles.label}>Switch · on / off / disabled</span>
+          <Switch
+            label="Show on page"
+            icon={<Icon name="eye" />}
+            checked={shown()}
+            onChange={setShown}
+          />
+          <Switch
+            label="Pause on this site"
+            icon={<Icon name="pause" />}
+            checked={paused()}
+            onChange={setPaused}
+          />
+          <Switch label="Disabled" checked={false} onChange={() => {}} disabled />
+        </div>
+        <div class={styles.panel}>
+          <span class={styles.label}>Kbd · neutral / accent / inverse</span>
+          <div class={styles.row}>
+            <Kbd>⌘</Kbd>
+            <Kbd>C</Kbd>
+            <Kbd tone="accent">S</Kbd>
+            <span class={styles['kbd-inverse']}>
+              <Kbd tone="inverse">⌘</Kbd>
+              <Kbd tone="inverse">C</Kbd>
+            </span>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function People() {
   const [zoom, setZoom] = createSignal(1.4);
   return (
@@ -561,9 +603,10 @@ function Identity() {
           </div>
         </div>
         <div class={styles.panel}>
-          <span class={styles.label}>Logo · mark / md / lg</span>
+          <span class={styles.label}>Logo · mark / sm / md / lg</span>
           <div class={styles.row}>
             <Logo size={20} />
+            <Logo size={20} wordmark="sm" />
             <Logo wordmark="md" />
             <Logo wordmark="lg" />
           </div>
@@ -671,6 +714,9 @@ const icons = {
   external: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
   close: 'M18 6 6 18M6 6l12 12',
   undo: 'M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
+  eye: 'M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+  pause:
+    'M15 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM7 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
   previous: 'm15 18-6-6 6-6',
   next: 'm9 18 6-6-6-6',
 };

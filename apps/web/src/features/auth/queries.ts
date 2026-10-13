@@ -1,4 +1,4 @@
-import { ApiError, fetchMe, login, logout, register } from '@ari/data-access';
+import { ApiError, fetchMe, login, logout, register, verifyEmail } from '@ari/data-access';
 import type { LoginRequest, RegisterRequest } from '@ari/types';
 import { action, query, redirect } from '@solidjs/router';
 
@@ -28,3 +28,6 @@ export const logoutAction = action(async () => {
   await logout();
   throw redirect('/login');
 }, 'logout');
+
+/** Public: confirms the email whose verify link was opened, with the code from that link. */
+export const verifyEmailAction = action((code: string) => verifyEmail({ code }), 'verify-email');

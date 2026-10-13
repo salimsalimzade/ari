@@ -216,3 +216,12 @@ $mobile: 720px;
   gap: 8px;
   width: 220px;
 }
+
+// Inverse keys sit on the toast's dark pill.
+.kbd-inverse {
+  display: inline-flex;
+  gap: 3px;
+  padding: 6px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-inverse-bg);
+}

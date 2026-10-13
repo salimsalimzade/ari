@@ -130,10 +130,13 @@ function UserChip() {
     <Show when={me()}>
       {(user) => (
         <div class={styles.user}>
-          <Avatar initial={(user().fullName ?? user().username ?? '?').charAt(0).toUpperCase()} />
+          <Avatar
+            initial={(user().fullName ?? user().username ?? '?').charAt(0).toUpperCase()}
+            src={user().photoUrl}
+          />
           <div class={styles['user-text']}>
             <span class={styles['user-name']}>{user().fullName?.split(' ')[0]}</span>
-            <span class={styles['user-plan']}>{t().nav.plan[user().plan ?? 'FREE']}</span>
+            <span class={styles['user-plan']}>{t().nav.plan[user().plan ?? 'NONE']}</span>
           </div>
         </div>
       )}

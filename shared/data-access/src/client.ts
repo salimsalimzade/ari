@@ -38,6 +38,7 @@ function apiUrl() {
 
 type RequestOptions = {
   method?: string;
+  /** Sent as JSON; FormData (a file upload) goes as multipart with its own content type. */
   body?: unknown;
   /** false for endpoints whose 401 isn't an expired session, like a login with a wrong password. */
   refresh?: boolean;
@@ -45,7 +46,11 @@ type RequestOptions = {
 
 async function send(path: string, options: RequestOptions) {
   const headers = new Headers();
-  if (options.body !== undefined) headers.set('content-type', 'application/json');
+  const body =
+    options.body instanceof FormData || options.body === undefined
+      ? options.body
+      : JSON.stringify(options.body);
+  if (typeof body === 'string') headers.set('content-type', 'application/json');
   if (isServer) {
     // The browser's cookies, with the tokens the middleware refreshed when ari_access was gone.
     // SolidStart's server events carry `locals`; solid-js's own types leave it out.
@@ -59,7 +64,7 @@ async function send(path: string, options: RequestOptions) {
     return await fetch(`${apiUrl()}${path}`, {
       method: options.method ?? 'GET',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body,
       credentials: 'include',
     });
   } catch {

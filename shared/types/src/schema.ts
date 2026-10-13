@@ -4,6 +4,103 @@
  */
 
 export interface paths {
+  '/api/v1/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The signed-in user */
+    get: operations['me'];
+    /** Change the full name, username and date of birth */
+    put: operations['updateProfile'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/me/photo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Upload a new profile photo
+     * @description A JPEG, PNG or WebP image of at most 2 MB, recognized by its bytes; the website sends the cropped 512x512 JPEG. It replaces the old photo, which is deleted.
+     */
+    put: operations['changePhoto'];
+    post?: never;
+    /** Remove the profile photo */
+    delete: operations['removePhoto'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/me/email': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Add or change the email
+     * @description Makes it the pending email and emails it a verify link, in the language of the ari_lang cookie. A verified email keeps working until the new one is confirmed. Whether another account uses the address is only checked when the link is opened.
+     */
+    put: operations['changeEmail'];
+    post?: never;
+    /** Remove the verified and the pending email */
+    delete: operations['removeEmail'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/me/email/resend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send the pending email a new verify link */
+    post: operations['resendVerification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/verify-email': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm an email with the code from its link
+     * @description Public: the link may be opened while signed out or in another browser.
+     */
+    post: operations['verifyEmail'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/auth/register': {
     parameters: {
       query?: never;
@@ -72,15 +169,18 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/me': {
+  '/api/v1/auth/username-available': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** The signed-in user */
-    get: operations['me'];
+    /**
+     * Is this username free?
+     * @description Public, for the live check while someone types a username. A Bloom filter in Redis answers most free names without the database; the database decides the rest. At most 30 checks a minute from one address.
+     */
+    get: operations['checkUsername'];
     put?: never;
     post?: never;
     delete?: never;
@@ -93,6 +193,48 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    ProfileRequest: {
+      /**
+       * @description 3 to 30 letters, digits, underscores or dots; stored in lowercase
+       * @example ada.lovelace
+       */
+      username: string;
+      /** @example Ada Lovelace */
+      fullName: string;
+      /**
+       * Format: date
+       * @description ISO date, in the past
+       * @example 1815-12-10
+       */
+      birthDate: string;
+    };
+    MeResponse: {
+      /** Format: uuid */
+      id?: string;
+      username?: string;
+      fullName?: string;
+      /** Format: date */
+      birthDate?: string;
+      email?: string;
+      pendingEmail?: string;
+      photoUrl?: string;
+      /** @enum {string} */
+      plan?: 'NONE' | 'HIVE';
+      /** Format: int32 */
+      savesCount?: number;
+    };
+    EmailRequest: {
+      /**
+       * Format: email
+       * @description Stored in lowercase
+       * @example ada@example.com
+       */
+      email: string;
+    };
+    VerifyEmailRequest: {
+      /** @description The code from the link in the email */
+      code: string;
+    };
     RegisterRequest: {
       /**
        * @description 3 to 30 letters, digits, underscores or dots; stored in lowercase
@@ -113,25 +255,15 @@ export interface components {
        */
       birthDate: string;
     };
-    MeResponse: {
-      /** Format: uuid */
-      id?: string;
-      username?: string;
-      fullName?: string;
-      /** Format: date */
-      birthDate?: string;
-      /** @enum {string} */
-      plan?: 'FREE' | 'PRO';
-      /** Format: int32 */
-      savesCount?: number;
-      /** Format: int32 */
-      savesLimit?: number;
-    };
     LoginRequest: {
-      /** @example demo */
+      /** @example adalovelace */
       username: string;
-      /** @example demo1234 */
+      /** @example i<3you@* */
       password: string;
+    };
+    UsernameAvailabilityResponse: {
+      username?: string;
+      available?: boolean;
     };
   };
   responses: never;
@@ -142,6 +274,340 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The signed-in user */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  updateProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProfileRequest'];
+      };
+    };
+    responses: {
+      /** @description The updated user */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description USERNAME_TAKEN, in any case */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  changePhoto: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          photo: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The user, with photoUrl */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description INVALID_PHOTO: not a JPEG, PNG or WebP image */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description FILE_TOO_LARGE: over 2 MB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  removePhoto: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed; the initial shows instead */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  changeEmail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailRequest'];
+      };
+    };
+    responses: {
+      /** @description It already is the verified email; nothing is sent */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description The link is on its way; pendingEmail is set */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description RATE_LIMITED: over 1 link a minute or 5 a day */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  removeEmail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  resendVerification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The link is on its way */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description BAD_REQUEST: no email is waiting for its link */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+      /** @description RATE_LIMITED: over 1 link a minute or 5 a day */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  verifyEmail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VerifyEmailRequest'];
+      };
+    };
+    responses: {
+      /** @description The pending email is now the verified email */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_CODE: unknown, expired or used link, or a newer address is waiting */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description EMAIL_TAKEN: another account verified it first */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   register: {
     parameters: {
       query?: never;
@@ -260,31 +726,46 @@ export interface operations {
       };
     };
   };
-  me: {
+  checkUsername: {
     parameters: {
-      query?: never;
+      query: {
+        /**
+         * @description 3 to 30 letters, digits, underscores or dots, in any case
+         * @example ada.lovelace
+         */
+        username: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description The signed-in user */
+      /** @description available is false when an account has it */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          '*/*': components['schemas']['MeResponse'];
+          '*/*': components['schemas']['UsernameAvailabilityResponse'];
         };
       };
-      /** @description UNAUTHORIZED */
-      401: {
+      /** @description VALIDATION_FAILED: not a valid username */
+      400: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          '*/*': components['schemas']['MeResponse'];
+          '*/*': components['schemas']['UsernameAvailabilityResponse'];
+        };
+      };
+      /** @description RATE_LIMITED */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['UsernameAvailabilityResponse'];
         };
       };
     };

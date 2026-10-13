@@ -260,7 +260,7 @@ export const en = {
     label: 'Main',
     library: 'Library',
     settings: 'Settings',
-    plan: { FREE: 'Free plan', PRO: 'Pro plan' },
+    plan: { NONE: 'No plan yet', HIVE: 'Hive' },
     imports: 'Imports',
     notes: 'Notes',
     sources: 'Sources',
@@ -295,14 +295,17 @@ export const en = {
       dragHint: 'Drag the photo to move it inside the circle.',
       cancel: 'Cancel',
       save: 'Save photo',
+      uploading: 'Uploading your photo…',
+      uploadFailed: 'Your photo didn’t upload. Try again.',
     },
     profile: {
       title: 'Profile',
       fullName: 'Full name',
       username: 'Username',
-      usernameHint: 'You use it to log in.',
       birthDate: 'Date of birth',
       save: 'Save changes',
+      saving: 'Saving…',
+      saved: 'Saved',
     },
     email: {
       title: 'Email',
@@ -318,6 +321,11 @@ export const en = {
       change: 'Change email',
       remove: 'Remove',
       invalid: 'Enter a full email address, like name@example.com.',
+      // While a new address waits for its link, the verified one keeps working.
+      keepsWorking: 'Until then, {email} stays in use.',
+      resent: 'We sent a new link. Check your inbox.',
+      rateLimited: 'Too many links for now. Try again in a few minutes.',
+      cancel: 'Cancel',
     },
     loadFailed: 'Your account didn’t load',
     loadFailedText: 'Check your connection and try again. Nothing on your account was changed.',
@@ -755,6 +763,8 @@ export const en = {
     quoteSource: 'Meadow Quarterly · How Honeybees Choose a New Home',
     username: 'Username',
     password: 'Password',
+    // Shown on a username field when the live check finds the name taken.
+    usernameTaken: 'That username is taken. Try another one.',
     errors: {
       passwordRequired: 'Enter your password.',
       nameRequired: 'Enter your name.',
@@ -792,6 +802,24 @@ export const en = {
       haveAccount: 'Already have an account?',
       logIn: 'Log in',
     },
+  },
+  // The page the link in a verify email opens.
+  verifyEmail: {
+    pageTitle: 'Confirm your email · Ari',
+    quote: 'Piping tells the swarm that the decision is almost made.',
+    checking: 'Confirming your email…',
+    doneTitle: 'Your email is confirmed',
+    doneText: 'Ari will use it for password resets and billing receipts.',
+    expiredTitle: 'This link no longer works',
+    expiredText:
+      'It expired, was already used, or another address was added since. Ask for a new link in Settings.',
+    takenTitle: 'This email is already in use',
+    takenText: 'Another Ari account confirmed it first. Add a different address in Settings.',
+    missingTitle: 'This link is incomplete',
+    missingText: 'Open the link in the email again, or copy all of it into your browser.',
+    failedTitle: 'Your email isn’t confirmed yet',
+    toSettings: 'Go to Settings',
+    retry: 'Try again',
   },
 };
 

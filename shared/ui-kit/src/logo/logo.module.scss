@@ -30,4 +30,8 @@
   .logo[data-wordmark='md'] & {
     font-size: 24px;
   }
+
+  .logo[data-wordmark='sm'] & {
+    font-size: 18px;
+  }
 }

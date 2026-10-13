@@ -196,9 +196,22 @@
   }
 }
 
+// The save button and, after saving, "Saved" beside it; stacked on phones.
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: stretch;
+    align-self: stretch;
+  }
+}
+
 .save {
   @include mobile {
-    align-self: stretch;
     min-height: var(--ari-control-height-lg);
   }
 }

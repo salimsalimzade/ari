@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { login } from './auth';
+import { checkUsername, login, verifyEmail } from './auth';
 import { ApiError, request } from './client';
+import { changeEmail, changePhoto } from './users';
 
 // Runs the client as it runs in the browser.
 vi.mock('solid-js/web', () => ({ isServer: false, getRequestEvent: () => undefined }));
@@ -89,5 +90,57 @@ describe('login', () => {
     });
     expect(sent()).toEqual(['/api/v1/auth/login']);
     expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+describe('verifyEmail', () => {
+  it('reports a bad link without refreshing or leaving the page', async () => {
+    fetchMock.mockResolvedValueOnce(json(401, { code: 'INVALID_CODE' }));
+
+    await expect(verifyEmail({ code: 'used' })).rejects.toMatchObject({ code: 'INVALID_CODE' });
+    expect(sent()).toEqual(['/api/v1/auth/verify-email']);
+    expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+describe('changeEmail', () => {
+  it('sends the address with PUT and returns the updated user', async () => {
+    fetchMock.mockResolvedValueOnce(json(202, { pendingEmail: 'bee@example.com' }));
+
+    await expect(changeEmail({ email: 'Bee@Example.com' })).resolves.toEqual({
+      pendingEmail: 'bee@example.com',
+    });
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('PUT');
+    expect(init?.body).toBe('{"email":"Bee@Example.com"}');
+  });
+});
+
+describe('changePhoto', () => {
+  it('sends the photo as multipart, leaving the content type to the browser', async () => {
+    fetchMock.mockResolvedValueOnce(json(200, { photoUrl: 'http://localhost:9000/ari/a.jpg' }));
+
+    await changePhoto(new Blob(['jpeg'], { type: 'image/jpeg' }));
+
+    const [, init] = fetchMock.mock.calls[0];
+    const body = init?.body;
+    expect(init?.method).toBe('PUT');
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('photo')).toBeInstanceOf(Blob);
+    expect(new Headers(init?.headers).has('content-type')).toBe(false);
+  });
+});
+
+describe('checkUsername', () => {
+  it('asks with the username in the query string, without refreshing', async () => {
+    fetchMock.mockResolvedValueOnce(json(200, { username: 'bee.reader', available: true }));
+
+    await expect(checkUsername('Bee.Reader')).resolves.toEqual({
+      username: 'bee.reader',
+      available: true,
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(new URL(String(url)).searchParams.get('username')).toBe('Bee.Reader');
+    expect(init?.method).toBe('GET');
   });
 });

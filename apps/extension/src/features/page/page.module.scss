@@ -1,0 +1,11 @@
+// Covers the viewport without taking the pointer; each piece of UI in it takes the pointer itself.
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  color: var(--ari-text-primary);
+  font: var(--ari-type-body);
+  text-align: left;
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,149 @@
+@use '../../styles/extension' as *;
+
+// — Selection toolbar —
+
+.toolbar {
+  @include floating;
+
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border-radius: var(--ari-radius-pill);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.save {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px 0 14px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-action-primary);
+  color: var(--ari-text-on-accent);
+  font: var(--ari-type-button);
+
+  &:hover {
+    background: var(--ari-action-primary-hover);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.swatch {
+  @include reset-button;
+
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+  font: 700 11px / 1 var(--ari-font-body);
+
+  &:hover {
+    box-shadow:
+      inset 0 0 0 1px var(--ari-border),
+      0 0 0 2px var(--ari-bg-raised),
+      0 0 0 4px var(--ari-text-primary);
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--ari-border);
+}
+
+.comment {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13px / 1 var(--ari-font-body);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+// — Comment box —
+
+.box {
+  @include floating;
+
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 320px;
+  padding: 16px;
+}
+
+// A light wash of the highlight's color (--highlight, set on the box), so the note reads as
+// part of that highlight; the field's canvas fill is redefined for this field only.
+.comment-field {
+  --ari-bg-canvas: color-mix(in srgb, var(--highlight) 30%, var(--ari-bg-page));
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// — Hover card —
+
+.card {
+  @include floating;
+
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  padding: 16px;
+  font: 400 14px / 1.45 var(--ari-font-body);
+}
+
+.card-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  overflow-wrap: anywhere;
+
+  svg {
+    @include stroke-icon;
+
+    margin-top: 2px;
+    color: var(--ari-text-secondary);
+  }
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 6px;
+
+  > :last-child {
+    margin-left: auto;
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}

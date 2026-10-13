@@ -1,3 +1,11 @@
-export { login, logout, register } from './auth';
+export { checkUsername, login, logout, register, verifyEmail } from './auth';
 export { ApiError, type Problem, refreshSession } from './client';
-export { fetchMe } from './users';
+export {
+  changeEmail,
+  changePhoto,
+  fetchMe,
+  removeEmail,
+  removePhoto,
+  resendEmailLink,
+  updateProfile,
+} from './users';

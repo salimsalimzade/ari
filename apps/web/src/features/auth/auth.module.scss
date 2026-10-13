@@ -176,6 +176,13 @@ $wide: 1024px;
   }
 }
 
+// A short explanation under a page's title, e.g. on /verify-email.
+.text {
+  font: var(--ari-type-body);
+  color: var(--ari-text-secondary);
+  text-wrap: pretty;
+}
+
 .heading {
   display: flex;
   flex-direction: column;

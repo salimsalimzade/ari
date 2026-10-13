@@ -1,6 +1,6 @@
 ---
 name: ari
-description: Conventions and setup for ari, the frontend of Ari (SolidStart website now, browser extension later), an app that saves highlights and clipped page sections with their sources. Use this skill whenever creating, configuring, running or extending anything in the ari frontend repository (Turborepo + pnpm workspace, SolidStart, Kobalte, Biome, Lefthook git hooks, Docker), or when choosing packages or folder structure, even if the request does not name this skill.
+description: Conventions and setup for ari, the frontend of Ari (SolidStart website, and the browser extension: Firefox now, Chrome later), an app that saves highlights and clipped page sections with their sources. Use this skill whenever creating, configuring, running or extending anything in the ari frontend repository (Turborepo + pnpm workspace, SolidStart, Kobalte, Biome, Lefthook git hooks, Docker), or when choosing packages or folder structure, even if the request does not name this skill.
 ---
 
 # ari
@@ -8,7 +8,8 @@ description: Conventions and setup for ari, the frontend of Ari (SolidStart webs
 Ari ("arı" means "bee" in Azerbaijani) saves highlights and clipped page sections with their
 sources. It lives in two repositories:
 
-- **ari** (this repo): the frontend. The SolidStart website now, a browser extension later.
+- **ari** (this repo): the frontend. The SolidStart website, and the browser extension (Firefox
+  now, Chrome later).
 - **ari-api**: the Java / Spring Boot backend, on `http://localhost:8080`.
 
 Write "Ari" in UI text and `ari` in code, package names and URLs; never use the dotless "ı" there.
@@ -23,6 +24,8 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
 | `pnpm install` | Installs dependencies and the git hooks |
 | `pnpm dev` | Starts every app through Turborepo; the website on http://localhost:3000 (start ari-api first) |
 | `pnpm dev --filter=@ari/web` | Starts one app |
+| `pnpm dev --filter=@ari/extension` | Opens Firefox with the extension loaded, reloading it on every change (WXT's dev server on 3001) |
+| `pnpm --filter @ari/extension zip` | Zips the Firefox build for addons.mozilla.org (`apps/extension/.output/`) |
 | `pnpm build` · `pnpm test` | Runs the script in every package that has it, cached by Turborepo |
 | `pnpm check` · `pnpm format` | Biome checks / fixes formatting, lint and import order for the whole repo |
 | `pnpm docker` | Runs the website in a container on port 3000, with the values from `apps/web/.env` |
@@ -37,6 +40,10 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
   `package.json` asks for `catalog:` (`catalogMode: strict` rejects a mismatched version). Every
   `tsconfig.json` extends the root `tsconfig.base.json`; no TypeScript project references.
 - **Web app:** SolidStart v2 on Solid 1.x (Vite 8, Nitro). Pages render on the server first.
+- **Extension:** WXT 0.21 with `@wxt-dev/module-solid`, Manifest V3, built for Firefox
+  (`wxt -b firefox`, Firefox 140 or later; Chrome comes later). `web-ext` runs and lints it.
+  WXT's auto-imports are off (`imports: false`): `browser`, `storage` and `define*` are imported
+  from `wxt/...` like everything else.
 - **UI:** Kobalte (`@kobalte/core`, in `@ari/ui-kit` only), styled with Sass (`sass`, compiled
   by the app's Vite): `--ari-*` variables in `@ari/ui-kit`'s `tokens.css` (from the design
   handoff's `ari.tokens.json`; light theme only), global styles in its `base.css`, one Sass Module
@@ -82,6 +89,15 @@ apps/web/src/
 ├── features/<name>/ queries.ts (query + action) and the feature's components
 ├── i18n/            the dictionaries, the language context and LanguageSelect
 └── styles/          page.module.scss
+
+apps/extension/src/  WXT's srcDir
+├── entrypoints/     background.ts, content/ (the page UI in a shadow root), popup/, sidepanel/
+│                    (Firefox's sidebar), welcome/ (opened once, at install)
+├── features/<name>/ saves (storage), highlight, clip, page (the content UI), popup, side-panel,
+│                    welcome
+├── i18n/            en.ts, az.ts and i18n.ts (t, fill, plural)
+├── styles/          _extension.scss (Sass mixins, no output)
+└── icons.tsx · keys.ts · messages.ts · sidebar.ts · website.ts
 
 shared/              no lib/ folders: shared code goes in one of these four
 ├── data-access/     @ari/data-access: API client (the only code calling ari-api)
@@ -139,7 +155,10 @@ header's links move into a menu (on phones Log in too), FAQs open in place (ui-k
 footer becomes a two-column card on phones, and the closing band offers the trial instead of
 the install buttons there.
 `routes/ui-kit.tsx` (`/ui-kit`) previews every ui-kit component; `/login` and `/register` (`features/auth/`) sign in through ari-api with
-the router actions in `features/auth/queries.ts`, then go to `/library`. Sign-in is username and password
+the router actions in `features/auth/queries.ts`, then go to `/library`. `/verify-email`
+(`features/auth/verify-email.tsx`, public, in `AuthLayout`) is where a verify email's link leads: it
+confirms the code in `onMount` only (a mail scanner fetching the HTML never uses it up) and shows
+confirmed, expired or used, taken, incomplete, or a retry. Sign-in is username and password
 only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; the picker's
 `dd.MM.yyyy` is converted on submit), and the username follows ari-api's rule (3 to 30 letters,
 digits, underscores or dots). Google (F9) comes later. The signed-in pages live in the
@@ -181,9 +200,16 @@ screens they sit in a column beside the open section, with Log out under them (w
 pills under 1024px), and
 `/settings` itself is the list (the account, each section with a line about it, Log out), where the
 phone tab goes. Account (`features/account`, from the design's "Ari Account"): photo (upload or
-drop, crop in a dialog), profile form and an optional email that stays unverified until confirmed.
-Every section is UI only: Account's form is filled from `getMe`, but saving, the photo and the
-email, the plan (trial, active, payment failed, canceled; the cancel dialog is a sheet on phones),
+drop, crop in a dialog), profile form and an optional email, all live through the actions in
+`features/account/queries.ts`. The photo is cropped in the dialog to a 512×512 JPEG `Blob`,
+shown at once while it uploads (`changePhotoAction`), then from `getMe`'s signed `photoUrl`, here
+and in the sidebar; `INVALID_PHOTO` and `FILE_TOO_LARGE` show as the type and size errors. The
+profile form saves with `updateProfileAction` (the picker's `dd.MM.yyyy` sent as an ISO date) and
+shows `USERNAME_TAKEN` on the username field. The email section reads `email` and `pendingEmail`
+from `getMe`, adds or changes the address (ari-api emails a verify link; a verified email keeps
+working until the new one is confirmed), resends and removes, and shows `RATE_LIMITED` in the
+dictionaries' words. The other settings sections are UI only: the
+plan (trial, active, payment failed, canceled; the cancel dialog is a sheet on phones),
 billing, upload space and export stay in the page until ari-api has their
 endpoints. Their state lives in `SettingsProvider` (`settings-store.tsx`, with the design's example
 account as `sample`), set up by the settings layout so the list can sum each section up. Dates,
@@ -193,13 +219,36 @@ separators from the dictionaries' `formats`, not Intl; `ago` for "10 min ago"), 
 `src/styles/_app.scss` (breakpoints, `stroke-icon`, `visually-hidden`, `card`). `src/middleware.ts`
 refreshes the session before a page renders when `ari_access` is gone (pages only, so asset
 requests don't spend the same refresh token).
+`apps/extension` (from the design's "Ari Extension", issues F13 and F14) works signed out for now:
+ari-api has the saves endpoints but no extension sign-in yet, so saves stay in the browser, in
+`browser.storage.local` under `page:<address without #fragment>` (`features/saves/store.ts`), each
+shaped like ari-api's `CreateSaveRequest` so they can be sent once F13 signs in. On every website
+the content script mounts `PageUi` (`features/page/page-ui.tsx`) in a WXT shadow root: the
+selection toolbar (S saves, 1–5 save in a color, C comments, Esc closes), highlights wrapped in
+`ari-mark` elements and found again on every visit by their words and neighbouring text
+(`highlight/text-quote.ts`, like the W3C TextQuoteSelector), their hover card (color, comment,
+tags, Delete, Open in Ari), toasts with Undo, "Saved on this browser" after the first save, and
+clip mode (`clip/`: a table clips as Markdown, images into a picked set saved one item each,
+any other block or a dragged box as a JPEG screenshot that the background cuts out of
+`captureVisibleTab`). ⌘C / Ctrl C saves the selection only while the side panel is open in that
+window (`sidebarAction.isOpen`), and the copy goes ahead. The popup counts the page's saves,
+saves the selection, starts clip mode, opens the side panel and pauses a site; the side panel
+lists the active tab's saves, rings the newest one, focuses it on the page, removes it, copies all
+and toggles Show on page. The welcome tab runs the same `PageUi` on its own practice sentence,
+with saves in `storage.session`. Sign in and Open in Ari open the website (`VITE_WEB_URL`, in
+`apps/extension/.env`) at `/login` and `/library`. The extension's language is the browser's
+(`navigator.language`), and `t` is a plain object. Shortcuts follow the extension design (clip
+⌥⇧S, side panel ⌥A) and the popup shows the ones the user set in Firefox.
 `ui-kit` has the design tokens and the design handoff's components, styled (plus `Accordion`, `SegmentedControl`, `Avatar`, `Slider`,
 TextField's `prefix` and Select's `block` for the account page, SegmentedControl's `sm`,
 Dialog's `sheet` and Avatar's `md` for the settings sections, `Popover`, Button's `newTab` and
-ColorPicker's `names` for the Library, and `Menu` for Notes); `types` has the
-generated schema and the auth and users types; `utils` has only the OpenAPI type helpers;
-`data-access` has the API client (`request`, `ApiError`, the shared refresh, `refreshSession` for
-the middleware), the auth calls and `fetchMe`, with Vitest tests. Its `Problem` type is written by
+ColorPicker's `names` for the Library, `Menu` for Notes, and `Switch`, `Kbd` and Logo's `sm`
+wordmark for the extension); `types` has the
+generated schema and the auth and users types (with the email calls' bodies); `utils` has only the
+OpenAPI type helpers; `data-access` has the API client (`request`, `ApiError`, the shared refresh,
+`refreshSession` for the middleware; a `FormData` body goes as multipart), the auth calls
+(`verifyEmail` among them, with `refresh: false`), `fetchMe` and the account calls (profile,
+photo, email), with Vitest tests. Its `Problem` type is written by
 hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
 fixes that. Create the rest when an issue needs it.
 
@@ -233,7 +282,7 @@ on the server in dev and build; no `ssr.noExternal` entry is needed.
 ## Gotchas
 
 - **URLs and secrets:** they go in `apps/web/.env` (gitignored, never copied into images), never
-  hardcoded. List every key with a safe value in the committed `apps/web/.env.example`. Write each
+  hardcoded. List every key, with no value, in the committed `apps/web/.env.example`. Write each
   value once and reuse it as `${NAME}`; Vite, Nitro and Compose all expand it. Nitro loads `.env`
   into `process.env`. Vite bakes every `VITE_*` value into browser code, so a secret never gets
   that prefix. The built server doesn't read `.env`: the container gets each variable through
@@ -254,6 +303,25 @@ on the server in dev and build; no `ssr.noExternal` entry is needed.
   (it reaches ari-api through `host.docker.internal`). The Dockerfile copies each shared package's
   `package.json` before the install, then `tsconfig.base.json` and `shared/` before the build; a
   new shared package needs its own `package.json` line there.
+
+- **Extension shadow root:** WXT turns the content CSS's `:root` into `:host` and moves its
+  `@font-face` rules to the page, where relative font URLs break. So the content script doesn't
+  load `base.css`; `entrypoints/content/shadow.css` sets the basics, and `features/page/fonts.ts`
+  adds Figtree to the page's fonts as "Ari Figtree" from its bytes (`fonts/figtree.woff2`, copied
+  from ui-kit by a `build:publicAssets` hook and web-accessible). `isolateEvents` keeps typed
+  keys from the page's shortcuts, which also keeps them from Solid's listener on the document, so
+  the content script calls `delegateEvents(['keydown', 'keyup'], shadowRoot)`. Marks live in the
+  page, outside the shadow root, so they read the token colors from the UI and set them inline.
+- **Extension, Firefox:** `sidebarAction` is Firefox's and missing from `@wxt-dev/browser`'s
+  Chrome types, so `src/sidebar.ts` types it; its `open()` and `close()` work only inside a click.
+  The Navigation API reports an address change before `location` has it, so the content script
+  takes the new address from `wxt:locationchange`. macOS keeps apps started from VS Code's
+  terminal out of `~/Library/Application Support/Firefox`, so the Firefox `pnpm dev` opens would
+  never start web-ext's debugger (ECONNREFUSED after 30 s); `wxt.config.ts`'s `server:created`
+  hook gives it a home of its own (`CFFIXED_USER_HOME`, in `.wxt/`). The extension's tsconfig turns off WXT's
+  `noUncheckedIndexedAccess`, which the rest of the repo doesn't use. The gecko id
+  (`extension@ari`) is permanent once on addons.mozilla.org. `web-ext lint` reports Solid's
+  static `innerHTML` templates and Firefox for Android's minimum version as warnings, no errors.
 
 ## Rules
 

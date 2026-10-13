@@ -12,6 +12,8 @@ The rules the UI relies on are in [architecture.md](architecture.md).
 6. [PDF or Word import (F11)](#6-pdf-or-word-import-f11)
 7. [Save from the extension (F13)](#7-save-from-the-extension-f13)
 8. [Paddle checkout (F15)](#8-paddle-checkout-f15)
+9. [Add and verify an email](#9-add-and-verify-an-email)
+10. [Profile and photo](#10-profile-and-photo)
 
 ## 1. Register or sign in (F1)
 
@@ -189,6 +191,9 @@ sequenceDiagram
   A-->>X: 200 new pair
 ```
 
+- Now: ari-api has no `/auth/extension/*` endpoints yet, so the extension sends no requests. Its
+  saves stay in `browser.storage.local` (the welcome tab's practice ones in `storage.session`)
+  until this flow exists.
 - The code works once, for 60 seconds. If the tab is signed out, `/extension/connect` sends the user
   to `/login` first and then comes back.
 - The extension calls `ari-api` from its background script, which has host permission for the API,
@@ -220,3 +225,54 @@ sequenceDiagram
 - Downgrading deletes nothing. A Free user above 500 keeps every highlight but can't save until under
   500.
 - Prices: Pro is $6/month or $48/year, the same everywhere.
+
+## 9. Add and verify an email
+
+```mermaid
+sequenceDiagram
+  participant B as Browser on /settings/account
+  participant A as ari-api
+  participant I as The user's inbox
+  participant V as Browser on /verify-email
+  B->>A: PUT /api/v1/me/email (email, and the cookies carry ari_lang)
+  A-->>B: 202 Me with pendingEmail, or 429 RATE_LIMITED
+  B->>B: The router reloads getMe, the section shows the address waiting for its link
+  A-)I: The verify email, in the ari_lang language, sent in the background
+  I->>V: The user opens /verify-email?code=…
+  V->>A: POST /api/v1/auth/verify-email (code), in the browser only, refresh false
+  alt 204
+    A-->>V: Your email is confirmed
+  else 401 INVALID_CODE
+    A-->>V: This link no longer works
+  else 409 EMAIL_TAKEN
+    A-->>V: This email is already in use
+  end
+```
+
+- A verified email keeps working while a new one waits for its link; the section says so.
+- Resend (`POST /me/email/resend`, 202) and remove (`DELETE /me/email`, 204) reload `getMe` the
+  same way. Over the limits, the section shows `RATE_LIMITED`'s text.
+- `/verify-email` confirms in `onMount`, never while the server renders, so a mail scanner that only
+  fetches the link's HTML can't use up the single-use code.
+
+## 10. Profile and photo
+
+```mermaid
+sequenceDiagram
+  participant B as Browser on /settings/account
+  participant A as ari-api
+  participant S as MinIO
+  B->>A: PUT /api/v1/me (username, fullName, birthDate as an ISO date)
+  A-->>B: 200 Me, or 409 USERNAME_TAKEN on the username field
+  B->>B: Crop the picked file to a 512x512 JPEG, show it at once
+  B->>A: PUT /api/v1/me/photo (FormData with photo)
+  A-->>B: 200 Me with photoUrl, or 400 INVALID_PHOTO, or 413 FILE_TOO_LARGE
+  B->>B: The router reloads getMe, the new photoUrl replaces the preview
+  B->>S: GET photoUrl (a link signed for an hour)
+```
+
+- The client sends `FormData` as multipart and leaves the content type, with its boundary, to the
+  browser.
+- The cropped preview stays until `getMe` brings the new `photoUrl`, so the avatar never flickers
+  back to the old photo.
+

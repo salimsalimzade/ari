@@ -1,0 +1,202 @@
+@use '../../styles/extension' as *;
+
+:global(body) {
+  background: var(--ari-bg-raised);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100dvh;
+  padding: 22px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font: 700 17px / 1.2 var(--ari-font-heading);
+}
+
+.close {
+  margin-left: auto;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-title {
+  font: 600 15px / 1.35 var(--ari-font-body);
+}
+
+.page-meta {
+  font: 400 13px / 1.4 var(--ari-font-body);
+  color: var(--ari-text-secondary);
+}
+
+// Room above and to the right for an active card's remove button.
+.list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  margin: -8px -8px 0 0;
+  padding: 8px 8px 8px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.card {
+  position: relative;
+  flex: none;
+  border-radius: 20px;
+  background: var(--ari-bg-page);
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+
+  &[data-active] {
+    box-shadow: 0 0 0 2px var(--ari-action-primary);
+  }
+}
+
+.card-main {
+  @include reset-button;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: inherit;
+  font: 400 14px / 1.45 var(--ari-font-body);
+  text-align: left;
+}
+
+.text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.clip-icon {
+  margin-top: 2px;
+  color: var(--ari-text-secondary);
+
+  svg {
+    @include stroke-icon(12px);
+  }
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.image {
+  display: block;
+  width: calc(100% - 22px);
+  max-height: 140px;
+  margin-left: 22px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.card-comment {
+  display: flex;
+  gap: 6px;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+
+  svg {
+    @include stroke-icon;
+
+    margin-top: 1px;
+  }
+}
+
+.remove {
+  @include reset-button;
+
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ari-bg-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--ari-border),
+    var(--ari-shadow-sm);
+  color: var(--ari-text-secondary);
+
+  &:hover {
+    background: var(--ari-selected-row-bg);
+    color: var(--ari-text-link);
+  }
+
+  svg {
+    @include stroke-icon(12px);
+  }
+}
+
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.grow {
+  flex: 1;
+}
+
+.empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.empty-title {
+  font: 700 15px / 1.3 var(--ari-font-body);
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--ari-text-secondary);
+}

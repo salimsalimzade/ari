@@ -4,8 +4,8 @@ import styles from './logo.module.scss';
 export type LogoProps = {
   /** Size of the bee in px. */
   size?: number;
-  /** Shows "ari" next to the bee: lg 26px (desktop), md 24px (mobile). */
-  wordmark?: 'md' | 'lg';
+  /** Shows "ari" next to the bee: lg 26px (desktop), md 24px (mobile), sm 18px (extension popup). */
+  wordmark?: 'sm' | 'md' | 'lg';
   class?: string;
 };
 

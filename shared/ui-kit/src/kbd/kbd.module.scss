@@ -1,0 +1,27 @@
+.kbd {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 7px;
+  font: 700 12px / 1 var(--ari-font-body);
+
+  &[data-tone='neutral'] {
+    background: var(--ari-bg-sunken);
+    box-shadow: inset 0 -2px 0 var(--ari-neutral-400);
+    color: var(--ari-text-primary);
+  }
+
+  &[data-tone='accent'] {
+    background: var(--ari-action-primary-pressed);
+    color: var(--ari-text-on-accent);
+  }
+
+  &[data-tone='inverse'] {
+    padding: 0 5px;
+    background: color-mix(in srgb, var(--ari-inverse-text) 18%, transparent);
+    color: var(--ari-inverse-text);
+  }
+}

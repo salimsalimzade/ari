@@ -1,0 +1,53 @@
+// Sass helpers for the extension's modules, used by relative path (`@use '../../styles/extension'
+// as *;`). Only variables and mixins: this file outputs no CSS of its own.
+
+// For the inline Lucide icons (a 24px viewBox drawn with strokes only).
+@mixin stroke-icon($size: var(--ari-icon-sm)) {
+  flex: none;
+  width: $size;
+  height: $size;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--ari-icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// Hides an element visually but keeps it for screen readers.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@mixin reset-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+// A card floating over a web page: the selection toolbar, the hover card, the clip panel.
+@mixin floating($radius: var(--ari-radius-popover), $shadow: var(--ari-elevation-popover)) {
+  border: 1px solid var(--ari-border);
+  border-radius: $radius;
+  background: var(--ari-bg-raised);
+  box-shadow: $shadow;
+  color: var(--ari-text-primary);
+  pointer-events: auto;
+}
+
+// The dark pill of the toasts and the "Added to side panel" note.
+@mixin inverse-pill {
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-inverse-bg);
+  box-shadow: var(--ari-elevation-overlay);
+  color: var(--ari-inverse-text);
+  font: 600 14px / 1 var(--ari-font-body);
+  white-space: nowrap;
+}

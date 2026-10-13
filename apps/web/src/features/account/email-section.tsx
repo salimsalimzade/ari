@@ -1,43 +1,82 @@
-import { Button, Tag, TextField } from '@ari/ui-kit';
+import { ApiError } from '@ari/data-access';
+import type { MeResponse } from '@ari/types';
+import { Alert, Button, Tag, TextField } from '@ari/ui-kit';
+import { useAction } from '@solidjs/router';
 import { createForm, revalidateLogic } from '@tanstack/solid-form';
-import { createSignal, Match, Switch } from 'solid-js';
+import { createSignal, Match, Show, Switch } from 'solid-js';
 import * as v from 'valibot';
+import { fill } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import styles from './account.module.scss';
 import { CheckIcon, MailIcon, RetryIcon, TrashIcon } from './icons';
-
-/** The account's email: none yet, sent a link and waiting, or verified. */
-export type EmailState =
-  | { status: 'none' }
-  | { status: 'pending'; address: string }
-  | { status: 'verified'; address: string };
+import { changeEmailAction, removeEmailAction, resendEmailLinkAction } from './queries';
 
 const emailSchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.nonEmpty('invalid'), v.email('invalid')),
 });
 
+/** Why the last request failed, as a key of the texts below. */
+type Failure = 'invalid' | 'rateLimited' | 'networkError' | 'requestFailed';
+
+const failureOf = (error: unknown): Failure => {
+  if (error instanceof ApiError) {
+    if (error.code === 'RATE_LIMITED') return 'rateLimited';
+    if (error.code === 'VALIDATION_FAILED') return 'invalid';
+    if (error.status === 0) return 'networkError';
+  }
+  return 'requestFailed';
+};
+
 /**
- * Adding an email is optional: it stays unverified until the link in the email is opened. The state
- * lives in the page until ari-api has the email endpoints.
+ * The account's optional email, from `/me`: none, waiting for its verify link (`pendingEmail`), or
+ * verified (`email`). A verified email keeps working while a new one waits for its link.
  */
-export function EmailSection(props: { initial?: EmailState }) {
+export function EmailSection(props: { user: MeResponse }) {
   const { t } = useI18n();
-  const [email, setEmail] = createSignal<EmailState>(props.initial ?? { status: 'none' });
-  const address = () => {
-    const state = email();
-    return state.status === 'none' ? '' : state.address;
+  const change = useAction(changeEmailAction);
+  const resend = useAction(resendEmailLinkAction);
+  const remove = useAction(removeEmailAction);
+  const [editing, setEditing] = createSignal(false);
+  const [busy, setBusy] = createSignal(false);
+  const [failure, setFailure] = createSignal<Failure>();
+  const [resent, setResent] = createSignal(false);
+
+  const status = () =>
+    props.user.pendingEmail ? 'pending' : props.user.email ? 'verified' : 'none';
+  const address = () => props.user.pendingEmail ?? props.user.email ?? '';
+  const showForm = () => editing() || status() === 'none';
+  const failureText = (key: Failure) =>
+    key === 'invalid' || key === 'rateLimited' ? t().account.email[key] : t().auth.errors[key];
+
+  // Runs one request at a time; true when it worked.
+  const run = async (request: () => Promise<unknown>) => {
+    setBusy(true);
+    setFailure(undefined);
+    setResent(false);
+    try {
+      await request();
+      return true;
+    } catch (error) {
+      setFailure(failureOf(error));
+      return false;
+    } finally {
+      setBusy(false);
+    }
   };
 
   const form = createForm(() => ({
     defaultValues: { email: '' },
     validationLogic: revalidateLogic(),
     validators: { onDynamic: emailSchema },
-    onSubmit: ({ value }) =>
-      setEmail({ status: 'pending', address: v.parse(emailSchema, value).email }),
+    onSubmit: async ({ value }) => {
+      if (await run(() => change(v.parse(emailSchema, value).email))) setEditing(false);
+    },
   }));
-  const changeEmail = () => {
+  const startChange = () => {
     form.reset({ email: address() });
-    setEmail({ status: 'none' });
+    setFailure(undefined);
+    setResent(false);
+    setEditing(true);
   };
 
   return (
@@ -45,22 +84,25 @@ export function EmailSection(props: { initial?: EmailState }) {
       <div class={styles['heading-row']}>
         <h2 class={styles.heading}>{t().account.email.title}</h2>
         <Switch>
-          <Match when={email().status === 'none'}>
+          <Match when={status() === 'none'}>
             <Tag tone="neutral">{t().account.email.notAdded}</Tag>
           </Match>
-          <Match when={email().status === 'pending'}>
+          <Match when={status() === 'pending'}>
             <Tag tone="accent">{t().account.email.pending}</Tag>
           </Match>
-          <Match when={email().status === 'verified'}>
+          <Match when={status() === 'verified'}>
             <Tag icon={<CheckIcon />} class={styles['tag-icon']}>
               {t().account.email.verified}
             </Tag>
           </Match>
         </Switch>
       </div>
+      <Show when={failure()}>{(key) => <Alert>{failureText(key())}</Alert>}</Show>
       <Switch>
-        <Match when={email().status === 'none'}>
-          <p class={styles.intro}>{t().account.email.intro}</p>
+        <Match when={showForm()}>
+          <Show when={status() === 'none'}>
+            <p class={styles.intro}>{t().account.email.intro}</p>
+          </Show>
           <form
             class={styles['email-form']}
             novalidate
@@ -85,43 +127,67 @@ export function EmailSection(props: { initial?: EmailState }) {
                 />
               )}
             </form.Field>
-            <Button type="submit" variant="primary" class={styles['email-send']}>
+            <Button type="submit" variant="primary" class={styles['email-send']} disabled={busy()}>
               {t().account.email.send}
             </Button>
           </form>
+          <Show when={status() !== 'none'}>
+            <div class={styles.buttons}>
+              <Button variant="ghost" disabled={busy()} onClick={() => setEditing(false)}>
+                {t().account.email.cancel}
+              </Button>
+            </div>
+          </Show>
         </Match>
-        <Match when={email().status !== 'none'}>
-          <div class={styles.address} data-status={email().status}>
+        <Match when={!showForm()}>
+          <div class={styles.address} data-status={status()}>
             <span class={styles['address-icon']}>
               <MailIcon />
             </span>
             <div class={styles['address-text']}>
               <span class={styles['address-value']}>{address()}</span>
               <span class={styles.hint}>
-                {email().status === 'pending'
+                {status() === 'pending'
                   ? t().account.email.pendingText
                   : t().account.email.verifiedText}
               </span>
+              <Show when={status() === 'pending' && props.user.email}>
+                {(email) => (
+                  <span class={styles.hint}>
+                    {fill(t().account.email.keepsWorking, { email: email() })}
+                  </span>
+                )}
+              </Show>
             </div>
           </div>
+          <Show when={resent()}>
+            <p class={styles.hint} role="status">
+              {t().account.email.resent}
+            </p>
+          </Show>
           <div class={styles.buttons}>
             <Switch>
-              <Match when={email().status === 'pending'}>
-                {/* Sending the link again comes with ari-api's email endpoint. */}
-                <Button icon={<RetryIcon />}>{t().account.email.resend}</Button>
-                <Button variant="ghost" onClick={changeEmail}>
+              <Match when={status() === 'pending'}>
+                <Button
+                  icon={<RetryIcon />}
+                  disabled={busy()}
+                  onClick={async () => setResent(await run(() => resend()))}
+                >
+                  {t().account.email.resend}
+                </Button>
+                <Button variant="ghost" disabled={busy()} onClick={startChange}>
                   {t().account.email.change}
                 </Button>
               </Match>
-              <Match when={email().status === 'verified'}>
-                <Button onClick={changeEmail}>{t().account.email.change}</Button>
+              <Match when={status() === 'verified'}>
+                <Button disabled={busy()} onClick={startChange}>
+                  {t().account.email.change}
+                </Button>
                 <Button
                   variant="ghost"
                   icon={<TrashIcon />}
-                  onClick={() => {
-                    form.reset({ email: '' });
-                    setEmail({ status: 'none' });
-                  }}
+                  disabled={busy()}
+                  onClick={() => run(() => remove())}
                 >
                   {t().account.email.remove}
                 </Button>

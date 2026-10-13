@@ -1,0 +1,152 @@
+@use '../../styles/extension' as *;
+
+// — Toast —
+
+.region {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  left: 16px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toast {
+  @include inverse-pill;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 16px;
+  pointer-events: auto;
+}
+
+.check {
+  margin-right: 6px;
+  color: var(--ari-inverse-icon);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 8px;
+  background: var(--ari-inverse-divider);
+}
+
+.action {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  color: var(--ari-inverse-action);
+
+  &:hover {
+    background: var(--ari-inverse-divider);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+// — Saved on this browser —
+
+.sign-in {
+  @include floating(26px, var(--ari-elevation-overlay));
+
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  padding: 22px;
+}
+
+.sign-in-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sign-in-check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ari-sage);
+  color: var(--ari-white);
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.sign-in-title {
+  font: 700 18px / 1.2 var(--ari-font-heading);
+}
+
+.sign-in-text {
+  font: 400 15px / 1.45 var(--ari-font-body);
+  color: var(--ari-neutral-800);
+}
+
+.sign-in-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.grow {
+  flex: 1;
+}
+
+// — Added to side panel —
+
+.note {
+  @include inverse-pill;
+
+  position: fixed;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px 0 6px;
+  font-size: 13px;
+}
+
+.keys {
+  display: flex;
+  gap: 3px;
+}
+
+// — Saved badges on clipped images —
+
+.badge {
+  position: fixed;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-sage);
+  color: var(--ari-white);
+  font: 700 12px / 1 var(--ari-font-body);
+
+  svg {
+    @include stroke-icon;
+  }
+}

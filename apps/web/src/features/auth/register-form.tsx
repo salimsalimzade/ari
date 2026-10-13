@@ -9,6 +9,7 @@ import type { Dictionary } from '~/i18n/en';
 import { useI18n } from '~/i18n/i18n';
 import styles from './auth.module.scss';
 import { registerAction } from './queries';
+import { createUsernameCheck } from './username-check';
 
 type ErrorKey = keyof Dictionary['auth']['errors'];
 
@@ -79,6 +80,9 @@ export function RegisterForm() {
     },
   }));
   const submitting = RegisterForm.useStore((state) => state.isSubmitting);
+  const usernameTaken = createUsernameCheck(
+    RegisterForm.useStore((state) => state.values.username),
+  );
   // A field's first error, in the current language.
   const error = (errors: ({ message: string } | undefined)[]) => {
     const key = errors[0]?.message as ErrorKey | undefined;
@@ -126,7 +130,10 @@ export function RegisterForm() {
               autocomplete="username"
               value={field().state.value}
               onChange={field().handleChange}
-              error={error(field().state.meta.errors)}
+              error={
+                error(field().state.meta.errors) ??
+                (usernameTaken() ? t().auth.usernameTaken : undefined)
+              }
             />
           )}
         </RegisterForm.Field>

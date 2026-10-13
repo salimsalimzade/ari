@@ -17,8 +17,8 @@ export type PhotoDialogProps = {
   /** The picked image (an object URL); the dialog is open while it is set. */
   source?: string;
   onClose: () => void;
-  /** Gets the cropped square photo as a data URL. */
-  onSave: (url: string) => void;
+  /** Gets the cropped square photo: a 512×512 JPEG. */
+  onSave: (photo: Blob) => void;
 };
 
 /**
@@ -90,7 +90,7 @@ export function PhotoDialog(props: PhotoDialogProps) {
         outputSize,
         outputSize,
       );
-    props.onSave(canvas.toDataURL('image/jpeg', 0.9));
+    canvas.toBlob((photo) => photo && props.onSave(photo), 'image/jpeg', 0.9);
   };
 
   return (

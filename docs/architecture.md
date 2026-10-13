@@ -29,7 +29,8 @@ flowchart LR
   class ext,google,paddle later
 ```
 
-Dashed boxes are later features.
+Dashed boxes and arrows are later features: the extension exists (`apps/extension`, Firefox), but
+until F13's sign-in it keeps its saves in the browser.
 
 Key decisions:
 
@@ -37,7 +38,10 @@ Key decisions:
   the browser's cookies and puts the data in the HTML
   ([sequences §4](sequences.md#4-server-rendered-library-page-f2)). After hydration, the browser
   calls `ari-api` directly with the cookies.
-- The extension (F13) calls `ari-api` directly with an `Authorization: Bearer` token.
+- The extension (F13) will call `ari-api` directly with an `Authorization: Bearer` token. Until
+  ari-api has the extension sign-in ([sequences §7](sequences.md#7-save-from-the-extension-f13)),
+  it works signed out: saves stay in `browser.storage.local`, one key per page, shaped like
+  ari-api's `CreateSaveRequest`.
 - Google sign-in (F9) is a full-page link through `ari-api`, and checkout (F15) is Paddle.js on
   `/settings`. The frontend never talks to the database, queues or file storage.
 - Local URLs: web `http://localhost:3000`, API `http://localhost:8080`, API base path `/api/v1`.
@@ -58,7 +62,12 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 | Code | Status | When |
 |---|---|---|
 | `INVALID_CREDENTIALS` | 401 | Login fails, for any reason; it never says which usernames exist |
-| `USERNAME_TAKEN` | 409 | Register with a username that is already used |
+| `USERNAME_TAKEN` | 409 | Register, or save the profile with, a username that is already used; the profile form shows it on the field |
+| `INVALID_PHOTO` | 400 | A profile photo that isn't a JPEG, PNG or WebP image (the photo card's type error) |
+| `FILE_TOO_LARGE` | 413 | An upload over the server's limit, 2 MB for a profile photo (the photo card's size error) |
+| `RATE_LIMITED` | 429 | Too many verify links (1 a minute, 5 a day): the email section says to try again later |
+| `INVALID_CODE` | 401 | `/verify-email` with an unknown, expired or used link; called with `refresh: false`, so it never means "signed out" |
+| `EMAIL_TAKEN` | 409 | `/verify-email` for an address another account confirmed first |
 | `UNAUTHORIZED` | 401 | No valid session: refresh once, then go to `/login` |
 | `VALIDATION_FAILED` | 400 | An invalid body or import file, with field errors |
 | `LIMIT_REACHED` | 403 | A save past the free limit, or the error code of a failed import |
@@ -73,7 +82,7 @@ folders.
 ```mermaid
 flowchart TD
   web["@ari/web<br/>apps/web, SolidStart"]
-  ext["Browser extension<br/>apps/*, F13"]
+  ext["@ari/extension<br/>apps/extension, WXT"]
   da["@ari/data-access<br/>shared/data-access"]
   types["@ari/types<br/>shared/types"]
   ui["@ari/ui-kit<br/>shared/ui-kit"]
@@ -93,9 +102,6 @@ flowchart TD
   types --> utils
   ui --> utils
   da -- "JSON + cookies" --> api
-
-  classDef later stroke-dasharray: 5 5
-  class ext later
 ```
 
 The arrows are the only allowed imports. `ui-kit` and `data-access` never import each other, `utils`
@@ -104,6 +110,7 @@ imports no workspace package, and only `data-access` calls `ari-api`.
 | Package | Folder | Holds |
 |---|---|---|
 | `@ari/web` | `apps/web` | File routes (`routes/`); features (`features/<name>/`: `queries.ts` with the router's `query` and `action`, and the feature's components); page layout styles |
+| `@ari/extension` | `apps/extension` | The Firefox extension (WXT): `entrypoints/` (background, the content script's shadow-root UI, popup, sidebar, welcome tab) and `features/<name>/` (saves, highlight, clip, page, popup, side-panel, welcome) |
 | `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api` |
 | `@ari/types` | `shared/types` | API types, generated from ari-api's OpenAPI (`pnpm generate:api`) into `schema.ts`, named per area (`auth.ts`, `users.ts`) |
 | `@ari/ui-kit` | `shared/ui-kit` | Design-system components (thin Kobalte wrappers where Kobalte has the primitive), `AsyncBoundary` (Suspense + ErrorBoundary), `tokens.css`, `base.css` |
@@ -158,6 +165,17 @@ Client and UI rules:
   written in the form, not the dictionaries. A hint that must stay visible while typing goes in the
   field's `description`, below it.
 - UI text says "Ari"; code, package names and URLs say `ari`.
+
+Extension rules:
+
+- What it draws on a website lives in a shadow root (WXT's `createShadowRootUi`), so the page's
+  styles can't reach it; only the highlight marks sit in the page, with inline styles.
+- A highlight is found again on every visit by its words and the text around them, never by the
+  page's DOM path, which changes between visits.
+- Pages and the extension's parts talk through the typed messages in `src/messages.ts`; only the
+  background captures the screen and opens tabs.
+- Ari never reads a page by itself: the content script acts on a selection, a copy while the side
+  panel is open, or clip mode, and a site can be paused from the popup.
 
 ## 4. Implementation guide for Claude Code
 

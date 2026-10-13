@@ -1,0 +1,29 @@
+{
+  "name": "@ari/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "wxt -b firefox",
+    "build": "wxt build -b firefox",
+    "zip": "wxt zip -b firefox",
+    "test": "vitest run",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@ari/ui-kit": "workspace:*",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "@wxt-dev/module-solid": "catalog:",
+    "jsdom": "catalog:",
+    "sass": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "web-ext": "catalog:",
+    "wxt": "catalog:"
+  }
+}

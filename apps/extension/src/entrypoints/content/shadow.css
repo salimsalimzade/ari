@@ -1,0 +1,42 @@
+/*
+ * Inside the content script's shadow root, after the tokens: what base.css gives the extension's
+ * own pages. A page's styles can't reach in here, and neither can base.css's fonts, so Figtree is
+ * the copy features/page/fonts.ts adds to the page as "Ari Figtree".
+ */
+
+:host {
+  --ari-font-heading: "Ari Figtree", system-ui, sans-serif;
+  --ari-font-body: "Ari Figtree", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--ari-text-selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ari-border-focus);
+  outline-offset: 2px;
+}

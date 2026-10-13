@@ -42,9 +42,10 @@ export function AccountSettings() {
             <>
               <ProfilePhoto
                 initial={(user().fullName ?? user().username ?? '?').charAt(0).toUpperCase()}
+                photoUrl={user().photoUrl}
               />
               <ProfileForm user={user()} />
-              <EmailSection />
+              <EmailSection user={user()} />
             </>
           )}
         </Show>

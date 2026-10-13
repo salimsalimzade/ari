@@ -11,6 +11,9 @@ coverage/
 # Turborepo
 .turbo/
 
+# WXT's generated types (wxt prepare)
+.wxt/
+
 # env
 .env
 .env.*
