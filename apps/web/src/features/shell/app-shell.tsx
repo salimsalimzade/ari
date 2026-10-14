@@ -26,7 +26,7 @@ export function AppShell(props: { children: JSX.Element }) {
   const library = useLibrary();
   const notes = useNotes();
   const location = useLocation();
-  const ready = () => library.files.filter((file) => file.status === 'ready').length;
+  const ready = () => library.files().filter((file) => file.status === 'ready').length;
   // The sidebar opens the newest note; any note page counts as Notes.
   const notesHref = () => {
     const newest = notes.list()[0];

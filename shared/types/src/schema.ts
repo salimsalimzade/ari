@@ -89,6 +89,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/imports/{id}/review': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Save the review
+     * @description Ticked marks without a save become saves from the file's source (IMPORT, or an image clip for a handwritten mark's picture), with the tag and color given; saved marks that are unticked are removed from the Library. The title and author change the source. The import becomes SAVED, and can be reviewed again.
+     */
+    put: operations['review'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/saves': {
     parameters: {
       query?: never;
@@ -168,6 +188,70 @@ export interface paths {
     put?: never;
     /** Send the pending email a new verify link */
     post: operations['resendVerification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/imports': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The Imports page
+     * @description Every file that isn't dismissed, newest first (at most 200), and the upload space. Poll it every 2 seconds while a file is QUEUED or READING.
+     */
+    get: operations['list_2'];
+    put?: never;
+    /**
+     * Import a file
+     * @description Multipart, the file in the file part: a PDF or a Word DOCX, recognized by its bytes, of any size that fits in the space left. It is read in the background.
+     */
+    post: operations['upload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/imports/{id}/retry': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Read a failed file again
+     * @description It goes back to QUEUED.
+     */
+    post: operations['retry'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/imports/{id}/dismiss': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Hide a file
+     * @description A FAILED, EMPTY or DISCARDED file leaves the Imports page.
+     */
+    post: operations['dismiss'];
     delete?: never;
     options?: never;
     head?: never;
@@ -435,7 +519,7 @@ export interface paths {
      * The Sources page, the source saved from most recently first
      * @description Keyset paging, as in the Library: send nextCursor back as cursor for the next page. It is left out on the last page. The first page is 40 sources unless limit says otherwise. A source's saves come from GET /api/v1/saves?source={id}.
      */
-    get: operations['list_2'];
+    get: operations['list_3'];
     put?: never;
     post?: never;
     delete?: never;
@@ -499,6 +583,30 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/imports/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * One import
+     * @description With its marks once it is READY or SAVED, for the review.
+     */
+    get: operations['get_3'];
+    put?: never;
+    post?: never;
+    /**
+     * Discard a file before its review
+     * @description Its marks and source go; nothing reaches the Library. It becomes DISCARDED.
+     */
+    delete: operations['discard'];
     options?: never;
     head?: never;
     patch?: never;
@@ -643,6 +751,29 @@ export interface components {
        */
       email: string;
     };
+    ReviewRequest: {
+      /** @description The source's title; left out or blank keeps the file's name */
+      title?: string;
+      /** @description Left out or blank for none */
+      author?: string;
+      /** @description A tag for every mark saved now */
+      tag?: string;
+      /**
+       * @description One color for every mark; left out keeps each mark's
+       * @enum {string}
+       */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /** @description Every ticked mark: new ones are saved, unticked saved ones removed */
+      selectedMarkIds: string[];
+    };
+    ReviewResponse: {
+      /** Format: int32 */
+      added?: number;
+      /** Format: int32 */
+      removed?: number;
+      /** Format: uuid */
+      sourceId?: string;
+    };
     CreateSaveRequest: {
       /**
        * @description HIGHLIGHT or CLIP; IMPORT is only made by importing a file
@@ -704,6 +835,83 @@ export interface components {
     };
     ExtensionCodeResponse: {
       code?: string;
+    };
+    ImportMarkResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      type?: 'HIGHLIGHT' | 'UNDERLINE' | 'DRAWN' | 'HANDWRITTEN' | 'STRIKE' | 'NOTE';
+      /**
+       * @description One of the five; for a highlight, its color mapped from the file's
+       * @enum {string}
+       */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /**
+       * @description The file's own color, when it had to be mapped: ORANGE or RED
+       * @enum {string}
+       */
+      fileColor?: 'ORANGE' | 'RED';
+      /** @description The marked words or a note's text; empty for a handwritten mark */
+      text?: string;
+      /**
+       * Format: int32
+       * @description From 1; left out when the file doesn't tell
+       */
+      pageNumber?: number;
+      /** @description The file's comment on the mark */
+      comment?: string;
+      /** @description A picture of a drawn or handwritten mark, signed for an hour */
+      imageUrl?: string;
+      /** @description Ticked in the review */
+      selected?: boolean;
+      /**
+       * Format: uuid
+       * @description The save it became; left out until it is saved
+       */
+      saveId?: string;
+    };
+    ImportResponse: {
+      /** Format: uuid */
+      id?: string;
+      fileName?: string;
+      /** Format: int64 */
+      sizeBytes?: number;
+      /**
+       * @description QUEUED and READING while it is read; then READY to review, EMPTY or FAILED; SAVED once reviewed, DISCARDED when dropped
+       * @enum {string}
+       */
+      status?: 'QUEUED' | 'READING' | 'READY' | 'SAVED' | 'EMPTY' | 'FAILED' | 'DISCARDED';
+      /** @description FAILED only: UNREADABLE, ENCRYPTED or READ_FAILED */
+      errorCode?: string;
+      /**
+       * Format: int32
+       * @description How many marks reading found
+       */
+      marksCount?: number;
+      /**
+       * Format: int32
+       * @description How many of them are in the Library
+       */
+      keptCount?: number;
+      /**
+       * Format: uuid
+       * @description The file's source, once marks are found
+       */
+      sourceId?: string;
+      /** @description The source's title: the file's own, or its name */
+      title?: string;
+      author?: string;
+      /** Format: date-time */
+      readAt?: string;
+      /**
+       * Format: date-time
+       * @description When the review was first saved
+       */
+      reviewedAt?: string;
+      /** Format: date-time */
+      createdAt?: string;
+      /** @description Only from GET /imports/{id}, once READY or SAVED */
+      marks?: components['schemas']['ImportMarkResponse'][];
     };
     VerifyEmailRequest: {
       /** @description The code from the link in the email */
@@ -907,6 +1115,19 @@ export interface components {
        * @description The last edit; the list is in this order
        */
       updatedAt?: string;
+    };
+    ImportsResponse: {
+      items?: components['schemas']['ImportResponse'][];
+      space?: components['schemas']['UploadSpaceResponse'];
+    };
+    UploadSpaceResponse: {
+      /**
+       * Format: int64
+       * @description Files queued, being read, ready or saved
+       */
+      usedBytes?: number;
+      /** Format: int64 */
+      limitBytes?: number;
     };
     UsernameAvailabilityResponse: {
       username?: string;
@@ -1292,6 +1513,68 @@ export interface operations {
       };
     };
   };
+  review: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReviewRequest'];
+      };
+    };
+    responses: {
+      /** @description How many saves were added and removed */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ReviewResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ReviewResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ReviewResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ReviewResponse'];
+        };
+      };
+      /** @description INVALID_IMPORT_STATE: it isn't READY or SAVED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ReviewResponse'];
+        };
+      };
+    };
+  };
   list: {
     parameters: {
       query?: {
@@ -1558,6 +1841,179 @@ export interface operations {
         content: {
           '*/*': components['schemas']['MeResponse'];
         };
+      };
+    };
+  };
+  list_2: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The files and the space */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportsResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportsResponse'];
+        };
+      };
+    };
+  };
+  upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          file: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The import, QUEUED */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description UNSUPPORTED_FILE (not a PDF or DOCX) or NO_SPACE_LEFT (the upload space is too full) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description FILE_TOO_LARGE: over 50 MB, more than the whole upload space */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+    };
+  };
+  retry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The import, QUEUED */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description INVALID_IMPORT_STATE: it isn't FAILED */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+    };
+  };
+  dismiss: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Hidden */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_IMPORT_STATE */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2148,7 +2604,7 @@ export interface operations {
       };
     };
   };
-  list_2: {
+  list_3: {
     parameters: {
       query?: {
         /** @description The kind tab; left out for all */
@@ -2300,6 +2756,87 @@ export interface operations {
         content: {
           '*/*': components['schemas']['FacetsResponse'];
         };
+      };
+    };
+  };
+  get_3: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The import */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+    };
+  };
+  discard: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Discarded */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_IMPORT_STATE: it isn't READY */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

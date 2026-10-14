@@ -5,6 +5,7 @@ import { fill, plural } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { AlertIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 import { ImportProgress, ImportRejected } from './import-rows';
+import { isBusy } from './imports';
 import styles from './imports.module.scss';
 import { useLibrary } from './library-store';
 
@@ -15,17 +16,18 @@ import { useLibrary } from './library-store';
 export function ImportTray() {
   const { t } = useI18n();
   const library = useLibrary();
-  const busy = () =>
-    library.session().filter((file) => file.status === 'uploading' || file.status === 'reading');
+  const busy = () => library.session().filter(isBusy);
   const ready = () => library.session().filter((file) => file.status === 'ready');
   const rejected = () => library.session().filter((file) => file.status === 'rejected');
-  // Uploading is the first half of each file's progress, reading the second.
+  // Uploading is the first half of each file's progress, and reading the second; ari-api tells no
+  // share of its reading, so a file being read counts as three quarters.
   const percent = () => {
     const files = busy();
     if (!files.length) return 100;
     const total = files.reduce(
       (sum, file) =>
-        sum + (file.status === 'uploading' ? file.progress / 2 : 50 + file.progress / 2),
+        sum +
+        (file.status === 'uploading' ? file.progress / 2 : file.status === 'queued' ? 50 : 75),
       0,
     );
     return Math.round(total / files.length);
@@ -102,9 +104,7 @@ export function ImportTray() {
           <Show when={ready()[0]}>
             {(file) => (
               <Button variant="primary" href={`/imports/${file().id}`}>
-                {fill(plural(file().marks?.length ?? 0, t().imports.trayReview), {
-                  n: file().marks?.length ?? 0,
-                })}
+                {fill(plural(file().found, t().imports.trayReview), { n: file().found })}
               </Button>
             )}
           </Show>

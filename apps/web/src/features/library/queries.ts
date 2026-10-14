@@ -1,12 +1,19 @@
 import {
   ApiError,
   deleteSave,
+  discardImport,
+  dismissImport,
+  fetchImport,
   fetchSave,
   fetchSaveFacets,
+  listImports,
   listSaves,
+  retryImport,
+  reviewImport,
   updateSave,
+  uploadImport,
 } from '@ari/data-access';
-import type { ListSavesQuery, UpdateSaveRequest } from '@ari/types';
+import type { ListSavesQuery, ReviewImportRequest, UpdateSaveRequest } from '@ari/types';
 import type { HighlightColor } from '@ari/ui-kit';
 import { action, json, query } from '@solidjs/router';
 import { getMe } from '~/features/auth/queries';
@@ -17,6 +24,7 @@ import {
   getSourcePage,
   getSourceSaves,
 } from '~/features/sources/queries';
+import { type ImportFile, type Space, toImportFile, toSpace } from './imports';
 import { type Facets, type Save, type SaveKind, toFacets, toSave } from './saves';
 
 /**
@@ -122,3 +130,91 @@ export const deleteSaveAction = action(async (id: string) => {
     ],
   });
 }, 'delete-save');
+
+// — Imports (sequences §5) —
+
+export type ImportList = { files: ImportFile[]; space: Space; failed?: true };
+
+/** The Imports page's files, newest first, and the upload space. */
+export const getImports = query(async (): Promise<ImportList> => {
+  try {
+    const page = await listImports();
+    return { files: (page.items ?? []).map(toImportFile), space: toSpace(page.space) };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return { files: [], space: toSpace(), failed: true };
+  }
+}, 'imports');
+
+/**
+ * Uploads a file, telling `onProgress` the share sent; answers the import ari-api queued, or why it
+ * was refused.
+ */
+export async function uploadFile(
+  file: File,
+  onProgress: (sent: number) => void,
+): Promise<ImportFile | { rejected: NonNullable<ImportFile['rejected']> }> {
+  try {
+    return toImportFile(await uploadImport(file, onProgress));
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    const reasons = {
+      UNSUPPORTED_FILE: 'type',
+      // Over the whole space: it can never fit.
+      FILE_TOO_LARGE: 'noSpace',
+      NO_SPACE_LEFT: 'noSpace',
+    } as const;
+    return { rejected: reasons[error.code as keyof typeof reasons] ?? 'failed' };
+  }
+}
+
+/** One import with its marks once read; null when there is no such import, `failed` on an error. */
+export const getImport = query(async (id: string): Promise<ImportFile | null | 'failed'> => {
+  try {
+    return toImportFile(await fetchImport(id));
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return error.status === 404 || error.status === 400 ? null : 'failed';
+  }
+}, 'import');
+
+/**
+ * Saves a review: its saves join the Library (and unticked saved ones leave it), so the Library,
+ * its counts and the Sources pages load again.
+ */
+export const reviewImportAction = action(
+  async (id: string, body: ReviewImportRequest) =>
+    json(await reviewImport(id, body), {
+      revalidate: [
+        getImports.key,
+        getImport.keyFor(id),
+        getSavePage.key,
+        getSaveFacets.key,
+        getMe.key,
+        getSourceCounts.key,
+        ...sourceKeys,
+        // Removed saves take their quotes with them.
+        getNotes.key,
+        getNote.key,
+      ],
+    }),
+  'review-import',
+);
+
+/** Reads a failed file again. */
+export const retryImportAction = action(
+  async (id: string) => json(toImportFile(await retryImport(id)), { revalidate: getImports.key }),
+  'retry-import',
+);
+
+/** Hides a failed, empty or discarded file. */
+export const dismissImportAction = action(async (id: string) => {
+  await dismissImport(id);
+  return json(undefined, { revalidate: getImports.key });
+}, 'dismiss-import');
+
+/** Drops a file before its review. */
+export const discardImportAction = action(async (id: string) => {
+  await discardImport(id);
+  return json(undefined, { revalidate: [getImports.key, getImport.keyFor(id)] });
+}, 'discard-import');

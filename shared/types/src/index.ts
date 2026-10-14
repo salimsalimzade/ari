@@ -17,6 +17,13 @@ export type {
   VerifyEmailRequest,
 } from './auth';
 export type {
+  ImportMarkResponse,
+  ImportResponse,
+  ImportsResponse,
+  ReviewImportRequest,
+  ReviewImportResponse,
+} from './imports';
+export type {
   ListNotesQuery,
   NoteListResponse,
   NoteRequest,

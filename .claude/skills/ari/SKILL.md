@@ -209,9 +209,16 @@ loaded so far stand in until it answers) and offers "All N results", which puts 
 Library's filters (`filters.q`, a chip there, counted by the facets). In the same round the
 palette's Sources and Notes groups ask `searchSources` (name, title, author) and `searchNotes`
 (title and writing); the notes' "/" quote picker asks `searchSaves` too. Each shows what the page
-has loaded until ari-api answers. Imports are still stand-ins (`imports.ts`: a timed upload and
-reading that finds the same example marks); saving a review adds its marks to this visit's Library
-only (`isNew`), since ari-api doesn't import files yet. The reading view's Add to note quotes the
+has loaded until ari-api answers. Imports come from ari-api (F5, F11, sequences §6): PDF and Word
+(DOCX) files only for now (photos, F12, come later), of any size that fits in the 50 MB of upload
+space everyone has until billing (no per-file limit, no plan check, no Hive upsell). The store keeps the files it is
+uploading (`uploadFile` over data-access' XHR `upload`, for its progress) or refused (type, no
+space left, or the upload failed) in the page; the rest is `getImports` (on every signed-in page, for the
+sidebar's ready count), asked again every 2 s while a file is queued or being read. `/imports/:id`
+loads `getImport` with its marks (pictures of drawn and handwritten ones from `imageUrl`) and keeps
+the ticks in the page until `reviewImportAction` saves them, which revalidates the Library, its
+counts, the Sources pages and the notes; Retry, Dismiss and Discard are actions too. The reading
+view's Add to note quotes the
 save in one of the newest notes or in a new one. `features/notes` (from the design's "Ari Notes") has `/notes` (the notes beside the open note on
 wide screens, where the sidebar opens the newest note; the list on phones, or the empty state) and
 `/notes/:id`: a title and paragraphs with saved quotes between them. Each paragraph is a textarea
@@ -340,14 +347,17 @@ TextField's `prefix` and Select's `block` for the account page, SegmentedControl
 Dialog's `sheet` and Avatar's `md` for the settings sections, `Popover`, Button's `newTab` and
 ColorPicker's `names` for the Library, `Menu` for Notes, and `Switch`, `Kbd` and Logo's `sm`
 wordmark for the extension); `types` has the
-generated schema and the auth, users, saves, sources and notes types (with the email calls' bodies, the
+generated schema and the auth, users, saves, sources, notes and imports types (with the email calls' bodies, the
 extension's sign-in, and the saves it sends); `utils` has the OpenAPI type helpers and the extension bridge's messages; `data-access` has the API client (`request`, `ApiError`, the shared refresh,
-`refreshSession` for the middleware; a `FormData` body goes as multipart; `searchOf` for query
+`refreshSession` for the middleware; a `FormData` body goes as multipart, and `upload` sends one
+with its progress, refreshing first when ari-api's readable `ari_access_fresh` cookie is gone, so a
+file isn't sent just to get a 401; `searchOf` for query
 strings), the auth calls
 (`verifyEmail` among them, with `refresh: false`, and `createExtensionCode`), `fetchMe` and the account calls (profile,
 photo, email), the saves calls, the sources calls (`listSources`, `fetchSourceCounts`,
 `fetchSource`) and the notes calls (`listNotes`, `createNote`, `fetchNote`, `replaceNote`,
-`deleteNote`), and the password reset calls, with Vitest tests. Its `Problem` type is written by
+`deleteNote`), the imports calls (`listImports`, `uploadImport`, `fetchImport`, `reviewImport`,
+`retryImport`, `dismissImport`, `discardImport`) and the password reset calls, with Vitest tests. Its `Problem` type is written by
 hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
 fixes that. Create the rest when an issue needs it.
 

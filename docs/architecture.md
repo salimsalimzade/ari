@@ -55,7 +55,7 @@ The flows are in sequences [§1](sequences.md#1-register-or-sign-in-f1),
 
 | Rule | Value |
 |---|---|
-| Cookies | `ari_access` (15 minutes) and `ari_refresh` (30 days, `Path=/api/v1/auth`, replaced on every refresh) |
+| Cookies | `ari_access` (15 minutes) and `ari_refresh` (30 days, `Path=/api/v1/auth`, replaced on every refresh), both httpOnly; and `ari_access_fresh` (13 minutes, readable by JavaScript, no token in it), which tells an upload to refresh first |
 | Cookie flags | `HttpOnly`, so JavaScript never reads or stores tokens; `SameSite=Lax`; `Secure` outside dev |
 | Logout | `POST /api/v1/auth/logout` clears both cookies (204) |
 
@@ -76,8 +76,12 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 | `NO_EMAIL` | 409 | Planned: the account has no email to send a reset link to |
 | `EMAIL_NOT_CONFIRMED` | 409 | Planned: the account's email isn't confirmed yet, so it gets no reset link |
 | `UNAUTHORIZED` | 401 | No valid session: refresh once, then go to `/login` |
-| `VALIDATION_FAILED` | 400 | An invalid body or import file, with field errors |
-| `LIMIT_REACHED` | 403 | A save past the free limit, or the error code of a failed import |
+| `VALIDATION_FAILED` | 400 | An invalid body, with field errors |
+| `UNSUPPORTED_FILE` | 400 | An imported file that isn't a PDF or Word DOCX by its bytes: "Ari can import PDF and Word (DOCX) files" |
+| `NO_SPACE_LEFT` | 400 | An imported file that doesn't fit in what is left of the 50 MB upload space |
+| `FILE_TOO_LARGE` | 413 | An upload over its limit: 50 MB (the whole upload space) for an imported file, 2 MB for a photo or a clip's image |
+| `INVALID_IMPORT_STATE` | 409 | An import action its status doesn't allow, e.g. a review before the file is read |
+| `LIMIT_REACHED` | 403 | Planned with billing: a save past a plan's limit |
 | `NOT_FOUND` | 404 | A folder or highlight that isn't the user's |
 
 ## 3. Frontend workspace and UI

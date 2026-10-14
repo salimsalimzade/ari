@@ -1,27 +1,26 @@
 import { Button } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
-import { A } from '@solidjs/router';
-import { For, Match, Show, Switch } from 'solid-js';
+import { A, revalidate } from '@solidjs/router';
+import { For, Match, Show, Switch, startTransition } from 'solid-js';
 import { MobileHeader } from '~/features/shell/mobile-header';
 import { fill, plural, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { FileDrop } from './file-drop';
 import { AlertIcon, FileIcon, UploadIcon } from './icons';
 import { ImportProgress, ImportRejected, useImportText } from './import-rows';
-import type { ImportFile } from './imports';
+import { type ImportFile, isBusy } from './imports';
 import styles from './imports.module.scss';
-import { trialMegabytes, useLibrary } from './library-store';
-
-const isBusy = (file: ImportFile) => file.status === 'uploading' || file.status === 'reading';
+import { useLibrary } from './library-store';
+import { getImports } from './queries';
 
 /** /imports: upload space, where to drop files, then the files by what they need. */
 export function ImportsPage() {
   const { t } = useI18n();
   const library = useLibrary();
-  const files = () => library.files.filter((file) => file.status !== 'dismissed');
-  const ready = () => library.files.filter((file) => file.status === 'ready');
+  const files = () => library.files();
+  const ready = () => files().filter((file) => file.status === 'ready');
   const history = () =>
-    library.files.filter((file) => ['saved', 'failed', 'empty', 'discarded'].includes(file.status));
+    files().filter((file) => ['saved', 'failed', 'empty', 'discarded'].includes(file.status));
   const summary = () =>
     fill(t().imports.summary, {
       files: fill(plural(files().length, t().imports.files), { n: files().length }),
@@ -48,6 +47,24 @@ export function ImportsPage() {
           <span class={styles['phone-only']}>{t().imports.chooseFiles}</span>
         </Button>
       </header>
+      <Show when={library.importsFailed()}>
+        <div role="alert" class={styles.rejected}>
+          <AlertIcon />
+          <div class={styles['rejected-body']}>
+            <span class={styles['rejected-name']}>{t().imports.loadFailed}</span>
+            <span class={styles['rejected-text']}>{t().library.loadFailedText}</span>
+            <div class={styles['rejected-actions']}>
+              <button
+                type="button"
+                class={styles.dismiss}
+                onClick={() => startTransition(() => revalidate(getImports.key))}
+              >
+                {t().library.retry}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
       <Show when={files().length} fallback={<FirstImport />}>
         <div class={styles.sections}>
           <UploadMeter />
@@ -56,15 +73,13 @@ export function ImportsPage() {
             <h2 class={styles.overline}>{fill(t().imports.ready, { n: ready().length })}</h2>
             <For each={ready()}>{(file) => <ReadyFile file={file} />}</For>
           </Show>
-          <Show when={library.files.some(isBusy)}>
+          <Show when={files().some(isBusy)}>
             <h2 class={styles.overline}>{t().imports.inProgress}</h2>
-            <For each={library.files.filter(isBusy)}>
-              {(file) => <ImportProgress file={file} />}
-            </For>
+            <For each={files().filter(isBusy)}>{(file) => <ImportProgress file={file} />}</For>
           </Show>
-          <Show when={library.files.some((file) => file.status === 'rejected')}>
+          <Show when={files().some((file) => file.status === 'rejected')}>
             <h2 class={styles.overline}>{t().imports.notImported}</h2>
-            <For each={library.files.filter((file) => file.status === 'rejected')}>
+            <For each={files().filter((file) => file.status === 'rejected')}>
               {(file) => <ImportRejected file={file} />}
             </For>
           </Show>
@@ -87,7 +102,7 @@ function UploadMeter() {
   const format = useFormat();
   const library = useLibrary();
   const space = () => library.space();
-  const percent = (megabytes: number) => `${Math.min(100, (megabytes / trialMegabytes) * 100)}%`;
+  const percent = (megabytes: number) => `${Math.min(100, (megabytes / space().limit) * 100)}%`;
   const megabytes = (value: number) => `${format.number(value, 1)} MB`;
   return (
     <section class={styles.meter} data-tone={space().tone} aria-label={t().imports.space}>
@@ -95,7 +110,7 @@ function UploadMeter() {
         <span class={styles['meter-used']}>
           {fill(t().imports.spaceUsed, {
             used: megabytes(space().used + space().pending),
-            limit: `${trialMegabytes} MB`,
+            limit: `${format.number(space().limit, 0)} MB`,
           })}
         </span>
         <span class={styles['meter-left']}>
@@ -108,13 +123,13 @@ function UploadMeter() {
         <span
           class={styles['meter-pending']}
           style={{
-            width: percent(Math.min(space().pending, Math.max(0, trialMegabytes - space().used))),
+            width: percent(Math.min(space().pending, Math.max(0, space().limit - space().used))),
           }}
         />
       </span>
       <p class={styles['meter-note']}>
         {space().tone === 'full'
-          ? t().imports.spaceFull
+          ? fill(t().imports.spaceFull, { limit: `${format.number(space().limit, 0)} MB` })
           : space().tone === 'low'
             ? t().imports.spaceLow
             : t().imports.spaceOk}
@@ -124,13 +139,6 @@ function UploadMeter() {
           <span class={styles['legend-dot']} />
           {fill(t().imports.spacePending, { size: megabytes(space().pending) })}
         </span>
-      </Show>
-      <Show when={space().tone !== 'ok'}>
-        <div>
-          <Button variant="primary" href="/settings/billing">
-            {t().imports.seeHive}
-          </Button>
-        </div>
       </Show>
     </section>
   );
@@ -152,7 +160,11 @@ function DropZone() {
         fallback={
           <>
             <span class={styles['zone-title']}>{t().imports.dropFull}</span>
-            <span class={styles['zone-text']}>{t().imports.dropFullText}</span>
+            <span class={styles['zone-text']}>
+              {fill(t().imports.dropFullText, {
+                limit: `${format.number(library.space().limit, 0)} MB`,
+              })}
+            </span>
           </>
         }
       >
@@ -209,7 +221,7 @@ function HistoryRow(props: { file: ImportFile }) {
         </span>
       </div>
       <Switch>
-        <Match when={props.file.status === 'saved' && props.file.marks}>
+        <Match when={props.file.status === 'saved'}>
           <A href={`/imports/${props.file.id}`} class={styles['history-action']}>
             {t().imports.editReview}
           </A>
@@ -223,7 +235,7 @@ function HistoryRow(props: { file: ImportFile }) {
             {t().imports.retry}
           </button>
         </Match>
-        <Match when={props.file.status === 'empty'}>
+        <Match when={props.file.status === 'empty' || props.file.status === 'discarded'}>
           <button
             type="button"
             class={styles['history-action']}

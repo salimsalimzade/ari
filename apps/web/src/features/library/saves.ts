@@ -38,11 +38,6 @@ export type Save = {
   page?: number;
   /** The heading above it on a web page, e.g. "The scouts". */
   section?: string;
-  /**
-   * Saved from an import during this visit. ari-api doesn't import files yet, so it stays in this
-   * page only.
-   */
-  isNew?: boolean;
 };
 
 /** "p. 4" for a save on a file's page, in the current language. */

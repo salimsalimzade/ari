@@ -9,7 +9,7 @@ The rules the UI relies on are in [architecture.md](architecture.md).
 3. [Sign in with Google (F9)](#3-sign-in-with-google-f9)
 4. [Server-rendered library page (F2)](#4-server-rendered-library-page-f2)
 5. [Save and delete a highlight, free limit (F3, F4)](#5-save-and-delete-a-highlight-free-limit-f3-f4)
-6. [PDF or Word import (F11)](#6-pdf-or-word-import-f11)
+6. [PDF or Word import (F5, F11)](#6-pdf-or-word-import-f5-f11)
 7. [Save from the extension (F13)](#7-save-from-the-extension-f13)
 8. [Paddle checkout (F15)](#8-paddle-checkout-f15)
 9. [Add and verify an email](#9-add-and-verify-an-email)
@@ -61,6 +61,9 @@ sequenceDiagram
 - In the browser, several 401s at once share one refresh request.
 - The `ari` server refreshes only when `ari_access` is missing. The cookie expires a minute before its
   JWT, so a cookie the browser still sends is always valid.
+- Beside them ari-api sets `ari_access_fresh=1`, readable by page JavaScript and holding no token,
+  which goes a minute before `ari_access`. An upload checks it first and refreshes when it is gone,
+  so a file is never sent just to get a 401 and go again (data-access' `upload`).
 
 ## 3. Sign in with Google (F9)
 
@@ -163,29 +166,38 @@ sequenceDiagram
 - `GET /me` returns `plan`, `savesCount` and `savesLimit`; `/settings` shows them, and the banner shows
   once `savesCount` reaches `savesLimit`.
 
-## 6. PDF or Word import (F11)
+## 6. PDF or Word import (F5, F11)
 
 ```mermaid
 sequenceDiagram
-  participant B as Browser on /import
+  participant B as Browser on /imports or /library
   participant A as ari-api
-  B->>A: POST /api/v1/imports (multipart file, PDF or DOCX)
-  alt Wrong type or too big
-    A-->>B: 400 VALIDATION_FAILED
+  B->>B: Refuse a file that isn't .pdf or .docx, or doesn't fit in the space left
+  B->>A: POST /api/v1/imports (multipart file, sent with XMLHttpRequest for its progress)
+  alt Refused
+    A-->>B: 400 UNSUPPORTED_FILE or NO_SPACE_LEFT, 413 FILE_TOO_LARGE
   else Accepted
-    A-->>B: 202 ImportJobResponse (QUEUED)
-    loop Every 2 seconds until DONE or FAILED
-      B->>A: GET /api/v1/imports/{id}
-      A-->>B: 200 ImportJobResponse (status, highlightsCount)
+    A-->>B: 202 ImportResponse (QUEUED)
+    loop Every 2 seconds while a file is QUEUED or READING
+      B->>A: GET /api/v1/imports
+      A-->>B: 200 ImportsResponse (each file's status and counts, the upload space)
     end
   end
+  B->>A: GET /api/v1/imports/{id} (the review)
+  A-->>B: 200 ImportResponse with its marks
+  B->>A: PUT /api/v1/imports/{id}/review (title, author, tag, color, ticked mark ids)
+  A-->>B: 200 ReviewResponse (added, removed, sourceId)
 ```
 
-- A job goes `QUEUED` → `PROCESSING` → `DONE` or `FAILED`, with an error code when it fails.
-- An import is all or nothing: if its highlights don't fit under the free limit, none are saved and
-  the job fails with `LIMIT_REACHED`.
-- F5 (mock, phase 1): `POST /imports` ignores the file and returns a `DONE` job with 0 highlights.
-- Photos are not imported here: OCR runs in the browser (F12) and saves through `POST /highlights`.
+- ari-api reads the file in the background (its sequences §5): `QUEUED` → `READING` → `READY` with
+  marks, `EMPTY` without, or `FAILED` (`UNREADABLE`, `ENCRYPTED`, `READ_FAILED`). Saving the review
+  makes it `SAVED`; it can be reviewed again, and unticking a saved mark deletes its save.
+- Retry (`POST /imports/{id}/retry`) reads a failed file again; Dismiss (`POST /imports/{id}/dismiss`)
+  hides a failed, empty or discarded one; Discard (`DELETE /imports/{id}`) drops a file before its
+  review.
+- Everyone has 50 MB of upload space, in files of any size that fit in what is left, until billing
+  (F15) gives plans their own; a file read and saved keeps counting.
+- Photos are not imported yet: OCR in the browser comes with F12.
 
 ## 7. Save from the extension (F13)
 

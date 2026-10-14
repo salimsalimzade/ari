@@ -1,6 +1,6 @@
 import type { HighlightColor } from '@ari/ui-kit';
 import { createAsync, revalidate, useAction } from '@solidjs/router';
-import { endOfDay, endOfMonth, startOfToday } from 'date-fns';
+import { endOfDay, endOfMonth } from 'date-fns';
 import {
   batch,
   createContext,
@@ -17,14 +17,18 @@ import { createStore, produce } from 'solid-js/store';
 import { isServer } from 'solid-js/web';
 import { getMe } from '~/features/auth/queries';
 import { useI18n } from '~/i18n/i18n';
-import { type ImportFile, type ImportMark, standInMarks } from './imports';
+import { type ImportFile, importAccept, isBusy, isImportable, titleOf, toSpace } from './imports';
 import {
   changeSaveAction,
   deleteSaveAction,
+  dismissImportAction,
+  getImports,
   getSaveFacets,
   getSavePage,
+  retryImportAction,
   type SaveFilter,
   type SavePage,
+  uploadFile,
 } from './queries';
 import type { Facets, Save, SaveKind } from './saves';
 
@@ -32,21 +36,21 @@ export type LibraryView = 'list' | 'grid';
 export type TypeFilter = 'all' | SaveKind;
 export type Facet = 'tags' | 'colors' | 'sources';
 
-/** The free trial's upload space and its limit per file, in megabytes. */
-export const trialMegabytes = 50;
-export const fileLimitMegabytes = 5;
-const importable = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'webp', 'heic', 'gif'];
-export const importAccept = '.pdf,.doc,.docx,image/*';
 // ari-api's page size: a month jump loads until at least this many saves are in view.
 const pageSize = 40;
 // How long a comment waits for more typing before it is saved.
 const commentDelay = 700;
 
+// How often the Imports list is asked again while ari-api reads a file.
+const importPoll = 2000;
+
+/** Upload space in megabytes: what the files take, what is being uploaded now, and the rest. */
 export type UploadSpace = {
   used: number;
-  /** Being uploaded or read now. */
+  /** Being uploaded now. */
   pending: number;
   left: number;
+  limit: number;
   /** low from 80% used, full when nothing fits. */
   tone: 'ok' | 'low' | 'full';
 };
@@ -60,25 +64,11 @@ export type Toast = {
 const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [], q: '' };
 const noCounts: Facets['counts'] = { all: 0, highlight: 0, clip: 0, import: 0 };
 
-const isBusy = (file: ImportFile) => file.status === 'uploading' || file.status === 'reading';
 const megabytesOf = (files: ImportFile[]) => files.reduce((sum, file) => sum + file.megabytes, 0);
 
 // Values worked out from others: memos in the browser, plain functions on the server, where a
 // memo is worked out once, before the Library has loaded.
 export const derive = <T,>(fn: () => T) => (isServer ? fn : createMemo(fn));
-
-/** Whether a save matches the filters, for the ones this page made (imports) and no page has. */
-function matches(save: Save, filter: SaveFilter) {
-  const tags = filter.tags.map((tag) => tag.toLowerCase());
-  const q = filter.q.trim().toLowerCase();
-  return (
-    (!q || save.text.toLowerCase().includes(q)) &&
-    (filter.type === 'all' || save.kind === filter.type) &&
-    (!tags.length || save.tags.some((tag) => tags.includes(tag.toLowerCase()))) &&
-    (!filter.colors.length || (!!save.color && filter.colors.includes(save.color))) &&
-    (!filter.sources.length || filter.sources.includes(save.source.id))
-  );
-}
 
 /** Newest first, each save once. */
 function newestFirst(saves: Save[]) {
@@ -91,7 +81,7 @@ function newestFirst(saves: Save[]) {
 /**
  * The Library from ari-api: the first page of saves for the filters renders on the server, more
  * load as the list asks. Changes show at once and go to ari-api; one that fails is undone with a
- * toast. Imports stay in the page (`imports.ts`) until ari-api reads files.
+ * toast. Imports come from ari-api too, apart from files still uploading or refused here.
  */
 function createLibrary(openFilePicker: () => void) {
   const { t } = useI18n();
@@ -131,8 +121,6 @@ function createLibrary(openFilePicker: () => void) {
   // Changes made since the pages loaded, and deletions; ari-api has them, or is getting them.
   const [edits, setEdits] = createStore<Record<string, Partial<Save>>>({});
   const [deleted, setDeleted] = createSignal<ReadonlySet<string>>(new Set());
-  // Saved from imports during this visit; only this page has them.
-  const [imported, setImported] = createSignal<Save[]>([]);
 
   const withChanges = (save: Save): Save =>
     edits[save.id] ? { ...save, ...edits[save.id] } : save;
@@ -143,17 +131,10 @@ function createLibrary(openFilePicker: () => void) {
 
   /** Every save loaded for the filters, newest first, with this visit's changes. */
   const loaded = derive(() =>
-    kept(
-      newestFirst([
-        ...imported().filter((save) => matches(save, filter())),
-        ...[first(), ...more()].flatMap((page) => page?.saves ?? []),
-      ]),
-    ),
+    kept(newestFirst([first(), ...more()].flatMap((page) => page?.saves ?? []))),
   );
   /** Every save this page knows: what search, Sources and the notes look through. */
-  const saves = derive(() =>
-    kept(newestFirst([...imported(), ...(newest()?.saves ?? []), ...loaded()])),
-  );
+  const saves = derive(() => kept(newestFirst([...(newest()?.saves ?? []), ...loaded()])));
   const visible = derive(() => {
     const start = from();
     return start ? loaded().filter((save) => save.savedAt <= start) : loaded();
@@ -232,23 +213,71 @@ function createLibrary(openFilePicker: () => void) {
 
   // — Imports —
 
-  const [files, setFiles] = createStore<ImportFile[]>([]);
+  // ari-api's list, on every signed-in page: the sidebar counts the files ready to review.
+  const importList = createAsync(() => getImports());
+  // Files this page is uploading or refused; once ari-api has one, its list's copy shows.
+  const [uploads, setUploads] = createStore<ImportFile[]>([]);
+  // Uploaded during this visit, by ari-api's id: the Library's tray follows them.
+  const [uploaded, setUploaded] = createSignal<ReadonlySet<string>>(new Set());
+  // Dismissed here, until ari-api's list leaves them out.
+  const [dismissed, setDismissed] = createSignal<ReadonlySet<string>>(new Set());
   const [trayHidden, setTrayHidden] = createSignal(false);
-  const updateFile = (id: string, change: (file: ImportFile) => void) =>
-    setFiles((file) => file.id === id, produce(change));
+  const retryImport = useAction(retryImportAction);
+  const dismissImport = useAction(dismissImportAction);
+  const refreshImports = () => startTransition(() => revalidate(getImports.key));
 
-  const space = createMemo<UploadSpace>(() => {
-    const used = megabytesOf(files.filter((file) => file.status === 'saved'));
-    const pending = megabytesOf(files.filter((file) => isBusy(file) || file.status === 'ready'));
-    const left = Math.max(0, trialMegabytes - used - pending);
-    const tone = left < 0.05 ? 'full' : (used + pending) / trialMegabytes >= 0.8 ? 'low' : 'ok';
-    return { used, pending, left, tone };
+  /** This page's uploads first, then ari-api's files, newest first. */
+  const files = derive(() => {
+    const listed = importList()?.files ?? [];
+    const known = new Set(listed.map((file) => file.id));
+    const gone = dismissed();
+    return [...uploads.filter((file) => !known.has(file.id)), ...listed].filter(
+      (file) => !gone.has(file.id),
+    );
   });
 
-  // Files until they're saved: the tray and pill show them.
-  const session = createMemo(() =>
-    files.filter((file) => isBusy(file) || file.status === 'ready' || file.status === 'rejected'),
+  const space = derive((): UploadSpace => {
+    const { used, limit } = importList()?.space ?? toSpace();
+    const pending = megabytesOf(uploads.filter((file) => file.status === 'uploading'));
+    const left = Math.max(0, limit - used - pending);
+    const tone = left < 0.05 ? 'full' : (used + pending) / limit >= 0.8 ? 'low' : 'ok';
+    return { used, pending, left, limit, tone };
+  });
+
+  // This visit's files until they're reviewed: the tray and pill show them.
+  const session = derive(() =>
+    files().filter(
+      (file) =>
+        (uploaded().has(file.id) || uploads.some((upload) => upload.id === file.id)) &&
+        (isBusy(file) || file.status === 'ready' || file.status === 'rejected'),
+    ),
   );
+
+  // While ari-api reads a file, its list is asked again until it's done.
+  createEffect(() => {
+    if (!files().some((file) => file.status === 'queued' || file.status === 'reading')) return;
+    const timer = setInterval(() => void refreshImports(), importPoll);
+    onCleanup(() => clearInterval(timer));
+  });
+
+  const uploadOne = async (localId: string, file: File) => {
+    const answer = await uploadFile(file, (sent) =>
+      setUploads((item) => item.id === localId, 'progress', Math.round(sent * 100)),
+    ).catch(() => ({ rejected: 'failed' as const }));
+    if ('rejected' in answer) {
+      setUploads((item) => item.id === localId, {
+        status: 'rejected',
+        rejected: answer.rejected,
+        spaceLeft: space().left,
+      });
+      return;
+    }
+    batch(() => {
+      setUploads((item) => item.id === localId, answer);
+      setUploaded((ids) => new Set(ids).add(answer.id));
+    });
+    void refreshImports();
+  };
 
   const addFiles = (list: FileList | File[] | null | undefined) => {
     const picked = Array.from(list ?? []);
@@ -256,56 +285,31 @@ function createLibrary(openFilePicker: () => void) {
     let left = space().left;
     const added = picked.map((file, index): ImportFile => {
       const megabytes = file.size / 1048576;
-      const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-      const base = {
-        id: `u${Date.now()}-${index}`,
+      const base: ImportFile = {
+        id: `local-${Date.now()}-${index}`,
         name: file.name,
         megabytes,
+        status: 'uploading',
         progress: 0,
-        title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '),
+        title: titleOf(file.name),
         author: '',
+        found: 0,
+        kept: 0,
       };
-      if (!importable.includes(extension)) return { ...base, status: 'rejected', rejected: 'type' };
-      if (megabytes > fileLimitMegabytes)
-        return { ...base, status: 'rejected', rejected: 'tooBig' };
+      if (!isImportable(file.name)) return { ...base, status: 'rejected', rejected: 'type' };
       if (megabytes > left)
         return { ...base, status: 'rejected', rejected: 'noSpace', spaceLeft: left };
       left -= megabytes;
-      return { ...base, status: 'uploading' };
+      return base;
     });
     batch(() => {
-      setFiles((list) => [...added, ...list]);
+      setUploads((current) => [...added, ...current]);
       setTrayHidden(false);
     });
+    added.forEach((entry, index) => {
+      if (entry.status === 'uploading') void uploadOne(entry.id, picked[index]);
+    });
   };
-
-  // Stands in for the upload and for ari-api reading the file: a few seconds each.
-  const tick = () =>
-    setFiles(
-      produce((list) => {
-        for (const file of list) {
-          if (file.status === 'uploading') {
-            file.progress += Math.max(4, 22 / Math.max(0.3, file.megabytes));
-            if (file.progress >= 100) {
-              file.status = 'reading';
-              file.progress = 0;
-            }
-          } else if (file.status === 'reading') {
-            file.progress = Math.min(100, file.progress + 7);
-            if (file.progress === 100 && file.megabytes === 0) file.status = 'failed';
-            else if (file.progress === 100) {
-              file.status = 'ready';
-              file.marks = standInMarks();
-            }
-          }
-        }
-      }),
-    );
-  createEffect(() => {
-    if (!files.some(isBusy)) return;
-    const timer = setInterval(tick, 250);
-    onCleanup(() => clearInterval(timer));
-  });
 
   // — Toast —
 
@@ -363,7 +367,6 @@ function createLibrary(openFilePicker: () => void) {
     /** Takes the save off the page at once; it comes back with a toast when ari-api says no. */
     deleteSave: (id: string) => {
       setDeleted((ids) => new Set(ids).add(id));
-      if (imported().some((save) => save.id === id)) return;
       void remove(id).catch(() => {
         setDeleted((ids) => {
           const next = new Set(ids);
@@ -431,7 +434,10 @@ function createLibrary(openFilePicker: () => void) {
         setPicked(save.id);
       }),
 
+    /** Every import not dismissed: this page's uploads, then ari-api's, newest first. */
     files,
+    /** The Imports list didn't load. */
+    importsFailed: () => !!importList()?.failed,
     space,
     session,
     trayHidden,
@@ -440,88 +446,24 @@ function createLibrary(openFilePicker: () => void) {
     pickFiles: () => {
       if (space().tone !== 'full') openFilePicker();
     },
+    /** Reads a failed file again. */
     retry: (id: string) =>
-      updateFile(id, (file) => {
-        file.status = 'reading';
-        file.progress = 0;
-      }),
-    dismiss: (id: string) =>
-      updateFile(id, (file) => {
-        file.status = 'dismissed';
-      }),
-    discard: (id: string) =>
-      updateFile(id, (file) => {
-        file.status = 'discarded';
-      }),
-    toggleMark: (fileId: string, markId: number) =>
-      updateFile(fileId, (file) => {
-        const mark = file.marks?.find((item) => item.id === markId);
-        if (mark) mark.on = !mark.on;
-      }),
-    setMarks: (fileId: string, markIds: number[], on: boolean) =>
-      updateFile(fileId, (file) => {
-        for (const mark of file.marks ?? []) if (markIds.includes(mark.id)) mark.on = on;
-      }),
-    /** Undoes unsaved ticks on a saved file's review. */
-    resetMarks: (fileId: string) =>
-      updateFile(fileId, (file) => {
-        for (const mark of file.marks ?? []) mark.on = !!mark.saved;
-      }),
-    /**
-     * Saves a review: ticked marks join the Library (unticked ones that were saved leave it).
-     * Returns what changed, for the toast.
-     */
-    saveReview: (
-      fileId: string,
-      details: { title: string; author: string; tag: string; color?: HighlightColor },
-    ) => {
-      const file = files.find((item) => item.id === fileId);
-      if (!file?.marks) return;
-      const edit = file.status === 'saved';
-      const savedAt = startOfToday();
-      const tag = details.tag.trim();
-      const source = {
-        id: `file:${file.id}`,
-        kind: 'file' as const,
-        name: file.name,
-        title: details.title.trim() || file.name,
-        author: details.author.trim() || undefined,
-      };
-      const saveOf = (mark: ImportMark): Save => ({
-        id: `${file.id}-${mark.id}`,
-        kind: mark.type === 'handwritten' ? 'clip' : 'import',
-        color: mark.type === 'handwritten' ? undefined : (details.color ?? mark.color),
-        clip: mark.type === 'handwritten' ? 'image' : undefined,
-        text: mark.text,
-        tags: tag ? [tag] : [],
-        comment: mark.comment ?? '',
-        savedAt,
-        source,
-        page: Number.parseInt(mark.page.replace(/\D/g, ''), 10) || undefined,
-        isNew: true,
-      });
-      const adding = file.marks.filter((mark) => mark.on && !mark.saved);
-      const removing = new Set(
-        file.marks.filter((mark) => !mark.on && mark.saved).map((mark) => `${file.id}-${mark.id}`),
-      );
-      batch(() => {
-        setImported((list) => [
-          ...adding.map(saveOf),
-          ...list
-            .filter((save) => !removing.has(save.id))
-            .map((save) => (save.source.id === source.id ? { ...save, source } : save)),
-        ]);
-        updateFile(file.id, (item) => {
-          item.status = 'saved';
-          item.title = details.title;
-          item.author = details.author;
-          if (!edit) item.savedOn = savedAt;
-          for (const mark of item.marks ?? []) mark.saved = mark.on;
-          item.kept = item.marks?.filter((mark) => mark.on).length ?? 0;
+      void retryImport(id).catch(() => showToast({ text: t().imports.changeFailed })),
+    /** Hides a refused, failed, empty or discarded file. */
+    dismiss: (id: string) => {
+      if (uploads.some((file) => file.id === id && file.status === 'rejected')) {
+        setUploads((list) => list.filter((file) => file.id !== id));
+        return;
+      }
+      setDismissed((ids) => new Set(ids).add(id));
+      void dismissImport(id).catch(() => {
+        setDismissed((ids) => {
+          const next = new Set(ids);
+          next.delete(id);
+          return next;
         });
-        if (!edit) setAllFilters({});
+        showToast({ text: t().imports.changeFailed });
       });
-      return { edit, added: adding.length, removed: removing.size, source: source.id };
     },
 
     toast,

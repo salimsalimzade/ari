@@ -197,9 +197,6 @@ function SaveRow(props: { save: Save }) {
           <span>
             <SaveMeta save={props.save} />
           </span>
-          <Show when={props.save.isNew}>
-            <Tag tone="accent">{t().library.new}</Tag>
-          </Show>
           <For each={props.save.tags}>
             {(tag) => (
               <Tag tone="neutral" class={styles['wide-only']}>

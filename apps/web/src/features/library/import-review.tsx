@@ -7,34 +7,39 @@ import {
   TextField,
 } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
-import { useNavigate } from '@solidjs/router';
-import { createSignal, For, onCleanup, Show } from 'solid-js';
+import { createAsync, revalidate, useAction, useNavigate } from '@solidjs/router';
+import { createSignal, For, Match, Show, Switch, startTransition } from 'solid-js';
+import { createStore } from 'solid-js/store';
 import { BackIcon } from '~/features/shell/icons';
 import { MobileHeader } from '~/features/shell/mobile-header';
 import { fill, plural, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { CheckIcon, MessageIcon } from './icons';
+import { useImportText } from './import-rows';
 import type { ImportFile, ImportMark, MarkType } from './imports';
 import styles from './imports.module.scss';
 import { useLibrary } from './library-store';
+import { discardImportAction, getImport, reviewImportAction } from './queries';
 
 const markTypes: MarkType[] = ['highlight', 'underline', 'drawn', 'handwritten', 'strike', 'note'];
 
 /** /imports/:id: the marks Ari found in a file, to tick and save, or a saved file's review. */
 export function ImportReview(props: { id: string }) {
   const { t } = useI18n();
-  const library = useLibrary();
-  const file = () =>
-    library.files.find(
-      (item) =>
-        item.id === props.id &&
-        (item.status === 'ready' || (item.status === 'saved' && !!item.marks)),
-    );
+  const text = useImportText();
+  const found = createAsync(() => getImport(props.id), { deferStream: true });
+  const file = () => {
+    const item = found();
+    return item && item !== 'failed' ? item : undefined;
+  };
+  const reviewable = () => {
+    const item = file();
+    return item && (item.status === 'ready' || item.status === 'saved') ? item : undefined;
+  };
   return (
     <div class={styles.page}>
       <MobileHeader back={{ href: '/imports', label: t().imports.backToImports }} />
-      <Show
-        when={file()}
+      <Switch
         fallback={
           <div class={styles.missing}>
             <Title>{t().imports.pageTitle}</Title>
@@ -45,8 +50,32 @@ export function ImportReview(props: { id: string }) {
           </div>
         }
       >
-        {(file) => <Review file={file()} />}
-      </Show>
+        <Match when={found() === 'failed'}>
+          <div role="alert" class={styles.missing}>
+            <Title>{t().imports.pageTitle}</Title>
+            <h1 class={styles['review-title']}>{t().imports.loadFailed}</h1>
+            <Button onClick={() => startTransition(() => revalidate(getImport.keyFor(props.id)))}>
+              {t().library.retry}
+            </Button>
+          </div>
+        </Match>
+        <Match when={reviewable()} keyed>
+          {(item) => <Review file={item} />}
+        </Match>
+        {/* Still being read, or failed: what it is doing. */}
+        <Match when={file()}>
+          {(item) => (
+            <div class={styles.missing}>
+              <Title>{t().imports.pageTitle}</Title>
+              <h1 class={styles['review-title']}>{item().name}</h1>
+              <p>{text.status(item())}</p>
+              <Button href="/imports" icon={<BackIcon />}>
+                {t().imports.backToImports}
+              </Button>
+            </div>
+          )}
+        </Match>
+      </Switch>
     </div>
   );
 }
@@ -56,57 +85,71 @@ function Review(props: { file: ImportFile }) {
   const format = useFormat();
   const library = useLibrary();
   const navigate = useNavigate();
+  const review = useAction(reviewImportAction);
+  const discard = useAction(discardImportAction);
   const [title, setTitle] = createSignal(props.file.title);
   const [author, setAuthor] = createSignal(props.file.author);
   const [tag, setTag] = createSignal('');
   // Overrides every mark's color when set.
   const [color, setColor] = createSignal<HighlightColor>();
   const [filter, setFilter] = createSignal<'all' | MarkType>('all');
+  // The ticks, which stay in the page until the review is saved.
+  const [ticks, setTicks] = createStore<Record<string, boolean>>(
+    Object.fromEntries((props.file.marks ?? []).map((mark) => [mark.id, mark.on])),
+  );
+  const [saving, setSaving] = createSignal(false);
 
   const edit = () => props.file.status === 'saved';
   const marks = () => props.file.marks ?? [];
+  const isOn = (mark: ImportMark) => !!ticks[mark.id];
   const shown = () => marks().filter((mark) => filter() === 'all' || mark.type === filter());
-  const allOn = () => shown().length > 0 && shown().every((mark) => mark.on);
+  const allOn = () => shown().length > 0 && shown().every(isOn);
   const count = (on: (mark: ImportMark) => boolean) => marks().filter(on).length;
   const typeCount = (type: MarkType) => count((mark) => mark.type === type);
   const mixed = () => markTypes.filter((type) => typeCount(type) > 0).length > 1;
-  const adding = () => count((mark) => mark.on && !mark.saved);
-  const removing = () => count((mark) => !mark.on && !!mark.saved);
-  const ticked = () => count((mark) => mark.on);
+  const adding = () => count((mark) => isOn(mark) && !mark.saved);
+  const removing = () => count((mark) => !isOn(mark) && mark.saved);
+  const ticked = () => count(isOn);
 
   const heading = () => {
     const n = marks().length;
     const what = fill(plural(n, mixed() ? t().imports.marks : t().imports.highlights), { n });
     return fill(edit() ? t().imports.editHeading : t().imports.reviewHeading, { count: what });
   };
-  // Leaving a saved file's review any way but Save undoes its ticks; saving makes this a no-op.
-  onCleanup(() => {
-    if (edit()) library.resetMarks(props.file.id);
-  });
   const close = () => navigate('/imports');
-  const save = () => {
-    const result = library.saveReview(props.file.id, {
-      title: title(),
-      author: author(),
-      tag: tag(),
-      color: color(),
-    });
-    if (!result) return;
-    if (result.edit) {
-      library.showToast({
-        text: fill(t().imports.updatedToast, { added: result.added, removed: result.removed }),
-        source: result.source,
+  const save = async () => {
+    setSaving(true);
+    try {
+      const result = await review(props.file.id, {
+        title: title(),
+        author: author(),
+        tag: tag().trim() || undefined,
+        color: color()?.toUpperCase() as Uppercase<HighlightColor> | undefined,
+        selectedMarkIds: marks()
+          .filter(isOn)
+          .map((mark) => mark.id),
       });
-      navigate('/imports');
-    } else {
-      library.showToast({
-        text: fill(plural(result.added, t().imports.savedToast), {
-          n: result.added,
-          source: result.source,
-        }),
-        source: result.source,
-      });
-      navigate('/library');
+      const added = result.added ?? 0;
+      if (edit()) {
+        library.showToast({
+          text: fill(t().imports.updatedToast, { added, removed: result.removed ?? 0 }),
+          source: result.sourceId,
+        });
+        navigate('/imports');
+      } else {
+        library.showToast({
+          text: fill(plural(added, t().imports.savedToast), {
+            n: added,
+            source: title().trim() || props.file.name,
+          }),
+          source: result.sourceId,
+        });
+        navigate('/library');
+      }
+    } catch {
+      library.showToast({ text: t().imports.reviewFailed });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,7 +167,7 @@ function Review(props: { file: ImportFile }) {
       <h1 class={styles['review-title']}>{heading()}</h1>
       <Show when={edit()}>
         <div class={styles['review-tags']}>
-          <Tag>{fill(t().imports.inLibrary, { n: count((mark) => !!mark.saved) })}</Tag>
+          <Tag>{fill(t().imports.inLibrary, { n: count((mark) => mark.saved) })}</Tag>
           <Tag tone="neutral">{fill(t().imports.skipped, { n: count((mark) => !mark.saved) })}</Tag>
         </div>
       </Show>
@@ -158,13 +201,10 @@ function Review(props: { file: ImportFile }) {
         <Checkbox
           class={styles['select-all']}
           checked={allOn()}
-          onChange={() =>
-            library.setMarks(
-              props.file.id,
-              shown().map((mark) => mark.id),
-              !allOn(),
-            )
-          }
+          onChange={() => {
+            const on = !allOn();
+            setTicks(Object.fromEntries(shown().map((mark) => [mark.id, on])));
+          }}
         >
           {t().imports.selectAll[filter()]}
         </Checkbox>
@@ -189,9 +229,10 @@ function Review(props: { file: ImportFile }) {
           {(mark) => (
             <MarkRow
               mark={mark}
+              on={isOn(mark)}
               color={color() ?? mark.color}
               edit={edit()}
-              onToggle={() => library.toggleMark(props.file.id, mark.id)}
+              onToggle={() => setTicks(mark.id, !isOn(mark))}
             />
           )}
         </For>
@@ -211,8 +252,10 @@ function Review(props: { file: ImportFile }) {
             <Button
               variant="ghost"
               onClick={() => {
-                library.discard(props.file.id);
                 navigate('/imports');
+                void discard(props.file.id).catch(() =>
+                  library.showToast({ text: t().imports.changeFailed }),
+                );
               }}
             >
               {t().imports.discard}
@@ -225,7 +268,7 @@ function Review(props: { file: ImportFile }) {
         </Show>
         <Button
           variant="primary"
-          disabled={edit() ? adding() + removing() === 0 : ticked() === 0}
+          disabled={saving() || (edit() ? adding() + removing() === 0 : ticked() === 0)}
           onClick={save}
         >
           {edit()
@@ -237,10 +280,11 @@ function Review(props: { file: ImportFile }) {
   );
 }
 
-// One mark to tick: its color, its text as the file showed it, a picture of the page when it
-// isn't text, and its page.
+// One mark to tick: its color, its text as the file showed it, a picture of the spot for a drawn
+// or handwritten mark, and its page.
 function MarkRow(props: {
   mark: ImportMark;
+  on: boolean;
   color: HighlightColor;
   edit: boolean;
   onToggle: () => void;
@@ -262,11 +306,11 @@ function MarkRow(props: {
         : 'sage';
 
   return (
-    <label class={styles.mark} data-off={props.mark.on ? undefined : ''}>
+    <label class={styles.mark} data-off={props.on ? undefined : ''}>
       <input
         type="checkbox"
         class={styles.radio}
-        checked={props.mark.on}
+        checked={props.on}
         onChange={() => props.onToggle()}
       />
       <span class={styles.box}>
@@ -275,7 +319,7 @@ function MarkRow(props: {
       <span class={styles.dot} data-color={colored() ? props.color : undefined} />
       <span class={styles['mark-body']}>
         <span class={styles['mark-text']} data-type={props.mark.type}>
-          {props.mark.text}
+          {props.mark.text || t().imports.markLabels[props.mark.type]}
         </span>
         <Show when={props.mark.comment}>
           <span class={styles['mark-comment']}>
@@ -287,20 +331,17 @@ function MarkRow(props: {
           <Tag tone={tone()}>{label()}</Tag>
         </span>
       </span>
-      <Show when={props.mark.thumb}>
-        <span class={styles.thumb} data-thumb={props.mark.thumb} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          {props.mark.thumb === 'hand' ? <span class={styles.scribble}>so 15?</span> : <span />}
-        </span>
+      <Show when={props.mark.imageUrl}>
+        {(src) => <img class={styles.picture} src={src()} alt="" loading="lazy" />}
       </Show>
-      <Show when={props.edit && props.mark.on !== !!props.mark.saved}>
-        <Tag tone={props.mark.on ? 'sage' : 'accent'}>
-          {props.mark.on ? t().imports.adding : t().imports.removing}
+      <Show when={props.edit && props.on !== props.mark.saved}>
+        <Tag tone={props.on ? 'sage' : 'accent'}>
+          {props.on ? t().imports.adding : t().imports.removing}
         </Tag>
       </Show>
-      <Tag tone="neutral">{props.mark.page}</Tag>
+      <Show when={props.mark.page}>
+        {(page) => <Tag tone="neutral">{fill(t().library.page, { n: page() })}</Tag>}
+      </Show>
     </label>
   );
 }
