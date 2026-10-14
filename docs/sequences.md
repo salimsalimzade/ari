@@ -1,6 +1,6 @@
 # Ari sequences
 
-Last updated 2026-10-08. This copy keeps only what the website, the `ari` server and the extension
+Last updated 2026-10-14. This copy keeps only what the website, the `ari` server and the extension
 send and receive. The server-side steps (database, queues, webhooks) are documented in ari-api.
 The rules the UI relies on are in [architecture.md](architecture.md).
 
@@ -14,6 +14,7 @@ The rules the UI relies on are in [architecture.md](architecture.md).
 8. [Paddle checkout (F15)](#8-paddle-checkout-f15)
 9. [Add and verify an email](#9-add-and-verify-an-email)
 10. [Profile and photo](#10-profile-and-photo)
+11. [Reset a forgotten password](#11-reset-a-forgotten-password)
 
 ## 1. Register or sign in (F1)
 
@@ -85,32 +86,46 @@ sequenceDiagram
   participant B as Browser
   participant W as ari server
   participant A as ari-api
-  B->>W: GET /library/{folderId}?q=spring (cookies)
+  B->>W: GET /library (cookies)
   W->>W: Middleware: ari_access present, or refresh first (section 2)
   Note over B,W: No cookies at all: 302 to /login
-  W->>W: Route runs createAsync with deferStream, @ari/data-access forwards the Cookie header
-  par Folders
-    W->>A: GET /api/v1/folders
-    A-->>W: 200 FolderResponse list
-  and Highlights
-    W->>A: GET /api/v1/highlights?folderId={folderId}&q=spring
-    A-->>W: 200 PageResponse (items, nextCursor), 50 per page
+  W->>W: The (app) layout's LibraryProvider runs createAsync with deferStream, @ari/data-access forwards the Cookie header
+  par The first page
+    W->>A: GET /api/v1/saves
+    A-->>W: 200 PageResponse (items with their source and tags, nextCursor), 40 newest first
+  and The filters
+    W->>A: GET /api/v1/saves/facets
+    A-->>W: 200 type counts, tags, colors and sources (id, name, count)
+  and The count
+    W->>A: GET /api/v1/me
+    A-->>W: 200 MeResponse (savesCount)
   end
   W-->>B: Streamed HTML with the data in it
   B->>B: Hydrate
-  B->>A: GET /api/v1/highlights?q=spring boot (typing, credentials include)
-  A-->>B: 200 PageResponse
-  B->>A: GET /api/v1/highlights?q=spring boot&cursor=... (Load more)
+  B->>A: GET /api/v1/saves?cursor=... (the end of the list in view, credentials include)
   A-->>B: 200 next page
+  B->>A: GET /api/v1/saves?tag=swarm&color=YELLOW and /saves/facets?tag=swarm&color=YELLOW (a filter)
+  A-->>B: 200 its first page and counts
+  B->>A: GET /api/v1/saves/{id} (/library/{id} opened directly)
+  A-->>B: 200 SaveResponse, or 404 NOT_FOUND
+  B->>A: PATCH /api/v1/saves/{id} (color, or a comment once the typing stops)
+  A-->>B: 200 SaveResponse, then GET /saves/facets again
+  B->>A: DELETE /api/v1/saves/{id}
+  A-->>B: 204, then GET /saves/facets and /me again
 ```
 
-- `ari-api` returns only the signed-in user's data. A folder id that belongs to someone else returns
-  404 `NOT_FOUND`.
-- `nextCursor` is opaque: send it back as `cursor` for the next page. It is null on the last page.
-- Typing in the search box waits about 300 ms, then updates `?q=` in the URL, so a reload renders the
-  same results on the server.
-- `q` matches the highlight text and source title. F10 turns it into full-text search behind the
-  same endpoint.
+- `features/library/queries.ts` holds the queries (`getSavePage`, `getSaveFacets`, `getSave`) and
+  the actions (`changeSaveAction`, `deleteSaveAction`). The actions revalidate only the counts they
+  change, never the pages the list has loaded; the store shows a change at once and puts it back
+  with a toast when ari-api refuses it.
+- Filters (type, tags, colors, source ids) live in the store, not the URL: a reload starts from the
+  whole Library. A filter change runs in a transition, so the list stays until ari-api answers.
+- `nextCursor` is opaque: send it back as `cursor` for the next page. It is left out on the last
+  page. ari-api can't start a page at a date, so the month jump loads pages until it gets there.
+- A failed request is the query's `failed` answer, not a thrown error: the list shows "Your library
+  didn't load" with Try again, while the sidebar and search go on.
+- Search (`q`, F10) and a sources endpoint come later; until then search, Sources and the notes'
+  quote picker look through the saves the page has loaded.
 
 ## 5. Save and delete a highlight, free limit (F3, F4)
 
@@ -171,35 +186,94 @@ sequenceDiagram
   participant X as Extension
   participant T as Website tab
   participant A as ari-api
-  Note over X,A: Connect once
-  X->>T: Open /extension/connect on the website
-  T->>A: POST /api/v1/auth/extension/code (cookies, signed in)
+  Note over X,A: Connect, on any signed-in page of the website
+  T->>X: postMessage signed-in (the user's id)
+  X->>T: postMessage want-code (not signed in as that user)
+  T->>A: POST /api/v1/me/extension-code (cookies)
   A-->>T: 200 with the code
-  T->>X: The content script on /extension/connect passes the code
+  T->>X: postMessage code
   X->>A: POST /api/v1/auth/extension/token (code)
-  alt Missing or expired
-    A-->>X: 401 UNAUTHORIZED
+  alt Missing, expired or used
+    A-->>X: 401 INVALID_CODE
   else Found
-    A-->>X: 200 accessToken, refreshToken, expiresIn
+    A-->>X: 200 accessToken, refreshToken
     X->>X: Keep the tokens in browser.storage.local
+    X->>A: GET /api/v1/me (Bearer token)
   end
-  Note over X,A: Save a highlight
-  X->>A: POST /api/v1/highlights (Bearer token, kind TEXT, text, source fields, jumpLink)
-  A-->>X: 201 HighlightResponse, or 403 LIMIT_REACHED
+  Note over X,A: Or another account, with its password in the popup (Add an account, the switcher)
+  X->>A: POST /api/v1/auth/extension/code (username, password; the website's cookies stay)
+  A-->>X: 200 with the code, or 401 INVALID_CREDENTIALS (still the same account)
+  X->>A: POST /api/v1/auth/extension/token (code), as above
+  Note over X,A: Send the saves kept in the browser
+  X->>A: POST /api/v1/saves (JSON, or multipart save and image for an image clip)
+  alt Refused
+    A-->>X: 400 VALIDATION_FAILED, INVALID_SAVE, INVALID_URL, or 413 FILE_TOO_LARGE
+    X->>X: Keep it in the browser only, marked refused
+  else Saved
+    A-->>X: 201 SaveResponse (its id)
+  end
+  X->>A: PATCH /api/v1/saves/{id} (color, comment, tags changed after it was sent)
+  X->>A: DELETE /api/v1/saves/{id} (deleted after it was sent)
   Note over X,A: Access token expired
   X->>A: POST /api/v1/auth/extension/refresh (refreshToken)
-  A-->>X: 200 new pair
+  alt Refreshed
+    A-->>X: 200 new pair
+  else Session over
+    A-->>X: 401
+    X->>X: Session expired: keep whose it was, until their password signs it in again
+  end
+  Note over X,A: Log out on the website (while the extension follows it)
+  T->>X: postMessage signed-out
+  X->>A: POST /api/v1/auth/extension/logout (refreshToken)
+  A-->>X: 204
 ```
 
-- Now: ari-api has no `/auth/extension/*` endpoints yet, so the extension sends no requests. Its
-  saves stay in `browser.storage.local` (the welcome tab's practice ones in `storage.session`)
-  until this flow exists.
-- The code works once, for 60 seconds. If the tab is signed out, `/extension/connect` sends the user
-  to `/login` first and then comes back.
-- The extension calls `ari-api` from its background script, which has host permission for the API,
-  so it needs no CORS entry.
-- The extension builds `jumpLink` as a text-fragment URL (`#:~:text=`). Clips (F14) use the same
-  `POST /highlights` with `kind CLIP` and `contentMd`.
+- Saves are kept in `browser.storage.local` (the welcome tab's practice ones in `storage.session`,
+  never sent). The background (`features/saves/sync.ts`) sends them a second after each change,
+  when someone signs in, at browser start and on the popup's Sync now: deletions first, then each
+  page's saves in order. A save keeps its library id and the account (`remoteId`, `owner`); a page
+  shows only the saves kept here and the signed-in account's. Saves made while signed out, or not
+  sent yet, go to whoever signs in next ("will move to the account you switch to").
+- A 5xx, 408, 429 or a failed fetch stops the round and tries again 1, 2, 5, 10, then every 30
+  minutes (`browser.alarms`, `local:syncRetry`); a 4xx refuses that save only. A 404 on PATCH means
+  it was deleted in the library, so it leaves the page too. Undo of a delete sends the save again
+  as new.
+- The Ari icon's badge counts the saves kept only here: terracotta while signed out or expired,
+  gray while ari-api can't be reached. The popup says the same, with Sign in to sync or Sync now.
+- The messages are `@ari/utils`' `BridgeMessage`, posted with `window.postMessage` to the website's
+  own origin. The content script takes them only there (`VITE_WEB_URL`), and the background takes a
+  code only from a tab on that origin, so no other site can sign the extension in as somebody else.
+  The web side is `useExtensionSignIn` (in the shell's `UserChip`) and `logoutAction`.
+- The code works once, for 60 seconds. A signed-out tab posts nothing: the extension's Sign in
+  opens `/library`, which goes to `/login` first and then back. `signed-in` carries the user's id,
+  username, name and email, which the extension keeps as `local:websiteAccount` for the popup.
+- By default the extension uses the website's account and follows it, to another account and out.
+  Signing in happens in the popup, never on a page of the website for the extension: Add an
+  account (from Continue as's Use a different account, the switcher, or the welcome tab's Not you?,
+  which opens the popup through `session:addAccountNext`) takes any account's username and
+  password, and the switcher asks the password of an account used before. The background gets a
+  code from `POST /auth/extension/code` and swaps it as above; the website stays as it is, and the
+  extension keeps that account whatever the website does (`local:followsWebsite` false, unless it
+  is the website's account).
+- The popup's avatar opens the account switcher: the account in use, the website's ("on ari.app")
+  and the others used here (`local:knownAccounts`), Add another account and Sign out. Forgot
+  password? and Reset password open `/forgot-password?login=` on the website. When the website is
+  signed in as another account than the one the extension keeps, the popup offers Use ari.app
+  account (that account's password) or Keep (`local:keptBeside`).
+- The extension's session is its own: it stays signed in while the website's cookies expire, and
+  each refresh or browser start gives it 30 more days. A refused refresh leaves it expired
+  (`local:expired`): the popup says so, and Sign in again asks that account's password. Sign out in
+  the popup signs out only the extension and forgets the accounts it used (`local:loggedOut`).
+  While expired or after a Sign out, the website's codes don't sign it in: the content script
+  stops asking for them and the background refuses them. Only a password in the popup signs it
+  in again: Continue as asks the website account's, the other Sign in buttons open Add an
+  account. The website's codes sign the extension in only while it follows the website: at
+  install, and when the website signs in after it logged out (not a Sign out).
+- The extension calls `ari-api` from its background script with `credentials: 'omit'`: ari-api
+  reads the `ari_access` cookie before the `Authorization` header. Firefox sends those requests with
+  `Origin: moz-extension://<uuid>`, which ari-api's CORS allows by pattern, without credentials.
+- The extension sends the page's address as `source.url`. Clips (F14) use the same `POST /saves`:
+  a table with `kind CLIP` and `contentMd`, an image as multipart.
 
 ## 8. Paddle checkout (F15)
 
@@ -276,3 +350,54 @@ sequenceDiagram
 - The cropped preview stays until `getMe` brings the new `photoUrl`, so the avatar never flickers
   back to the old photo.
 
+## 11. Reset a forgotten password
+
+ari-api doesn't have these endpoints yet: the website calls timed stand-ins
+(`features/auth/password-reset.ts`) with this shape, which become `@ari/data-access` calls once
+ari-api has them and the types are generated.
+
+```mermaid
+sequenceDiagram
+  participant B as Browser on /forgot-password
+  participant A as ari-api
+  participant I as The user's inbox
+  participant R as Browser on /reset-password
+  B->>A: POST /api/v1/auth/password-reset (login: a username or email), refresh false
+  alt No account has that username or email
+    A-->>B: 404 ACCOUNT_NOT_FOUND
+    B->>B: "No account has that username or email", with a link to /register
+  else The account has no email
+    A-->>B: 409 NO_EMAIL
+    B->>B: Nowhere to send a link: add an email in Settings › Account while still logged in
+  else Its email isn't confirmed yet
+    A-->>B: 409 EMAIL_NOT_CONFIRMED
+    B->>B: Open the confirm link first, then ask again
+  else Too many
+    A-->>B: 429 RATE_LIMITED
+  else Sent
+    A-->>B: 204
+    B->>B: "Check your email" toast
+    A-)I: The reset email, at the confirmed email, link valid 30 minutes
+  end
+  I->>R: The user opens /reset-password?code=…
+  R->>A: POST /api/v1/auth/password-reset/check (code), while the server renders
+  alt 200 username
+    A-->>R: Choose a new password, for that username
+  else 410 CODE_EXPIRED, 410 CODE_USED, 401 INVALID_CODE or 400 VALIDATION_FAILED
+    A-->>R: Expired, already used, or doesn't work, each with a way on
+  end
+  R->>A: POST /api/v1/auth/password-reset/confirm (code, password)
+  A-->>R: 204, or the same code errors
+  R->>R: Go to /login, which fills in the username and says the password changed
+```
+
+- Asking for a link says why none was sent: no account with that username or email
+  (`ACCOUNT_NOT_FOUND`), an account without an email (`NO_EMAIL`), or one whose email is still
+  pending (`EMAIL_NOT_CONFIRMED`; a pending email never gets a reset link). This tells anyone
+  whether a username or email has an account; usernames are public through
+  `/auth/username-available` already, and `RATE_LIMITED` keeps anyone from trying many emails.
+- Checking doesn't use the code up, so the page checks while the server renders; only confirm
+  does. A code error on confirm (the link expired while the form was open) shows the same page as
+  on opening it.
+- `/login` gets the username in the history state rather than the address, so it never lands in a
+  bookmark or a shared link; the page reads it once mounted, as the server never sees that state.

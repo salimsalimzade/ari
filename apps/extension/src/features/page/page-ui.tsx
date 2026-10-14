@@ -3,14 +3,32 @@ import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { browser } from 'wxt/browser';
 import { language, t } from '~/i18n/i18n';
 import { type Message, type SaveSelectionResult, sendToBackground } from '~/messages';
+import { account } from '../account/session';
+import { useAccount } from '../account/use-account';
 import { ClipMode } from '../clip/clip-mode';
 import { HoverCard } from '../highlight/hover-card';
 import { createMarks, markColors, markIdAt } from '../highlight/marks';
 import { isEditable, selectedRange } from '../highlight/selection';
-import { CommentBox, SelectionToolbar } from '../highlight/selection-toolbar';
+import { CommentBox, type Draft, SelectionToolbar } from '../highlight/selection-toolbar';
 import { indexText, quoteOf, spanOf } from '../highlight/text-quote';
-import { lastColor, pausedSites, showOnPage, signInShown } from '../saves/settings';
-import { newId, type PageSaves, type PageStore, type Save, type Source } from '../saves/store';
+import {
+  lastColor,
+  type PanelSide,
+  panelSide,
+  panelWindows,
+  rememberTags,
+  showOnPage,
+  signInShown,
+} from '../saves/settings';
+import {
+  newId,
+  ownSaves,
+  type PageSaves,
+  type PageStore,
+  type Save,
+  type Source,
+} from '../saves/store';
+import { SidePanel } from '../side-panel/side-panel';
 import { type Anchor, createFrame, rangeAnchor } from './floating';
 import { PanelNote, SavedBadges, SignInCard, Toast, type ToastMessage } from './notices';
 import styles from './page.module.scss';
@@ -23,34 +41,49 @@ const hoverDelay = 250;
 const leaveDelay = 300;
 // How often a page that loads its text late is searched again for highlights not found yet.
 const retries = 10;
+// The side panel's width (.panel in side-panel.module.scss): the page's content moves aside by it.
+const panelWidth = 380;
 
 /**
- * Everything Ari draws on a page: the selection toolbar, the highlights and their hover card, clip
- * mode, the toasts. The content script mounts it in a shadow root on every website; the welcome tab
- * mounts it as it is, with `practice` saves.
+ * Everything Ari draws on a page: the selection toolbar, the highlights and their hover card, the
+ * side panel, clip mode, the toasts. The content script mounts it in a shadow root on every
+ * website; the welcome tab mounts it as it is, with `practice` saves.
  */
 export function PageUi(props: { store: PageStore; source: () => Source; practice?: boolean }) {
   let layer!: HTMLDivElement;
   const frame = createFrame();
   const [page, setPage] = createSignal<PageSaves | null>(null);
+  const [loaded, setLoaded] = createSignal(false);
   const [visible, setVisible] = createSignal(true);
-  const [paused, setPaused] = createSignal(false);
   const [color, setColor] = createSignal<HighlightColor>('yellow');
   const [picked, setPicked] = createSignal<Range | null>(null);
   const [commenting, setCommenting] = createSignal(false);
+  const [draft, setDraft] = createSignal<Draft>({ comment: '', tags: [] });
   const [hovered, setHovered] = createSignal<{ id: string; element: Element } | null>(null);
   const [toast, setToast] = createSignal<ToastMessage | null>(null);
   const [badges, setBadges] = createSignal<Element[]>([]);
   const [signIn, setSignIn] = createSignal(false);
   const [note, setNote] = createSignal<Anchor | null>(null);
   const [clipping, setClipping] = createSignal(false);
+  // The side panel is open in some windows (as Firefox's own sidebar would be), on one side.
+  const [windowId, setWindowId] = createSignal<number>();
+  const [openIn, setOpenIn] = createSignal<number[]>([]);
+  const [side, setSide] = createSignal<PanelSide>('right');
+  const panelOpen = () => {
+    const id = windowId();
+    return id !== undefined && openIn().includes(id);
+  };
+
+  // Saves another account sent to its library stay hidden while it isn't signed in.
+  const me = useAccount();
+  const saves = () => ownSaves(page()?.saves ?? [], me()?.id);
 
   const anchor = () => {
     frame();
     const range = picked();
     return range ? rangeAnchor(range) : undefined;
   };
-  const hoveredSave = () => page()?.saves.find((save) => save.id === hovered()?.id);
+  const hoveredSave = () => saves().find((save) => save.id === hovered()?.id);
   const hoverAnchor = () => {
     frame();
     const rect = hovered()?.element.getBoundingClientRect();
@@ -74,9 +107,24 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
   };
   const openLibrary = () => void sendToBackground({ type: 'open', page: 'library' });
 
-  /** After a save: "Saved on this browser" the first time, a toast with Undo after that. */
+  // — Side panel —
+
+  // While it is open, the page's own content moves aside to make room for it.
+  createEffect(() => {
+    if (!panelOpen() || !loaded()) return;
+    const property = `margin-${side()}`;
+    const html = document.documentElement.style;
+    const before = [html.getPropertyValue(property), html.getPropertyPriority(property)] as const;
+    html.setProperty(property, `${panelWidth}px`, 'important');
+    onCleanup(() => html.setProperty(property, ...before));
+  });
+
+  /**
+   * After a save: "Saved on this browser" the first time while signed out, a toast with Undo
+   * otherwise.
+   */
   const announce = async (saves: Save[], text: string, images: Element[] = []) => {
-    if (!props.practice && !(await signInShown.getValue())) {
+    if (!props.practice && !(await signInShown.getValue()) && !(await account.getValue())) {
       await signInShown.setValue(true);
       setSignIn(true);
       return;
@@ -96,7 +144,7 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
 
   // — Highlights —
 
-  async function saveRange(range: Range, highlight: HighlightColor, comment?: string) {
+  async function saveRange(range: Range, highlight: HighlightColor, note?: Draft) {
     const index = indexText(document.body);
     const span = spanOf(index, range);
     if (!span) return null;
@@ -108,23 +156,26 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
       text: quote.exact,
       prefix: quote.prefix,
       suffix: quote.suffix,
-      comment: comment || undefined,
+      comment: note?.comment.trim() || undefined,
       section: headingAbove(range.startContainer),
-      tags: [],
+      tags: note?.tags ?? [],
       createdAt: new Date().toISOString(),
     };
     await props.store.add(props.source(), [save]);
     await lastColor.setValue(highlight);
+    if (save.tags.length) await rememberTags(save.tags);
     return save;
   }
 
-  async function saveSelection(highlight: HighlightColor, comment?: string) {
+  /** Saves the selection, with the comment box's comment and tags while it is open. */
+  async function saveSelection(highlight: HighlightColor) {
     const range = picked();
     if (!range) return;
+    const note = commenting() ? draft() : undefined;
     setPicked(null);
-    setCommenting(false);
+    closeComment();
     document.getSelection()?.removeAllRanges();
-    const save = await saveRange(range, highlight, comment);
+    const save = await saveRange(range, highlight, note);
     if (save) await announce([save], t.toast.saved);
   }
 
@@ -163,9 +214,14 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
     hideTimer = setTimeout(() => setHovered(null), leaveDelay);
   };
 
+  function closeComment() {
+    setCommenting(false);
+    setDraft({ comment: '', tags: [] });
+  }
+
   function startClip() {
     setPicked(null);
-    setCommenting(false);
+    closeComment();
     setHovered(null);
     setSignIn(false);
     closeToast();
@@ -179,7 +235,7 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
   let tries = 0;
   const syncMarks = () => {
     marks ??= createMarks(document, markColors(layer));
-    const missing = marks.sync(visible() ? (page()?.saves ?? []) : []);
+    const missing = marks.sync(visible() ? saves() : []);
     if (!missing || tries >= retries) {
       observer?.disconnect();
       return;
@@ -194,34 +250,45 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   };
   createEffect(() => {
-    page();
+    saves();
     visible();
     tries = 0;
     syncMarks();
   });
 
   onMount(() => {
-    void props.store.get().then(setPage);
-    const site = location.hostname;
+    void props.store.get().then((saved) => {
+      setPage(saved);
+      setLoaded(true);
+    });
     const unwatch = [
       props.store.watch(setPage),
       showOnPage.watch((value) => setVisible(value)),
-      pausedSites.watch((sites) => setPaused(sites.includes(site))),
       lastColor.watch((value) => setColor(value)),
+      panelWindows.watch((ids) => setOpenIn(ids)),
+      panelSide.watch((value) => setSide(value)),
     ];
     void showOnPage.getValue().then(setVisible);
-    void pausedSites.getValue().then((sites) => setPaused(sites.includes(site)));
     void lastColor.getValue().then(setColor);
+    void panelWindows.getValue().then(setOpenIn);
+    void panelSide.getValue().then(setSide);
+    // Asked again when the tab shows, in case it moved to another window.
+    const findWindow = () =>
+      void sendToBackground<number | undefined>({ type: 'window-id' }).then(setWindowId, () => {});
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') findWindow();
+    };
+    findWindow();
 
     const fromUs = (event: Event) => event.composedPath().includes(layer);
     const readSelection = () => {
-      if (paused() || clipping() || commenting()) return;
+      if (clipping() || commenting()) return;
       setPicked(selectedRange(document, layer));
     };
 
     const onMouseDown = (event: MouseEvent) => {
       if (fromUs(event) || !commenting()) return;
-      setCommenting(false);
+      closeComment();
       setPicked(null);
     };
     const onMouseUp = (event: MouseEvent) => {
@@ -252,12 +319,11 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
     // ⌘C sends the selection to the side panel when it's open; the copy itself goes ahead.
     let noteTimer: ReturnType<typeof setTimeout> | undefined;
     const onCopy = (event: ClipboardEvent) => {
-      if (paused() || clipping() || fromUs(event)) return;
+      if (!panelOpen() || clipping() || fromUs(event)) return;
       const range = selectedRange(document, layer);
       if (!range) return;
       const at = rangeAnchor(range);
       void (async () => {
-        if (!(await sendToBackground<boolean>({ type: 'panel-open' }).catch(() => false))) return;
         const save = await saveRange(range, color());
         if (!save || !at) return;
         setPicked(null);
@@ -287,8 +353,8 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
       if (message.type === 'start-clip') {
         startClip();
         respond(true);
-      } else if (message.type === 'focus-save') {
-        marks?.focus(message.id);
+      } else if (message.type === 'open-panel') {
+        void sendToBackground({ type: 'set-panel', open: true });
         respond(true);
       }
     };
@@ -301,6 +367,7 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
     document.addEventListener('mouseover', onMouseOver);
     document.addEventListener('mouseout', onMouseOut);
     window.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('visibilitychange', onVisibility);
     browser.runtime.onMessage.addListener(onMessage);
 
     onCleanup(() => {
@@ -313,6 +380,7 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
       document.removeEventListener('mouseover', onMouseOver);
       document.removeEventListener('mouseout', onMouseOut);
       window.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('visibilitychange', onVisibility);
       browser.runtime.onMessage.removeListener(onMessage);
       for (const timer of [toastTimer, noteTimer, showTimer, hideTimer, retryTimer]) {
         clearTimeout(timer);
@@ -324,22 +392,33 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
 
   return (
     <div ref={layer} class={styles.layer} lang={language} data-ari-ui="">
+      {/* First, so the toolbar, the cards and clip mode open over it. */}
+      <Show when={panelOpen() && loaded()}>
+        <SidePanel
+          source={source()}
+          saves={saves()}
+          side={side()}
+          visible={visible()}
+          onFocus={(save) => marks?.focus(save.id)}
+          onRemove={(save) => void props.store.remove([save.id])}
+          onOpen={openLibrary}
+          onClose={() => void sendToBackground({ type: 'set-panel', open: false })}
+        />
+      </Show>
       <Show when={picked() && !clipping()}>
-        <Show
-          when={commenting()}
-          fallback={
-            <SelectionToolbar
-              anchor={anchor}
-              onSave={(highlight) => void saveSelection(highlight ?? color())}
-              onComment={() => setCommenting(true)}
-            />
-          }
-        >
+        <SelectionToolbar
+          anchor={anchor}
+          commenting={commenting()}
+          onSave={(highlight) => void saveSelection(highlight ?? color())}
+          onComment={() => (commenting() ? closeComment() : setCommenting(true))}
+        />
+        <Show when={commenting()}>
           <CommentBox
             anchor={anchor}
-            color={color()}
-            onSave={(comment) => void saveSelection(color(), comment)}
-            onCancel={() => setCommenting(false)}
+            draft={draft()}
+            onChange={setDraft}
+            onSave={() => void saveSelection(color())}
+            onCancel={closeComment}
           />
         </Show>
       </Show>
@@ -374,7 +453,7 @@ export function PageUi(props: { store: PageStore; source: () => Source; practice
         <SignInCard
           onSignIn={() => {
             setSignIn(false);
-            void sendToBackground({ type: 'open', page: 'login' });
+            void sendToBackground({ type: 'open', page: 'sign-in' });
           }}
           onClose={() => setSignIn(false)}
         />

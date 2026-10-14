@@ -1,4 +1,8 @@
 export type {
+  ExtensionCodeResponse,
+  ExtensionRefreshRequest,
+  ExtensionTokenRequest,
+  ExtensionTokensResponse,
   LoginError,
   LoginRequest,
   LoginResponse,
@@ -8,6 +12,18 @@ export type {
   UsernameAvailabilityResponse,
   VerifyEmailRequest,
 } from './auth';
+export type {
+  CreateSaveError,
+  CreateSaveRequest,
+  FacetsResponse,
+  GetSaveResponse,
+  ListSavesQuery,
+  SaveFacetsQuery,
+  SavePageResponse,
+  SaveResponse,
+  UpdateSaveRequest,
+  UpdateSaveResponse,
+} from './saves';
 export type {
   ChangeEmailRequest,
   ChangeEmailResponse,

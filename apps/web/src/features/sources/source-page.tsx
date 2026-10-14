@@ -23,7 +23,7 @@ import {
 } from 'solid-js';
 import { CopyIcon, ExternalIcon, MessageIcon, ScissorsIcon } from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
-import type { Save } from '~/features/library/sample';
+import { type Save, usePageLabel } from '~/features/library/saves';
 import { MoreIcon } from '~/features/notes/icons';
 import { useNotes } from '~/features/notes/notes-store';
 import { BackIcon, LibraryIcon, NotesIcon } from '~/features/shell/icons';
@@ -38,15 +38,15 @@ type Order = 'page' | 'newest';
 
 // Saves on the page at first, and how many more each time the end comes into view.
 const pageSize = 30;
-const pageNumber = (save: Save) => Number(save.page?.match(/\d+/)?.[0] ?? 0);
+const pageNumber = (save: Save) => save.page ?? 0;
 
-/** /sources/:slug: one website or file, with every save made from it. */
-export function SourcePage(props: { slug: string }) {
+/** /sources/:id: one website or file, with every save from it the page has loaded. */
+export function SourcePage(props: { id: string }) {
   const { t } = useI18n();
   const sources = useSources();
   return (
     <Show
-      when={sources.find(props.slug)}
+      when={sources.find(props.id)}
       fallback={
         <div class={styles.missing}>
           <Title>{t().sources.pageTitle}</Title>
@@ -88,7 +88,7 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
       ? saves()
       : [...saves()].reverse().sort((a, b) => pageNumber(a) - pageNumber(b)),
   );
-  createEffect(on([() => props.summary.slug, order], () => setShown(pageSize), { defer: true }));
+  createEffect(on([() => props.summary.id, order], () => setShown(pageSize), { defer: true }));
 
   // More saves while the end of the list is in view. Observing again after each step checks
   // whether the end is still in view, e.g. on a tall screen.
@@ -123,7 +123,7 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
       .list()
       .map((note) => ({
         note,
-        count: notes.quotesOf(note).filter((save) => save.source === source().name).length,
+        count: notes.quotesOf(note).filter((save) => save.source.id === source().id).length,
       }))
       .filter((item) => item.count);
 
@@ -139,7 +139,7 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
         label: t().sources.showInLibrary,
         icon: <LibraryIcon />,
         onSelect: () => {
-          library.showSource(source().name);
+          library.showSource(source().id);
           navigate('/library');
         },
       },
@@ -301,11 +301,12 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
 function SaveItem(props: { save: Save; url?: string; quoted: boolean }) {
   const { t } = useI18n();
   const saveDate = useSaveDate();
+  const pageLabel = usePageLabel();
   return (
     <article class={styles.save}>
       <div class={styles['save-meta']}>
         <span class={styles['save-where']}>
-          {props.save.section ?? props.save.page ?? t().library.kinds[props.save.kind]}
+          {props.save.section ?? pageLabel(props.save) ?? t().library.kinds[props.save.kind]}
         </span>
         <span>· {saveDate(props.save.savedAt)}</span>
         <Show when={props.quoted}>

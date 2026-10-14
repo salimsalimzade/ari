@@ -1,4 +1,5 @@
-import { type HighlightColor, highlightColors } from '@ari/ui-kit';
+import type { HighlightColor } from '@ari/ui-kit';
+import { createAsync, revalidate, useAction } from '@solidjs/router';
 import { endOfDay, endOfMonth, startOfToday } from 'date-fns';
 import {
   batch,
@@ -7,35 +8,39 @@ import {
   createMemo,
   createSignal,
   type JSX,
+  on,
   onCleanup,
+  startTransition,
   useContext,
 } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
+import { isServer } from 'solid-js/web';
+import { getMe } from '~/features/auth/queries';
+import { useI18n } from '~/i18n/i18n';
+import { type ImportFile, type ImportMark, standInMarks } from './imports';
 import {
-  type ImportFile,
-  type ImportMark,
-  type Save,
-  type SaveKind,
-  type Source,
-  sampleImports,
-  sampleMarks,
-  sampleSaves,
-  sampleSources,
-} from './sample';
+  changeSaveAction,
+  deleteSaveAction,
+  getSaveFacets,
+  getSavePage,
+  type SaveFilter,
+  type SavePage,
+} from './queries';
+import type { Facets, Save, SaveKind } from './saves';
 
 export type LibraryView = 'list' | 'grid';
 export type TypeFilter = 'all' | SaveKind;
 export type Facet = 'tags' | 'colors' | 'sources';
 
-const firstPage = 40;
-const nextPage = 30;
 /** The free trial's upload space and its limit per file, in megabytes. */
 export const trialMegabytes = 50;
 export const fileLimitMegabytes = 5;
-// What the account had used before this visit; ari-api will report it.
-const usedBefore = 18.4;
 const importable = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'webp', 'heic', 'gif'];
 export const importAccept = '.pdf,.doc,.docx,image/*';
+// ari-api's page size: a month jump loads until at least this many saves are in view.
+const pageSize = 40;
+// How long a comment waits for more typing before it is saved.
+const commentDelay = 700;
 
 export type UploadSpace = {
   used: number;
@@ -46,125 +51,200 @@ export type UploadSpace = {
   tone: 'ok' | 'low' | 'full';
 };
 
-export type Toast = { text: string /** Offers "Show only this file" for it. */; source?: string };
+export type Toast = {
+  text: string;
+  /** Offers "Show only this file" for this source's id. */
+  source?: string;
+};
+
+const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [] };
+const noCounts: Facets['counts'] = { all: 0, highlight: 0, clip: 0, import: 0 };
 
 const isBusy = (file: ImportFile) => file.status === 'uploading' || file.status === 'reading';
 const megabytesOf = (files: ImportFile[]) => files.reduce((sum, file) => sum + file.megabytes, 0);
 
+// Values worked out from others: memos in the browser, plain functions on the server, where a
+// memo is worked out once, before the Library has loaded.
+const derive = <T,>(fn: () => T) => (isServer ? fn : createMemo(fn));
+
+/** Whether a save matches the filters, for the ones this page made (imports) and no page has. */
+function matches(save: Save, filter: SaveFilter) {
+  const tags = filter.tags.map((tag) => tag.toLowerCase());
+  return (
+    (filter.type === 'all' || save.kind === filter.type) &&
+    (!tags.length || save.tags.some((tag) => tags.includes(tag.toLowerCase()))) &&
+    (!filter.colors.length || (!!save.color && filter.colors.includes(save.color))) &&
+    (!filter.sources.length || filter.sources.includes(save.source.id))
+  );
+}
+
+/** Newest first, each save once. */
+function newestFirst(saves: Save[]) {
+  const seen = new Set<string>();
+  return saves
+    .filter((save) => !seen.has(save.id) && seen.add(save.id))
+    .sort((a, b) => b.savedAt.getTime() - a.savedAt.getTime());
+}
+
 /**
- * The Library, its imports and what the page shows of them. Everything stays in the page until
- * ari-api has the endpoints; it starts from the design's example library (`sample.ts`).
+ * The Library from ari-api: the first page of saves for the filters renders on the server, more
+ * load as the list asks. Changes show at once and go to ari-api; one that fails is undone with a
+ * toast. Imports stay in the page (`imports.ts`) until ari-api reads files.
  */
 function createLibrary(openFilePicker: () => void) {
-  // — Saves and their sources —
-
-  const [saves, setSaves] = createSignal(sampleSaves());
-  const [sources, setSources] = createStore<Record<string, Source>>({ ...sampleSources });
+  const { t } = useI18n();
 
   // — What the Library page shows —
 
-  const [filters, setFilters] = createStore({
-    type: 'all' as TypeFilter,
-    tags: [] as string[],
-    colors: [] as string[],
-    sources: [] as string[],
-  });
+  const [filters, setFilters] = createStore<SaveFilter>({ ...noFilter });
+  // A copy for ari-api: a new object each time the filters change.
+  const filter = derive(
+    (): SaveFilter => ({
+      type: filters.type,
+      tags: [...filters.tags],
+      colors: [...filters.colors],
+      sources: [...filters.sources],
+    }),
+  );
   const [view, setView] = createSignal<LibraryView>('list');
   // The list starts from this moment back; undefined starts at the newest save.
   const [from, setFrom] = createSignal<Date>();
-  const [shown, setShown] = createSignal(firstPage);
-  const [loadingMore, setLoadingMore] = createSignal(false);
   // A save to tint after the palette jumps to it.
   const [picked, setPicked] = createSignal<string>();
   // Goes up each time the list starts over, so the page can scroll back to its top.
   const [restarts, setRestarts] = createSignal(0);
-  let loadTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const matching = createMemo(() =>
-    saves().filter(
-      (save) =>
-        (!filters.tags.length || filters.tags.some((tag) => save.tags.includes(tag))) &&
-        (!filters.colors.length || (!!save.color && filters.colors.includes(save.color))) &&
-        (!filters.sources.length || filters.sources.includes(save.source)),
+  // — Saves, from ari-api —
+
+  // The first page for the filters, and the Library's own first page for search, Sources and
+  // notes (the same request while nothing is filtered).
+  const first = createAsync(() => getSavePage(filter()), { deferStream: true });
+  const newest = createAsync(() => getSavePage(noFilter), { deferStream: true });
+  const facets = createAsync(() => getSaveFacets(filter()), { deferStream: true });
+  const me = createAsync(() => getMe());
+  const [more, setMore] = createSignal<SavePage[]>([]);
+  const [loadingMore, setLoadingMore] = createSignal(false);
+  const [loadFailed, setLoadFailed] = createSignal(false);
+  // Changes made since the pages loaded, and deletions; ari-api has them, or is getting them.
+  const [edits, setEdits] = createStore<Record<string, Partial<Save>>>({});
+  const [deleted, setDeleted] = createSignal<ReadonlySet<string>>(new Set());
+  // Saved from imports during this visit; only this page has them.
+  const [imported, setImported] = createSignal<Save[]>([]);
+
+  const withChanges = (save: Save): Save =>
+    edits[save.id] ? { ...save, ...edits[save.id] } : save;
+  const kept = (saves: Save[]) => {
+    const gone = deleted();
+    return saves.filter((save) => !gone.has(save.id)).map(withChanges);
+  };
+
+  /** Every save loaded for the filters, newest first, with this visit's changes. */
+  const loaded = derive(() =>
+    kept(
+      newestFirst([
+        ...imported().filter((save) => matches(save, filter())),
+        ...[first(), ...more()].flatMap((page) => page?.saves ?? []),
+      ]),
     ),
   );
-  const counts = createMemo(() => {
-    const result: Record<TypeFilter, number> = { all: 0, highlight: 0, clip: 0, import: 0 };
-    for (const save of matching()) {
-      result.all++;
-      result[save.kind]++;
-    }
-    return result;
-  });
-  const filtered = createMemo(() =>
-    filters.type === 'all' ? matching() : matching().filter((save) => save.kind === filters.type),
+  /** Every save this page knows: what search, Sources and the notes look through. */
+  const saves = derive(() =>
+    kept(newestFirst([...imported(), ...(newest()?.saves ?? []), ...loaded()])),
   );
-  const fromStart = createMemo(() => {
+  const visible = derive(() => {
     const start = from();
-    return start ? filtered().filter((save) => save.savedAt <= start) : filtered();
+    return start ? loaded().filter((save) => save.savedAt <= start) : loaded();
   });
-  const visible = createMemo(() => fromStart().slice(0, shown()));
-  const hasMore = () => visible().length < fromStart().length;
+  const nextCursor = () => (more().at(-1) ?? first())?.nextCursor;
 
-  // Each facet's values across the whole Library, most used first, with how many saves have them.
-  const facetOptions = createMemo(() => {
-    const tags = new Map<string, number>();
-    const colors = new Map<string, number>();
-    const sourceCounts = new Map<string, number>();
-    const add = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
-    for (const save of saves()) {
-      for (const tag of save.tags) add(tags, tag);
-      if (save.color) add(colors, save.color);
-      add(sourceCounts, save.source);
-    }
-    const byCount = (map: Map<string, number>) => [...map].sort((a, b) => b[1] - a[1]);
-    return {
-      tags: byCount(tags),
-      colors: highlightColors.map((color): [string, number] => [color, colors.get(color) ?? 0]),
-      sources: byCount(sourceCounts),
-    } satisfies Record<Facet, [string, number][]>;
-  });
-
-  const restart = () => {
-    clearTimeout(loadTimer);
+  // A page that arrives after the filters changed belongs to the old list.
+  let generation = 0;
+  createEffect(
+    on(
+      filter,
+      () => {
+        generation++;
+        batch(() => {
+          setMore([]);
+          setLoadingMore(false);
+          setLoadFailed(false);
+        });
+      },
+      { defer: true },
+    ),
+  );
+  const loadMore = async () => {
+    const cursor = nextCursor();
+    if (!cursor || loadingMore()) return;
+    const current = generation;
+    setLoadingMore(true);
+    setLoadFailed(false);
+    const page = await getSavePage(filter(), cursor);
+    if (current !== generation) return;
     batch(() => {
+      if (page.failed) setLoadFailed(true);
+      else setMore((pages) => [...pages, page]);
       setLoadingMore(false);
-      setShown(firstPage);
+    });
+  };
+  // ari-api can't start a page at a date, so a jump back loads pages until the month is there.
+  createEffect(() => {
+    if (from() && nextCursor() && !loadingMore() && !loadFailed() && visible().length < pageSize)
+      void loadMore();
+  });
+
+  const restart = () =>
+    batch(() => {
       setFrom(undefined);
       setPicked(undefined);
       setRestarts((count) => count + 1);
     });
-  };
-  const setAllFilters = (next: Partial<typeof filters>) => {
-    setFilters({ type: 'all', tags: [], colors: [], sources: [], ...next });
-    restart();
-  };
+  // In a transition: the list stays as it is until ari-api has answered for the new filters.
+  const refilter = (change: () => void) =>
+    startTransition(() => {
+      change();
+      restart();
+    });
+  const setAllFilters = (next: Partial<SaveFilter>) =>
+    refilter(() => setFilters({ ...noFilter, ...next }));
+
+  // — Changing and deleting —
+
+  const change = useAction(changeSaveAction);
+  const remove = useAction(deleteSaveAction);
+  // A comment is saved once the typing stops; what it was before, in case ari-api says no.
+  const commentTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const commentsBefore = new Map<string, Partial<Save>>();
+
+  /** Sends a change already on the page; puts back `before` when ari-api says no. */
+  const send = (id: string, before: Partial<Save>, request: () => Promise<unknown>) =>
+    void request().catch(() => {
+      setEdits(
+        produce((all) => {
+          all[id] = before;
+        }),
+      );
+      showToast({ text: t().library.changeFailed });
+    });
 
   // — Imports —
 
-  const [files, setFiles] = createStore<ImportFile[]>(sampleImports());
+  const [files, setFiles] = createStore<ImportFile[]>([]);
   const [trayHidden, setTrayHidden] = createSignal(false);
   const updateFile = (id: string, change: (file: ImportFile) => void) =>
     setFiles((file) => file.id === id, produce(change));
 
   const space = createMemo<UploadSpace>(() => {
-    const thisVisit = files.filter((file) => !file.seeded);
-    const used = usedBefore + megabytesOf(thisVisit.filter((file) => file.status === 'saved'));
-    const pending = megabytesOf(
-      thisVisit.filter((file) => isBusy(file) || file.status === 'ready'),
-    );
+    const used = megabytesOf(files.filter((file) => file.status === 'saved'));
+    const pending = megabytesOf(files.filter((file) => isBusy(file) || file.status === 'ready'));
     const left = Math.max(0, trialMegabytes - used - pending);
     const tone = left < 0.05 ? 'full' : (used + pending) / trialMegabytes >= 0.8 ? 'low' : 'ok';
     return { used, pending, left, tone };
   });
 
-  // Files from this visit (and retried ones) until they're saved: the tray and pill show them.
+  // Files until they're saved: the tray and pill show them.
   const session = createMemo(() =>
-    files.filter(
-      (file) =>
-        (!file.seeded || file.retried) &&
-        (isBusy(file) || file.status === 'ready' || file.status === 'rejected'),
-    ),
+    files.filter((file) => isBusy(file) || file.status === 'ready' || file.status === 'rejected'),
   );
 
   const addFiles = (list: FileList | File[] | null | undefined) => {
@@ -179,7 +259,6 @@ function createLibrary(openFilePicker: () => void) {
         name: file.name,
         megabytes,
         progress: 0,
-        seeded: false,
         title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '),
         author: '',
       };
@@ -213,8 +292,7 @@ function createLibrary(openFilePicker: () => void) {
             if (file.progress === 100 && file.megabytes === 0) file.status = 'failed';
             else if (file.progress === 100) {
               file.status = 'ready';
-              const seed = Math.round(file.megabytes * 7);
-              file.marks = sampleMarks(2 + (Math.round(file.megabytes * 10) % 9), seed);
+              file.marks = standInMarks();
             }
           }
         }
@@ -230,63 +308,102 @@ function createLibrary(openFilePicker: () => void) {
 
   const [toast, setToast] = createSignal<Toast>();
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  const showToast = (next: Toast) => {
+  function showToast(next: Toast) {
     clearTimeout(toastTimer);
     setToast(next);
     toastTimer = setTimeout(() => setToast(undefined), 9000);
-  };
+  }
 
   // — Search palette —
 
   const [paletteOpen, setPaletteOpen] = createSignal(false);
 
   onCleanup(() => {
-    clearTimeout(loadTimer);
     clearTimeout(toastTimer);
+    for (const timer of commentTimers.values()) clearTimeout(timer);
   });
 
   return {
+    /** Every save this page knows, newest first: search, Sources and notes look through them. */
     saves,
-    sources,
-    sourceOf: (name: string): Source => sources[name] ?? { name, title: name },
-    setColor: (id: string, color: HighlightColor) =>
-      setSaves((list) => list.map((save) => (save.id === id ? { ...save, color } : save))),
-    setComment: (id: string, comment: string) =>
-      setSaves((list) => list.map((save) => (save.id === id ? { ...save, comment } : save))),
-    deleteSave: (id: string) => setSaves((list) => list.filter((save) => save.id !== id)),
+    /** How many saves the Library has, from the signed-in user. */
+    total: () => me()?.savesCount ?? 0,
+    withChanges,
+    /** A source's name from the saves known, or the filters' choices. */
+    sourceName: (id: string) =>
+      saves().find((save) => save.source.id === id)?.source.name ??
+      facets()?.sources.find((source) => source.value === id)?.name ??
+      '',
+    setColor: (id: string, color: HighlightColor) => {
+      const before = { ...edits[id] };
+      setEdits(id, (current) => ({ ...current, color }));
+      send(id, before, () =>
+        change(id, { color: color.toUpperCase() as Uppercase<HighlightColor> }),
+      );
+    },
+    setComment: (id: string, comment: string) => {
+      if (!commentTimers.has(id)) commentsBefore.set(id, { ...edits[id] });
+      setEdits(id, (current) => ({ ...current, comment }));
+      clearTimeout(commentTimers.get(id));
+      commentTimers.set(
+        id,
+        setTimeout(() => {
+          const before = commentsBefore.get(id) ?? {};
+          commentTimers.delete(id);
+          commentsBefore.delete(id);
+          send(id, before, () => change(id, { comment }));
+        }, commentDelay),
+      );
+    },
+    /** Takes the save off the page at once; it comes back with a toast when ari-api says no. */
+    deleteSave: (id: string) => {
+      setDeleted((ids) => new Set(ids).add(id));
+      if (imported().some((save) => save.id === id)) return;
+      void remove(id).catch(() => {
+        setDeleted((ids) => {
+          const next = new Set(ids);
+          next.delete(id);
+          return next;
+        });
+        showToast({ text: t().library.deleteFailed });
+      });
+    },
 
     filters,
-    counts,
-    facetOptions,
-    /** Every save the filters let through, newest first. */
-    filtered,
-    /** The saves on the page now. */
+    /** The first page for the filters didn't load. */
+    failed: () => !!first()?.failed,
+    /** Loads the first page again after it failed. */
+    reload: () => startTransition(() => revalidate([getSavePage.key, getSaveFacets.key])),
+    /** Whether tags, colors or sources are picked. */
+    narrowed: () => !!(filters.tags.length || filters.colors.length || filters.sources.length),
+    counts: () => facets()?.counts ?? noCounts,
+    facetOptions: (facet: Facet) => facets()?.[facet] ?? [],
+    /** The saves loaded for the filters, newest first. */
+    loaded,
+    /** The saves on the page now: those loaded, from the month jumped to. */
     visible,
-    hasMore,
+    hasMore: () => !!nextCursor(),
     loadingMore,
+    loadFailed,
+    loadMore,
     from,
     picked,
     restarts,
     view,
     setView,
-    setType: (type: TypeFilter) => {
-      setFilters('type', type);
-      restart();
-    },
-    toggleFacet: (facet: Facet, value: string) => {
-      setFilters(facet, (values) =>
-        values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
-      );
-      restart();
-    },
+    setType: (type: TypeFilter) => refilter(() => setFilters('type', type)),
+    toggleFacet: (facet: Facet, value: string) =>
+      refilter(() =>
+        setFilters(facet, (values: string[]) =>
+          values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
+        ),
+      ),
     /** Tags, colors and sources; the type tab stays. */
     clearFacets: () => setAllFilters({ type: filters.type }),
     clearFilters: () => setAllFilters({}),
+    /** Shows only the saves from a source, by its id. */
     showSource: (source: string) => setAllFilters({ sources: [source] }),
-    filterByTag: (tag: string) => {
-      setFilters('tags', [tag]);
-      restart();
-    },
+    filterByTag: (tag: string) => refilter(() => setFilters('tags', [tag])),
     /** Starts the list at the end of `month`; undefined goes back to the newest saves. */
     jumpTo: (month?: Date) => {
       restart();
@@ -298,17 +415,6 @@ function createLibrary(openFilePicker: () => void) {
       setView('list');
       setFrom(endOfDay(save.savedAt));
       setPicked(save.id);
-    },
-    // Stands in for fetching the next page from ari-api.
-    loadMore: () => {
-      if (loadingMore() || !hasMore()) return;
-      setLoadingMore(true);
-      loadTimer = setTimeout(() => {
-        batch(() => {
-          setLoadingMore(false);
-          setShown((count) => count + nextPage);
-        });
-      }, 700);
     },
 
     files,
@@ -324,7 +430,6 @@ function createLibrary(openFilePicker: () => void) {
       updateFile(id, (file) => {
         file.status = 'reading';
         file.progress = 0;
-        file.retried = true;
       }),
     dismiss: (id: string) =>
       updateFile(id, (file) => {
@@ -361,6 +466,13 @@ function createLibrary(openFilePicker: () => void) {
       const edit = file.status === 'saved';
       const savedAt = startOfToday();
       const tag = details.tag.trim();
+      const source = {
+        id: `file:${file.id}`,
+        kind: 'file' as const,
+        name: file.name,
+        title: details.title.trim() || file.name,
+        author: details.author.trim() || undefined,
+      };
       const saveOf = (mark: ImportMark): Save => ({
         id: `${file.id}-${mark.id}`,
         kind: mark.type === 'handwritten' ? 'clip' : 'import',
@@ -370,8 +482,8 @@ function createLibrary(openFilePicker: () => void) {
         tags: tag ? [tag] : [],
         comment: mark.comment ?? '',
         savedAt,
-        source: file.name,
-        page: mark.page,
+        source,
+        page: Number.parseInt(mark.page.replace(/\D/g, ''), 10) || undefined,
         isNew: true,
       });
       const adding = file.marks.filter((mark) => mark.on && !mark.saved);
@@ -379,14 +491,11 @@ function createLibrary(openFilePicker: () => void) {
         file.marks.filter((mark) => !mark.on && mark.saved).map((mark) => `${file.id}-${mark.id}`),
       );
       batch(() => {
-        setSources(file.name, {
-          name: file.name,
-          title: details.title.trim() || file.name,
-          author: details.author.trim() || undefined,
-        });
-        setSaves((list) => [
+        setImported((list) => [
           ...adding.map(saveOf),
-          ...list.filter((save) => !removing.has(save.id)),
+          ...list
+            .filter((save) => !removing.has(save.id))
+            .map((save) => (save.source.id === source.id ? { ...save, source } : save)),
         ]);
         updateFile(file.id, (item) => {
           item.status = 'saved';
@@ -398,7 +507,7 @@ function createLibrary(openFilePicker: () => void) {
         });
         if (!edit) setAllFilters({});
       });
-      return { edit, added: adding.length, removed: removing.size, source: file.name };
+      return { edit, added: adding.length, removed: removing.size, source: source.id };
     },
 
     toast,

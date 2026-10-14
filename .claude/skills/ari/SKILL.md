@@ -91,13 +91,13 @@ apps/web/src/
 └── styles/          page.module.scss
 
 apps/extension/src/  WXT's srcDir
-├── entrypoints/     background.ts, content/ (the page UI in a shadow root), popup/, sidepanel/
-│                    (Firefox's sidebar), welcome/ (opened once, at install)
+├── entrypoints/     background.ts, content/ (the page UI in a shadow root, side panel included),
+│                    popup/, welcome/ (opened once, at install)
 ├── features/<name>/ saves (storage), highlight, clip, page (the content UI), popup, side-panel,
 │                    welcome
 ├── i18n/            en.ts, az.ts and i18n.ts (t, fill, plural)
 ├── styles/          _extension.scss (Sass mixins, no output)
-└── icons.tsx · keys.ts · messages.ts · sidebar.ts · website.ts
+└── icons.tsx · keys.ts · messages.ts · website.ts
 
 shared/              no lib/ folders: shared code goes in one of these four
 ├── data-access/     @ari/data-access: API client (the only code calling ari-api)
@@ -158,7 +158,19 @@ the install buttons there.
 the router actions in `features/auth/queries.ts`, then go to `/library`. `/verify-email`
 (`features/auth/verify-email.tsx`, public, in `AuthLayout`) is where a verify email's link leads: it
 confirms the code in `onMount` only (a mail scanner fetching the HTML never uses it up) and shows
-confirmed, expired or used, taken, incomplete, or a retry. Sign-in is username and password
+confirmed, expired or used, taken, incomplete, or a retry. Forgot password (the design's "Ari Log
+in"): `/forgot-password` (`ForgotPasswordForm`) asks for a link by username or email and shows a
+"Check your email" `AuthToast`, or an alert when none was sent: no such account
+(`ACCOUNT_NOT_FOUND`, with a link to `/register`), an account without an email (`NO_EMAIL`), or
+one whose email isn't confirmed yet (`EMAIL_NOT_CONFIRMED`); `/reset-password?code=` (`ResetPassword`) checks the link with the
+`getPasswordReset` query while the server renders (checking never uses the code up), then takes the
+new password, or shows expired, used, invalid or a retry; on save it goes to `/login` with the
+username in the history state, which fills the form in and shows "Password updated". `LoginForm`
+answers `INVALID_CREDENTIALS` with its own alert linking to `/forgot-password`. ari-api has no
+reset endpoints yet, so `features/auth/password-reset.ts` holds timed stand-ins in their shape
+(sequences §11; asking for `no-account`, `no-email` or `unconfirmed-email`, and `?code=expired`,
+`used`, `invalid` or `failed`, shows each state); swap them for
+`@ari/data-access` calls once the types are generated. Sign-in is username and password
 only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; the picker's
 `dd.MM.yyyy` is converted on submit), and the username follows ari-api's rule (3 to 30 letters,
 digits, underscores or dots). Google (F9) comes later. The signed-in pages live in the
@@ -175,22 +187,40 @@ ui-kit `Popover` or a sheet on phones, a column of months to jump to, or a float
 color, comment, source, copy with citation, delete), and `/imports` with `/imports/:id` (upload
 space, a drop zone, files ready / in progress / not imported / history, and the review that saves
 ticked marks into the Library). Files can be dropped anywhere on the Library or Imports page, and
-the Library shows this visit's imports in a tray (a pill on phones). It is UI only:
-`library-store.tsx` holds saves, filters, imports, the toast and the palette, starting from the
-design's example library in `sample.ts` (texts in English, addresses on the reserved `.example`
-domain); uploading and reading are timed stand-ins. The reading view's Add to note quotes the save in one of the newest notes or in a new
-one. `features/notes` (from the design's "Ari Notes") has `/notes` (the notes beside the open note on
+the Library shows this visit's imports in a tray (a pill on phones). The saves come from ari-api
+(`features/library/queries.ts`, sequences §4): `library-store.tsx` (set up by the `(app)` layout)
+holds the filters, the pages, this visit's changes, imports, the toast and the palette. The first
+page for the filters (`getSavePage`, 40, newest first) and the facets (`getSaveFacets`: type tab
+counts, tag / color / source choices) render on the server (`deferStream`); more pages load on
+scroll with `nextCursor`, and a month jump loads pages until the month is there (ari-api has no
+date filter). Saves (`saves.ts`: `toSave`, `Save`, `Source` with ari-api's id) keep the source as an
+object; a file's `page` is a number, shown through `usePageLabel`. Filter changes run in
+`startTransition`, so the list stays until ari-api answers; the store derives with plain functions
+on the server (a memo there is worked out once, before the data). Color and comment changes (the
+comment once typing stops) and deletes show at once and go through `changeSaveAction` and
+`deleteSaveAction`, which refresh only the counts; one ari-api refuses is put back with a toast.
+The queries answer `failed` instead of throwing, so the list shows its error state with Try again
+while search and the sidebar go on. `/library/:id` shows a loaded save at once, or `getSave`
+(`GET /saves/{id}`; null is not found); previous / next go through the loaded list, loading the next
+page at its end. Clips show their picture (`imageUrl`, signed for an hour) or their table (from
+`contentMd`). The sidebar's Library count is `getMe`'s `savesCount`. Search, Sources and the notes'
+quote picker look through the saves loaded so far (the newest page, plus the filtered pages) until
+ari-api has search (F10) and sources. Imports are still stand-ins (`imports.ts`: a timed upload and
+reading that finds the same example marks); saving a review adds its marks to this visit's Library
+only (`isNew`), since ari-api doesn't import files yet. The reading view's Add to note quotes the
+save in one of the newest notes or in a new one. `features/notes` (from the design's "Ari Notes") has `/notes` (the notes beside the open note on
 wide screens, where the sidebar opens the newest note; the list on phones, or the empty state) and
 `/notes/:id`: a title and paragraphs with saved quotes between them. Each paragraph is a textarea
 over an invisible copy of its text, so it grows; hydration leaves textareas empty, so each ref fills
 its own. A paragraph starting with "/" lists saved highlights to quote (arrow keys, Enter, Escape),
 and ⋯ (ui-kit `Menu`) adds a quote, copies as text, exports Markdown or PDF (the print dialog),
 duplicates or deletes. Quotes keep a `saveId`, so they follow the save's color and leave with it.
-Also UI only: `notes-store.tsx` starts from the design's example notes in `sample.ts`.
+Also UI only: `notes-store.tsx` starts from the design's two example notes in `sample.ts`, text
+only (their quotes were of the old example library).
 `features/sources` (from the design's "Ari Sources") has no state of its own: `useSources()` groups
-the Library's saves by source. `/sources` is a card per website or file (latest saved from first,
+the saves the Library has loaded by their source's id. `/sources` is a card per website or file (latest saved from first,
 All / Websites / Files tabs; its search opens the palette, whose sources open their page), and
-`/sources/:slug` (a slug of the name until ari-api gives sources ids) lists the source's saves in
+`/sources/:id` (ari-api's source id) lists the source's loaded saves in
 page order (by page for files, the order they were saved for websites) or newest first, more on
 scroll, each with "Open at this spot" (a text-fragment link) on websites, beside "About this source"
 (above the saves under 1024px, left out on phones). `/settings` (`features/settings`, from the design's "Ari Settings")
@@ -219,35 +249,76 @@ separators from the dictionaries' `formats`, not Intl; `ago` for "10 min ago"), 
 `src/styles/_app.scss` (breakpoints, `stroke-icon`, `visually-hidden`, `card`). `src/middleware.ts`
 refreshes the session before a page renders when `ari_access` is gone (pages only, so asset
 requests don't spend the same refresh token).
-`apps/extension` (from the design's "Ari Extension", issues F13 and F14) works signed out for now:
-ari-api has the saves endpoints but no extension sign-in yet, so saves stay in the browser, in
+`apps/extension` (from the design's "Ari Extension", issues F13 and F14) signs in with the
+website (`features/account/`, ari-api's sequences §6): on the website's own origin its content
+script and the signed-in pages talk through `window.postMessage` (the messages are `@ari/utils`'
+`BridgeMessage`). A signed-in page (`useExtensionSignIn` in the web shell's `UserChip`) says who is
+signed in (id, username, name and email, kept as `local:websiteAccount` for the popup); when the
+extension isn't signed in as them it asks for a code, the page gets one from
+`POST /me/extension-code` (`createExtensionCode`) and posts it, and the background swaps it for the
+extension's own tokens (`session.ts`: `local:tokens`, and `local:account` for the UI). The
+website's `logoutAction` posts `signed-out`, which signs the extension out too while it follows the
+website (`local:followsWebsite`). The popup (the design's 28a sign-in) shows one state card above
+its menu: Continue as the website's account (signed out while the website is signed in; it asks
+for that account's password), You're signed out, "N highlights not saved"
+with Sign in to sync, Session expired (a refused refresh keeps `local:account` with
+`local:expired`; Sign in again asks its password), a different account than the website's (Use
+ari.app account, which asks that account's password, or Keep, `local:keptBeside`), "waiting to sync" with Sync now, or else the page's count. Its avatar opens the
+account switcher: the account in use, the website's and the others used here
+(`local:knownAccounts`), each switched to with its password, Add another account and Sign out.
+Signing in as another account happens in the popup, never on a website page (the design's 29a):
+Add an account (also from Use a different account, and the welcome tab's Not you?, which opens the
+popup through `session:addAccountNext`) takes a username and password, and the background gets a
+code for them from `POST /auth/extension/code` (`signInWithPassword`); "Signed in as …" follows.
+Forgot password? and Reset password open the website's `/forgot-password?login=`. A picked account
+stays whatever the website does. Sign out forgets the accounts and sets `local:loggedOut`: from
+then on, as while expired, the website's codes don't sign the extension in (the content script
+stops asking, the background refuses them), and only a password in the popup does, which clears
+both. Only
+the background calls ari-api (`VITE_API_URL`), with `Authorization: Bearer` and
+`credentials: 'omit'` (ari-api reads the `ari_access` cookie before the header), refreshing once on
+a 401; a 401 from the refresh leaves the session expired. Each refresh, and each browser start,
+gives the session 30 more days. Saves are kept in
 `browser.storage.local` under `page:<address without #fragment>` (`features/saves/store.ts`), each
-shaped like ari-api's `CreateSaveRequest` so they can be sent once F13 signs in. On every website
+shaped like ari-api's `CreateSaveRequest`, and the background sends them to the library
+(`features/saves/sync.ts`, sequences §7): `POST /saves` (multipart for an image clip), then
+`PATCH` for changes (`changed`) and `DELETE` for deletions (`local:deletedSaves`); a sent save keeps
+`remoteId` and `owner`, a 4xx marks it `refused`, and anything else retries on a
+`browser.alarms` backoff (`local:syncRetry`). Pages show only the saves kept here and the
+signed-in account's (`ownSaves`); saves made while signed out go to whoever signs in next. The
+icon's badge counts the waiting saves, terracotta while signed out, gray while retrying. On every website
 the content script mounts `PageUi` (`features/page/page-ui.tsx`) in a WXT shadow root: the
-selection toolbar (S saves, 1–5 save in a color, C comments, Esc closes), highlights wrapped in
+selection toolbar (S saves, 1–5 save in a color, C comments, Esc closes; the comment box stays
+under the toolbar and turns `#name` into tags from the library's facets and the recent ones), highlights wrapped in
 `ari-mark` elements and found again on every visit by their words and neighbouring text
 (`highlight/text-quote.ts`, like the W3C TextQuoteSelector), their hover card (color, comment,
-tags, Delete, Open in Ari), toasts with Undo, "Saved on this browser" after the first save, and
+tags, Delete, Open in Ari), toasts with Undo, "Saved on this browser" after the first save while signed out, and
 clip mode (`clip/`: a table clips as Markdown, images into a picked set saved one item each,
 any other block or a dragged box as a JPEG screenshot that the background cuts out of
-`captureVisibleTab`). ⌘C / Ctrl C saves the selection only while the side panel is open in that
-window (`sidebarAction.isOpen`), and the copy goes ahead. The popup counts the page's saves,
-saves the selection, starts clip mode, opens the side panel and pauses a site; the side panel
-lists the active tab's saves, rings the newest one, focuses it on the page, removes it, copies all
-and toggles Show on page. The welcome tab runs the same `PageUi` on its own practice sentence,
-with saves in `storage.session`. Sign in and Open in Ari open the website (`VITE_WEB_URL`, in
-`apps/extension/.env`) at `/login` and `/library`. The extension's language is the browser's
-(`navigator.language`), and `t` is a plain object. Shortcuts follow the extension design (clip
-⌥⇧S, side panel ⌥A) and the popup shows the ones the user set in Firefox.
+`captureVisibleTab`). The side panel is Ari's own, not the browser's sidebar (no browser lets an
+extension choose its sidebar's side): `PageUi` draws it fixed on the right of the page, or on the
+left after Move panel to left (`local:panelSide`), and moves the page's content aside by its 380px
+(a margin on `<html>`). It is open per window, like a sidebar (`local:panelWindows`, window ids
+from the background's `window-id`; cleared at browser start); ⌥A (`toggle-panel`), the popup and its
+close button set it through the background's `set-panel`. ⌘C / Ctrl C saves the selection only
+while it is open, and the copy goes ahead. The popup counts the page's saves, saves the
+selection, starts clip mode and opens the side panel; the side panel lists the
+page's saves (long ones folded with Show more), rings the newest one, focuses it on the page,
+removes it, copies all and toggles Show on page. The welcome tab (the design's first
+run: Create a free account and Log in, or Connected to ari.app with Not you?) runs the same `PageUi`
+on its sample text, with saves in `storage.session`. Sign in and Open in Ari open the website (`VITE_WEB_URL`, in
+`apps/extension/.env`) at `/library`, which sends a signed-out visitor to `/login` first. The extension's language is the browser's
+(`navigator.language`), and `t` is a plain object. Shortcuts: clip ⌥⇧C (the design's ⌥⇧S is
+often a Mac screenshot tool's), side panel ⌥A; the popup shows the ones the user set in Firefox.
 `ui-kit` has the design tokens and the design handoff's components, styled (plus `Accordion`, `SegmentedControl`, `Avatar`, `Slider`,
 TextField's `prefix` and Select's `block` for the account page, SegmentedControl's `sm`,
 Dialog's `sheet` and Avatar's `md` for the settings sections, `Popover`, Button's `newTab` and
 ColorPicker's `names` for the Library, `Menu` for Notes, and `Switch`, `Kbd` and Logo's `sm`
 wordmark for the extension); `types` has the
-generated schema and the auth and users types (with the email calls' bodies); `utils` has only the
-OpenAPI type helpers; `data-access` has the API client (`request`, `ApiError`, the shared refresh,
+generated schema and the auth, users and saves types (with the email calls' bodies, the
+extension's sign-in, and the saves it sends); `utils` has the OpenAPI type helpers and the extension bridge's messages; `data-access` has the API client (`request`, `ApiError`, the shared refresh,
 `refreshSession` for the middleware; a `FormData` body goes as multipart), the auth calls
-(`verifyEmail` among them, with `refresh: false`), `fetchMe` and the account calls (profile,
+(`verifyEmail` among them, with `refresh: false`, and `createExtensionCode`), `fetchMe` and the account calls (profile,
 photo, email), with Vitest tests. Its `Problem` type is written by
 hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
 fixes that. Create the rest when an issue needs it.
@@ -312,10 +383,8 @@ on the server in dev and build; no `ssr.noExternal` entry is needed.
   keys from the page's shortcuts, which also keeps them from Solid's listener on the document, so
   the content script calls `delegateEvents(['keydown', 'keyup'], shadowRoot)`. Marks live in the
   page, outside the shadow root, so they read the token colors from the UI and set them inline.
-- **Extension, Firefox:** `sidebarAction` is Firefox's and missing from `@wxt-dev/browser`'s
-  Chrome types, so `src/sidebar.ts` types it; its `open()` and `close()` work only inside a click.
-  The Navigation API reports an address change before `location` has it, so the content script
-  takes the new address from `wxt:locationchange`. macOS keeps apps started from VS Code's
+- **Extension, Firefox:** the Navigation API reports an address change before `location` has it,
+  so the content script takes the new address from `wxt:locationchange`. macOS keeps apps started from VS Code's
   terminal out of `~/Library/Application Support/Firefox`, so the Firefox `pnpm dev` opens would
   never start web-ext's debugger (ECONNREFUSED after 30 s); `wxt.config.ts`'s `server:created`
   hook gives it a home of its own (`CFFIXED_USER_HOME`, in `.wxt/`). The extension's tsconfig turns off WXT's

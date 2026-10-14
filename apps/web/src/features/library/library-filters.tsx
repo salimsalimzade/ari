@@ -9,11 +9,16 @@ import { type Facet, type TypeFilter, useLibrary } from './library-store';
 const types: TypeFilter[] = ['all', 'highlight', 'clip', 'import'];
 const facets: Facet[] = ['tags', 'colors', 'sources'];
 
-// A value as shown: colors in the current language, tags and sources as the user wrote them.
+// A value as shown: colors in the current language, a source by its name, tags as written.
 function useValueName() {
   const { t } = useI18n();
+  const library = useLibrary();
   return (facet: Facet, value: string) =>
-    facet === 'colors' ? t().colors.names[value as HighlightColor] : value;
+    facet === 'colors'
+      ? t().colors.names[value as HighlightColor]
+      : facet === 'sources'
+        ? library.sourceName(value)
+        : value;
 }
 
 /**
@@ -160,8 +165,8 @@ function FacetOptions(props: { facet: Facet }) {
   const options = () => {
     const search = query().trim().toLowerCase();
     return library
-      .facetOptions()
-      [props.facet].filter(([value]) => !search || value.toLowerCase().includes(search));
+      .facetOptions(props.facet)
+      .filter((option) => !search || (option.name ?? option.value).toLowerCase().includes(search));
   };
 
   return (
@@ -180,17 +185,19 @@ function FacetOptions(props: { facet: Facet }) {
         </label>
       </Show>
       <For each={options()}>
-        {([value, count]) => (
+        {(option) => (
           <Checkbox
             class={styles.option}
-            checked={library.filters[props.facet].includes(value)}
-            onChange={() => library.toggleFacet(props.facet, value)}
+            checked={(library.filters[props.facet] as string[]).includes(option.value)}
+            onChange={() => library.toggleFacet(props.facet, option.value)}
           >
             <Show when={props.facet === 'colors'}>
-              <span class={styles.swatch} data-color={value} />
+              <span class={styles.swatch} data-color={option.value} />
             </Show>
-            <span class={styles['option-name']}>{valueName(props.facet, value)}</span>
-            <span class={styles['option-count']}>{format.number(count)}</span>
+            <span class={styles['option-name']}>
+              {option.name ?? valueName(props.facet, option.value)}
+            </span>
+            <span class={styles['option-count']}>{format.number(option.count)}</span>
           </Checkbox>
         )}
       </For>

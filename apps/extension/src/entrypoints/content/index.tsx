@@ -3,17 +3,20 @@ import './shadow.css';
 import { delegateEvents, render } from 'solid-js/web';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { defineContentScript } from 'wxt/utils/define-content-script';
+import { followWebsiteSignIn } from '~/features/account/website-bridge';
 import { addFigtree } from '~/features/page/fonts';
 import { readSource } from '~/features/page/page-source';
 import { PageUi } from '~/features/page/page-ui';
 import { pageUrl } from '~/features/saves/page-url';
 import { pageStore } from '~/features/saves/store';
 
-// On every website: Ari's page UI, in a shadow root so the page's styles can't reach it.
+// On every website: Ari's page UI, in a shadow root so the page's styles can't reach it. On Ari's
+// own website it also signs the extension in and out with the website.
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
   cssInjectionMode: 'ui',
   async main(ctx) {
+    followWebsiteSignIn(ctx);
     void addFigtree();
     // The page's address. It is taken from the change itself on a single-page app, because
     // the Navigation API tells of a change before location has it.

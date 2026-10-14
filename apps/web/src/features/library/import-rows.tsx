@@ -4,9 +4,9 @@ import { Show } from 'solid-js';
 import { fill, plural, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { AlertIcon, FileIcon } from './icons';
+import type { ImportFile } from './imports';
 import styles from './imports.module.scss';
 import { useLibrary } from './library-store';
-import type { ImportFile } from './sample';
 
 /** What a file's status says: "Uploading 40%", "6 highlights found", "Couldn’t read the text"… */
 export function useImportText() {

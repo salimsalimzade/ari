@@ -1,4 +1,5 @@
 import type {
+  ExtensionCodeResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -24,6 +25,11 @@ export function register(body: RegisterRequest) {
 
 export function logout() {
   return request<void>('/api/v1/auth/logout', { method: 'POST', refresh: false });
+}
+
+/** A one-time code that signs the browser extension in as the signed-in user (F13). */
+export function createExtensionCode() {
+  return request<ExtensionCodeResponse>('/api/v1/me/extension-code', { method: 'POST' });
 }
 
 /** Public: whether anybody has the username, for the live check while it is typed. */

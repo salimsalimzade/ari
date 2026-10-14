@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px 5px 5px;
+  padding: 5px;
   border-radius: var(--ari-radius-pill);
   line-height: 1;
   white-space: nowrap;
@@ -69,7 +69,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 36px;
+  padding: 0 7px 0 8px;
+  border-radius: var(--ari-radius-pill);
   font: 600 13px / 1 var(--ari-font-body);
+
+  &[aria-pressed='true'] {
+    background: var(--ari-selected-row-bg);
+  }
 
   svg {
     @include stroke-icon;
@@ -84,21 +91,86 @@
   position: fixed;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 320px;
+  gap: 10px;
+  width: 340px;
   padding: 16px;
+  border-radius: 24px;
+  font: 400 14px / 1.45 var(--ari-font-body);
 }
 
-// A light wash of the highlight's color (--highlight, set on the box), so the note reads as
-// part of that highlight; the field's canvas fill is redefined for this field only.
-.comment-field {
-  --ari-bg-canvas: color-mix(in srgb, var(--highlight) 30%, var(--ari-bg-page));
-}
-
-.actions {
+// The comment and its tags, drawn as one input.
+.field {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px 14px;
+  border: 1px solid var(--ari-action-primary);
+  border-radius: 20px;
+  background: var(--ari-bg-page);
+  box-shadow: 0 0 0 3px var(--ari-selected-row-bg);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.8;
+  resize: none;
+}
+
+.field-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--ari-bg-page);
+  box-shadow: inset 0 0 0 1px var(--ari-border);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 12px;
+  cursor: pointer;
+
+  &[aria-selected='true'] {
+    background: var(--ari-selected-row-bg);
+    font-weight: 600;
+  }
+
+  &[data-new] {
+    color: var(--ari-text-link);
+    font-weight: 600;
+  }
+
+  svg {
+    @include stroke-icon;
+  }
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--ari-text-secondary);
+}
+
+.hidden {
+  @include visually-hidden;
 }
 
 // — Hover card —

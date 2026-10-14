@@ -9,7 +9,7 @@ import {
 } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { useLibrary } from '~/features/library/library-store';
-import type { Save } from '~/features/library/sample';
+import type { Save } from '~/features/library/saves';
 import { type Block, type Note, sampleNotes } from './sample';
 
 let lastId = 0;

@@ -3,8 +3,13 @@ import { storage } from 'wxt/utils/storage';
 
 // The extension's own choices, shared by every tab, the popup and the side panel.
 
-/** Sites (hostnames) where the selection toolbar and ⌘C don't save. */
-export const pausedSites = storage.defineItem<string[]>('local:pausedSites', { fallback: [] });
+/** The windows whose pages show the side panel; window ids last only until the browser closes. */
+export const panelWindows = storage.defineItem<number[]>('local:panelWindows', { fallback: [] });
+
+export type PanelSide = 'left' | 'right';
+
+/** The side of the page the side panel sits on: the right, until the user moves it. */
+export const panelSide = storage.defineItem<PanelSide>('local:panelSide', { fallback: 'right' });
 
 /** Whether highlights are marked on their pages. */
 export const showOnPage = storage.defineItem<boolean>('local:showOnPage', { fallback: true });

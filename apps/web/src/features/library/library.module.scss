@@ -811,9 +811,23 @@
   background: var(--ari-sage-200);
   color: var(--ari-sage-800);
 
+  // The dashed frame stands in for a picture; a real one goes without it.
+  &:has(.card-picture) {
+    border: 0;
+    background: var(--ari-bg-sunken);
+  }
+
   svg {
     @include stroke-icon(var(--ari-icon));
   }
+}
+
+// An image clip's own picture fills its frame.
+.card-picture {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  object-fit: cover;
 }
 
 .card-title {
@@ -900,6 +914,17 @@
   color: var(--ari-text-secondary);
 }
 
+// "Try again" inside a line of text.
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ari-text-link);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .state {
   display: flex;
   flex-direction: column;
@@ -916,6 +941,11 @@
   border-radius: 50%;
   background: var(--ari-state-empty-bg);
   color: var(--ari-state-empty-icon);
+
+  &[data-tone='error'] {
+    background: var(--ari-state-error-bg);
+    color: var(--ari-state-error-icon);
+  }
 
   svg {
     @include stroke-icon(22px);

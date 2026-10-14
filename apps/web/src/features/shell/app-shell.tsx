@@ -1,6 +1,7 @@
 import { Avatar, Logo } from '@ari/ui-kit';
 import { A, createAsync, useLocation } from '@solidjs/router';
 import { ErrorBoundary, type JSX, Show, Suspense } from 'solid-js';
+import { useExtensionSignIn } from '~/features/auth/extension-sign-in';
 import { getMe } from '~/features/auth/queries';
 import { CommandPalette } from '~/features/library/command-palette';
 import { GlobeIcon, UploadIcon } from '~/features/library/icons';
@@ -46,7 +47,7 @@ export function AppShell(props: { children: JSX.Element }) {
           <A href="/library" class={styles.link} activeClass={styles.active} end={false}>
             <LibraryIcon />
             <span class={styles['link-label']}>{t().nav.library}</span>
-            <span class={styles['link-count']}>{format.number(library.saves().length)}</span>
+            <span class={styles['link-count']}>{format.number(library.total())}</span>
           </A>
           <A
             href={notesHref()}
@@ -122,10 +123,16 @@ export function AppShell(props: { children: JSX.Element }) {
   );
 }
 
-// Who is signed in, at the bottom of the sidebar.
+// Who is signed in, at the bottom of the sidebar. It also signs the Ari extension in as them.
 function UserChip() {
   const { t } = useI18n();
   const me = createAsync(() => getMe());
+  useExtensionSignIn(() => {
+    const user = me();
+    return user?.id
+      ? { id: user.id, username: user.username, fullName: user.fullName, email: user.email }
+      : undefined;
+  });
   return (
     <Show when={me()}>
       {(user) => (

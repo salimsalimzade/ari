@@ -1,7 +1,7 @@
 import { subMinutes } from 'date-fns';
 
 // The design's example notes, until ari-api has endpoints for notes. Their texts stay in English,
-// like the example library they quote.
+// like the landing page's demos.
 
 /** A paragraph of the note's own text, or a quote of a save in the Library. */
 export type Block =
@@ -19,9 +19,10 @@ export type Note = {
 };
 
 const text = (id: string, value: string): Block => ({ id, kind: 'text', text: value });
-const quote = (id: string, saveId: string): Block => ({ id, kind: 'quote', saveId });
-
-/** Two notes quoting the example library's saves (`s0` and on, see the Library's sample). */
+/**
+ * Two notes of the design's, as text only: the Library comes from ari-api now, so the example
+ * quotes it had are gone; quotes come from the saves the user picks.
+ */
 export function sampleNotes(): Note[] {
   return [
     {
@@ -34,14 +35,11 @@ export function sampleNotes(): Note[] {
           'n1-1',
           'Honeybee swarms make one of the most careful group decisions in nature. They have a few days to choose a home they will live in for years, and no one is in charge.',
         ),
-        quote('n1-2', 's0'),
         text(
           'n1-3',
           'The search starts with a small group of scouts. Each one finds a site, judges it and reports back to the cluster.',
         ),
-        quote('n1-4', 's7'),
         text('n1-5', 'What surprised me is that the swarm never holds a vote in the usual sense.'),
-        quote('n1-6', 's3'),
         text(
           'n1-7',
           'So the choice is less a vote than a race: the first site to gather about fifteen scouts wins.',
@@ -55,12 +53,10 @@ export function sampleNotes(): Note[] {
       editedAt: new Date(2026, 9, 6, 18, 20),
       blocks: [
         text('n2-1', 'What the scouts look for, to check against our own hive boxes.'),
-        quote('n2-2', 's6'),
         text(
           'n2-3',
           'Our deep box holds about 40 litres too, so the size is fine. The entrance is the question.',
         ),
-        quote('n2-4', 's5'),
         text('n2-5', 'Next: measure the entrance on the north hive.'),
       ],
     },

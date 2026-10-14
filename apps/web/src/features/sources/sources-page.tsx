@@ -132,7 +132,7 @@ function SourceCard(props: { summary: SourceSummary }) {
     fill(t().sources.imported, { date: saveDate(saves()[saves().length - 1].savedAt) });
 
   return (
-    <A href={`/sources/${props.summary.slug}`} class={styles.card}>
+    <A href={`/sources/${props.summary.id}`} class={styles.card}>
       <span class={styles['card-head']}>
         <SourceAvatar
           initial={source().name.charAt(0).toUpperCase()}

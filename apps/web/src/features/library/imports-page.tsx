@@ -8,9 +8,9 @@ import { useI18n } from '~/i18n/i18n';
 import { FileDrop } from './file-drop';
 import { AlertIcon, FileIcon, UploadIcon } from './icons';
 import { ImportProgress, ImportRejected, useImportText } from './import-rows';
+import type { ImportFile } from './imports';
 import styles from './imports.module.scss';
 import { trialMegabytes, useLibrary } from './library-store';
-import type { ImportFile } from './sample';
 
 const isBusy = (file: ImportFile) => file.status === 'uploading' || file.status === 'reading';
 

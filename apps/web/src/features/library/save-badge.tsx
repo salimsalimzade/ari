@@ -1,7 +1,7 @@
 import { Match, Switch } from 'solid-js';
 import { FileIcon, HighlighterIcon, ScissorsIcon } from './icons';
-import type { Save } from './sample';
 import styles from './save-badge.module.scss';
+import type { Save } from './saves';
 
 /**
  * A save's round badge: a highlighter on its highlight color, scissors for a clip, a file for an

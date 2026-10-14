@@ -29,8 +29,8 @@ flowchart LR
   class ext,google,paddle later
 ```
 
-Dashed boxes and arrows are later features: the extension exists (`apps/extension`, Firefox), but
-until F13's sign-in it keeps its saves in the browser.
+Dashed boxes and arrows are later features: the extension exists (`apps/extension`, Firefox, not
+on addons.mozilla.org yet), signs in with the website and sends its saves to the library.
 
 Key decisions:
 
@@ -38,10 +38,12 @@ Key decisions:
   the browser's cookies and puts the data in the HTML
   ([sequences §4](sequences.md#4-server-rendered-library-page-f2)). After hydration, the browser
   calls `ari-api` directly with the cookies.
-- The extension (F13) will call `ari-api` directly with an `Authorization: Bearer` token. Until
-  ari-api has the extension sign-in ([sequences §7](sequences.md#7-save-from-the-extension-f13)),
-  it works signed out: saves stay in `browser.storage.local`, one key per page, shaped like
-  ari-api's `CreateSaveRequest`.
+- The extension (F13) calls `ari-api` directly with an `Authorization: Bearer` token of its own
+  session, which a signed-in website page starts by handing it a one-time code
+  ([sequences §7](sequences.md#7-save-from-the-extension-f13)). Its saves are kept in
+  `browser.storage.local`, one key per page, shaped like ari-api's `CreateSaveRequest`, so the page
+  can mark them; the background sends each one to `POST /saves`, and later changes and deletions
+  after it. Saves made while signed out wait there for the next sign-in.
 - Google sign-in (F9) is a full-page link through `ari-api`, and checkout (F15) is Paddle.js on
   `/settings`. The frontend never talks to the database, queues or file storage.
 - Local URLs: web `http://localhost:3000`, API `http://localhost:8080`, API base path `/api/v1`.
@@ -68,6 +70,11 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 | `RATE_LIMITED` | 429 | Too many verify links (1 a minute, 5 a day): the email section says to try again later |
 | `INVALID_CODE` | 401 | `/verify-email` with an unknown, expired or used link; called with `refresh: false`, so it never means "signed out" |
 | `EMAIL_TAKEN` | 409 | `/verify-email` for an address another account confirmed first |
+| `CODE_EXPIRED` | 410 | Planned: a password reset link older than 30 minutes; `/reset-password` offers a new one ([sequences §11](sequences.md#11-reset-a-forgotten-password)) |
+| `CODE_USED` | 410 | Planned: a password reset link that already set a password; `/reset-password` offers Log in |
+| `ACCOUNT_NOT_FOUND` | 404 | Planned: no account has the username or email a reset link was asked for; `/forgot-password` links to `/register` |
+| `NO_EMAIL` | 409 | Planned: the account has no email to send a reset link to |
+| `EMAIL_NOT_CONFIRMED` | 409 | Planned: the account's email isn't confirmed yet, so it gets no reset link |
 | `UNAUTHORIZED` | 401 | No valid session: refresh once, then go to `/login` |
 | `VALIDATION_FAILED` | 400 | An invalid body or import file, with field errors |
 | `LIMIT_REACHED` | 403 | A save past the free limit, or the error code of a failed import |
@@ -110,11 +117,11 @@ imports no workspace package, and only `data-access` calls `ari-api`.
 | Package | Folder | Holds |
 |---|---|---|
 | `@ari/web` | `apps/web` | File routes (`routes/`); features (`features/<name>/`: `queries.ts` with the router's `query` and `action`, and the feature's components); page layout styles |
-| `@ari/extension` | `apps/extension` | The Firefox extension (WXT): `entrypoints/` (background, the content script's shadow-root UI, popup, sidebar, welcome tab) and `features/<name>/` (saves, highlight, clip, page, popup, side-panel, welcome) |
+| `@ari/extension` | `apps/extension` | The Firefox extension (WXT): `entrypoints/` (background, the content script's shadow-root UI with the side panel, popup, welcome tab) and `features/<name>/` (account, saves, highlight, clip, page, popup, side-panel, welcome) |
 | `@ari/data-access` | `shared/data-access` | The API client, the only code that calls `ari-api` |
 | `@ari/types` | `shared/types` | API types, generated from ari-api's OpenAPI (`pnpm generate:api`) into `schema.ts`, named per area (`auth.ts`, `users.ts`) |
 | `@ari/ui-kit` | `shared/ui-kit` | Design-system components (thin Kobalte wrappers where Kobalte has the primitive), `AsyncBoundary` (Suspense + ErrorBoundary), `tokens.css`, `base.css` |
-| `@ari/utils` | `shared/utils` | Pure helpers: no UI, no API calls (includes the OpenAPI type helpers) |
+| `@ari/utils` | `shared/utils` | Pure helpers: no UI, no API calls (the OpenAPI type helpers, and the messages the website and the extension post each other) |
 
 Workspace rules:
 
@@ -173,9 +180,16 @@ Extension rules:
 - A highlight is found again on every visit by its words and the text around them, never by the
   page's DOM path, which changes between visits.
 - Pages and the extension's parts talk through the typed messages in `src/messages.ts`; only the
-  background captures the screen and opens tabs.
+  background captures the screen, opens tabs and calls `ari-api`.
+- The website and the extension talk only on the website's own origin, through `window.postMessage`
+  and `@ari/utils`' `BridgeMessage`: who is signed in, a sign-in code, and logging out. By default
+  signing in or out on the website does the same for the extension in that browser; an account
+  signed in with its password in the popup stays until the extension logs out. After its own Sign
+  out, the website's codes no longer sign it in: only an account's password in the popup does.
+- A page shows the saves kept only in this browser and those of the signed-in account; another
+  account's synced saves stay hidden until it signs in again.
 - Ari never reads a page by itself: the content script acts on a selection, a copy while the side
-  panel is open, or clip mode, and a site can be paused from the popup.
+  panel is open, or clip mode.
 
 ## 4. Implementation guide for Claude Code
 

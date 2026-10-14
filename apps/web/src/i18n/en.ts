@@ -500,6 +500,14 @@ export const en = {
     emptyText:
       'Highlight text on any page with the Ari extension and it shows up here with its source.',
     emptyAction: 'Install the extension',
+    loadFailed: 'Your library didn’t load',
+    loadFailedText: 'Check your connection and try again. Your highlights are safe.',
+    moreFailed: 'More saves didn’t load.',
+    retry: 'Try again',
+    changeFailed: 'That change wasn’t saved. Try again.',
+    deleteFailed: 'That save wasn’t deleted. Try again.',
+    // A file's page a save is on.
+    page: 'p. {n}',
   },
   reading: {
     back: 'Library',
@@ -520,6 +528,7 @@ export const en = {
     cancel: 'Cancel',
     deleted: 'Save deleted',
     notFound: 'This save isn’t in your Library',
+    loadFailed: 'This save didn’t load',
     notFoundText: 'It may have been deleted, or the link is wrong.',
   },
   imports: {
@@ -775,6 +784,9 @@ export const en = {
       passwordLong: 'That password is too long.',
       birthDateRequired: 'Choose your date of birth.',
       termsRequired: 'Agree to the terms to create an account.',
+      loginRequired: 'Enter your username or email.',
+      confirmRequired: 'Enter the new password again.',
+      passwordsDiffer: 'The passwords don’t match.',
       networkError: 'Can’t reach Ari. Check your connection and try again.',
       requestFailed: 'Something went wrong. Try again.',
     },
@@ -788,6 +800,63 @@ export const en = {
       submitting: 'Logging in…',
       newToAri: 'New to Ari?',
       createAccount: 'Create an account',
+      // When ari-api answers INVALID_CREDENTIALS; `link` goes to /forgot-password.
+      wrongCredentials: {
+        before: 'That username and password don’t match. Try again or ',
+        link: 'reset your password',
+        after: '.',
+      },
+    },
+    // /forgot-password: asks for a reset link.
+    forgot: {
+      pageTitle: 'Reset your password · Ari',
+      back: 'Back to log in',
+      title: 'Reset your password',
+      intro: 'Enter your username or email. We’ll email you a link to choose a new password.',
+      login: 'Username or email',
+      submit: 'Send reset link',
+      submitting: 'Sending…',
+      sent: 'Check your email for the reset link.',
+      rateLimited: 'Too many links for now. Try again in a few minutes.',
+      // When ari-api answers ACCOUNT_NOT_FOUND; `link` goes to /register.
+      noAccount: {
+        before: 'No account has that username or email. Check the spelling, or ',
+        link: 'create an account',
+        after: '.',
+      },
+      noEmail:
+        'This account has no email, so there’s nowhere to send a reset link. If you’re still logged in somewhere, add one in Settings › Account.',
+      notConfirmed:
+        'This account’s email isn’t confirmed yet. Open the link we emailed when it was added, then ask for a reset link again.',
+    },
+    // /reset-password: where a reset email's link leads.
+    reset: {
+      pageTitle: 'Choose a new password · Ari',
+      checking: 'Checking your link…',
+      title: 'Choose a new password',
+      forUser: 'For {username}',
+      password: 'New password',
+      confirm: 'Confirm new password',
+      longEnough: 'At least 8 characters',
+      matching: 'Passwords match',
+      submit: 'Save password',
+      submitting: 'Saving…',
+      // On /login once the new password is saved.
+      done: 'Password updated. Log in with your new password.',
+      expiredTitle: 'This link has expired',
+      expiredText: 'Reset links last 30 minutes. Send a new one and use it straight away.',
+      usedTitle: 'This link was already used',
+      usedText:
+        'Each reset link works once. If you changed your password, log in with the new one.',
+      invalidTitle: 'This link doesn’t work',
+      invalidText: 'It may be incomplete. Open it straight from the email, or ask for a new one.',
+      failedTitle: 'Something went wrong',
+      failedText: 'We couldn’t check your reset link. Your password hasn’t changed.',
+      sendNew: 'Send a new link',
+      requestNew: 'Request a new link',
+      retry: 'Try again',
+      backToLogin: 'Back to log in',
+      logIn: 'Log in',
     },
     register: {
       pageTitle: 'Create your account · Ari',

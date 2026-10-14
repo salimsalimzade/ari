@@ -25,9 +25,11 @@ export function LibraryPage() {
   const apple = useAppleKeyboard();
   let list!: HTMLDivElement;
 
+  // The Library's size, or how many of it the filters let through, from ari-api's counts. The
+  // filters change at once and the counts once ari-api answers, so this goes by the counts.
   const count = () => {
-    const total = library.saves().length;
-    const shown = library.filtered().length;
+    const total = library.total();
+    const shown = library.counts()[library.filters.type];
     return shown === total
       ? fill(plural(total, t().library.count), { n: format.number(total) })
       : fill(t().library.countFiltered, {

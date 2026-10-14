@@ -1,13 +1,16 @@
-import type { Save, Source } from '~/features/library/sample';
+import type { Save, Source } from '~/features/library/saves';
 
-/** A note's paragraph, or one of its quotes with the save and source it comes from. */
+/**
+ * A note's paragraph, or one of its quotes with the save and source it comes from, and the page
+ * of a file it is on ("p. 6").
+ */
 export type NotePart =
   | { kind: 'text'; text: string }
-  | { kind: 'quote'; save: Save; source: Source };
+  | { kind: 'quote'; save: Save; source: Source; page?: string };
 
 // "J. Arden, How Honeybees Choose a New Home, p. 6", like the Library's copy with citation.
-const citation = (save: Save, source: Source) =>
-  [source.author, source.title, save.page].filter(Boolean).join(', ');
+const citation = (part: Extract<NotePart, { kind: 'quote' }>) =>
+  [part.source.author, part.source.title, part.page].filter(Boolean).join(', ');
 
 const join = (blocks: string[]) => blocks.filter((block) => block.trim()).join('\n\n');
 
@@ -16,9 +19,7 @@ export function noteAsText(title: string, parts: NotePart[]) {
   return join([
     title,
     ...parts.map((part) =>
-      part.kind === 'text'
-        ? part.text
-        : `“${part.save.text}” (${citation(part.save, part.source)})`,
+      part.kind === 'text' ? part.text : `“${part.save.text}” (${citation(part)})`,
     ),
   ]);
 }
@@ -27,7 +28,7 @@ export function noteAsText(title: string, parts: NotePart[]) {
 export function noteAsMarkdown(title: string, parts: NotePart[]) {
   const blocks = parts.map((part) => {
     if (part.kind === 'text') return part.text;
-    const where = citation(part.save, part.source);
+    const where = citation(part);
     const cited = part.source.url ? `[${where}](${part.source.url})` : where;
     return `> ${part.save.text}\n>\n> — ${cited}`;
   });

@@ -19,17 +19,20 @@ export default defineConfig({
     name: 'Ari',
     description: 'Save highlights and sections of any page, each with its source.',
     // <all_urls>: the content script on every site, and captureVisibleTab for clipping a box.
-    permissions: ['storage', 'unlimitedStorage'],
+    // alarms: sending saves to the library again while ari-api can't be reached.
+    permissions: ['storage', 'unlimitedStorage', 'alarms'],
     host_permissions: ['<all_urls>'],
     icons: { 48: 'icon.svg', 96: 'icon.svg' },
     commands: {
+      // Not ⌥⇧S: Mac screenshot tools often take it. The website's Settings › Shortcuts says ⌥⇧C too.
       'clip-section': {
-        suggested_key: { default: 'Alt+Shift+S' },
+        suggested_key: { default: 'Alt+Shift+C' },
         description: 'Clip a section',
       },
-      _execute_sidebar_action: {
+      // The side panel is Ari's own, drawn on the page, so it can sit on either side.
+      'toggle-panel': {
         suggested_key: { default: 'Alt+A' },
-        description: 'Open the side panel',
+        description: 'Open or close the side panel',
       },
     },
     web_accessible_resources: [{ resources: ['fonts/figtree.woff2'], matches: ['<all_urls>'] }],
@@ -39,7 +42,8 @@ export default defineConfig({
         id: 'extension@ari',
         // 140 (ESR) is the first with data_collection_permissions.
         strict_min_version: '140.0',
-        // Saves stay in the browser until the extension signs in to ari-api (F13).
+        // Not yet updated for sync: the extension now sends saves (page text and address) to
+        // ari-api. Declare that here before submitting to addons.mozilla.org.
         data_collection_permissions: { required: ['none'] },
       },
     },

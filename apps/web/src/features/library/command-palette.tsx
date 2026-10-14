@@ -12,14 +12,13 @@ import {
 import { useNoteMeta } from '~/features/notes/notes-list';
 import { useNotes } from '~/features/notes/notes-store';
 import { NotesIcon } from '~/features/shell/icons';
-import { sourceSlug } from '~/features/sources/sources';
 import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { ArrowRightIcon, CloseIcon, GlobeIcon, SearchIcon, TagIcon, UploadIcon } from './icons';
 import { useLibrary } from './library-store';
 import styles from './palette.module.scss';
-import type { Save } from './sample';
 import { SaveBadge } from './save-badge';
+import { type Save, usePageLabel } from './saves';
 
 type Result = {
   text: string;
@@ -65,6 +64,7 @@ export function CommandPalette() {
   const library = useLibrary();
   const notes = useNotes();
   const noteMeta = useNoteMeta();
+  const pageLabel = usePageLabel();
   const navigate = useNavigate();
   let dialog!: HTMLDialogElement;
   const [query, setQuery] = createSignal('');
@@ -89,7 +89,7 @@ export function CommandPalette() {
       const matches =
         !q ||
         save.text.toLowerCase().includes(q) ||
-        save.source.toLowerCase().includes(q) ||
+        save.source.name.toLowerCase().includes(q) ||
         save.tags.some((tag) => tag.includes(q));
       if (!matches) continue;
       total++;
@@ -105,7 +105,9 @@ export function CommandPalette() {
         count: q ? format.number(total) : undefined,
         results: found.map((save) => ({
           text: save.text,
-          sub: [t().library.kinds[save.kind], save.source, save.page].filter(Boolean).join(' · '),
+          sub: [t().library.kinds[save.kind], save.source.name, pageLabel(save)]
+            .filter(Boolean)
+            .join(' · '),
           quote: save.kind !== 'clip',
           badge: () => <SaveBadge save={save} size="sm" />,
           run: () => {
@@ -116,25 +118,28 @@ export function CommandPalette() {
       });
 
     if (q) {
+      // Every source in the Library, by its name, or its title when the page knows it.
+      const titles = new Map(library.saves().map((save) => [save.source.id, save.source.title]));
       const sources = library
-        .facetOptions()
-        .sources.map(([name]) => name)
-        .filter((name) =>
-          [name, library.sourceOf(name).title].some((text) => text.toLowerCase().includes(q)),
+        .facetOptions('sources')
+        .filter((source) =>
+          [source.name ?? '', titles.get(source.value) ?? ''].some((text) =>
+            text.toLowerCase().includes(q),
+          ),
         );
       if (sources.length)
         result.push({
           label: t().palette.sources,
           count: String(sources.length),
-          results: sources.slice(0, 3).map((name) => ({
-            text: name,
+          results: sources.slice(0, 3).map((source) => ({
+            text: source.name ?? '',
             sub: t().palette.showSource,
             badge: () => (
               <IconBadge>
                 <GlobeIcon />
               </IconBadge>
             ),
-            run: () => go(`/sources/${sourceSlug(name)}`),
+            run: () => go(`/sources/${source.value}`),
           })),
         });
     }
@@ -206,8 +211,8 @@ export function CommandPalette() {
     ].filter((action) => !q || action.text.toLowerCase().includes(q));
     const tags = q
       ? library
-          .facetOptions()
-          .tags.map(([tag]) => tag)
+          .facetOptions('tags')
+          .map((option) => option.value)
           .filter((tag) => tag.toLowerCase().includes(q))
           .map(
             (tag): Result => ({

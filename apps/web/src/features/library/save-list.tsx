@@ -15,17 +15,17 @@ import {
 import { links } from '~/features/marketing/links';
 import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
-import { ArrowUpIcon, ImageIcon, MessageIcon, SearchIcon } from './icons';
+import { AlertIcon, ArrowUpIcon, ImageIcon, MessageIcon, SearchIcon } from './icons';
 import styles from './library.module.scss';
 import { useLibrary } from './library-store';
-import type { Save } from './sample';
 import { KindIcon, SaveBadge } from './save-badge';
+import { type Save, usePageLabel } from './saves';
 
 const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 
 /**
- * The saves by day, newest first, as rows or as a grid of cards. More load as the end comes into
- * view.
+ * The saves by day, newest first, as rows or as a grid of cards. More load from ari-api as the end
+ * comes into view.
  */
 export function SaveList() {
   const { t } = useI18n();
@@ -45,15 +45,6 @@ export function SaveList() {
     }
     return result;
   });
-  // Each day's count across every save the filters let through, not only the loaded ones.
-  const dayCounts = createMemo(() => {
-    const counts = new Map<string, number>();
-    for (const save of library.filtered()) {
-      const key = dayKey(save.savedAt);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return counts;
-  });
   const heading = (date: Date) =>
     isToday(date)
       ? t().library.today
@@ -69,7 +60,8 @@ export function SaveList() {
     onCleanup(() => observer.disconnect());
   });
   createEffect(() => {
-    if (nearEnd() && !library.loadingMore() && library.hasMore()) library.loadMore();
+    if (nearEnd() && !library.loadingMore() && !library.loadFailed() && library.hasMore())
+      void library.loadMore();
   });
 
   return (
@@ -89,7 +81,7 @@ export function SaveList() {
               <h2 class={styles['day-heading']}>
                 {heading(date())}
                 <span class={styles['day-count']}>
-                  · {fill(t().library.daySaved, { n: format.number(dayCounts().get(key) ?? 0) })}
+                  · {fill(t().library.daySaved, { n: format.number(saves().length) })}
                 </span>
               </h2>
               <Show
@@ -119,16 +111,34 @@ export function SaveList() {
           </For>
         </div>
       </Show>
+      <Show when={library.loadFailed()}>
+        <p role="alert" class={styles['end-note']}>
+          {t().library.moreFailed}{' '}
+          <button type="button" class={styles['text-button']} onClick={library.loadMore}>
+            {t().library.retry}
+          </button>
+        </p>
+      </Show>
       <div ref={sentinel} />
       <Show when={!library.hasMore() && library.visible().length > 0}>
         <p class={styles['end-note']}>
-          {library.filtered().length < library.saves().length
+          {library.narrowed() || library.filters.type !== 'all'
             ? t().library.endFiltered
             : t().library.endAll}
         </p>
       </Show>
       <Switch>
-        <Match when={library.saves().length === 0}>
+        <Match when={library.failed()}>
+          <div role="alert" class={styles.state}>
+            <span class={styles['state-icon']} data-tone="error">
+              <AlertIcon />
+            </span>
+            <h2 class={styles['state-title']}>{t().library.loadFailed}</h2>
+            <p class={styles['state-text']}>{t().library.loadFailedText}</p>
+            <Button onClick={library.reload}>{t().library.retry}</Button>
+          </div>
+        </Match>
+        <Match when={library.total() === 0 && library.loaded().length === 0}>
           <div class={styles.state}>
             <span class={styles['state-icon']}>
               <SearchIcon />
@@ -140,7 +150,7 @@ export function SaveList() {
             </Button>
           </div>
         </Match>
-        <Match when={library.filtered().length === 0}>
+        <Match when={library.loaded().length === 0 && !library.hasMore()}>
           <div class={styles.state}>
             <span class={styles['state-icon']}>
               <SearchIcon />
@@ -157,11 +167,12 @@ export function SaveList() {
 // "Highlight · Meadow Quarterly", then " · p. 4" on wide screens.
 function SaveMeta(props: { save: Save }) {
   const { t } = useI18n();
+  const pageLabel = usePageLabel();
   return (
     <>
-      {t().library.kinds[props.save.kind]} · {props.save.source}
-      <Show when={props.save.page}>
-        <span class={styles['wide-only']}> · {props.save.page}</span>
+      {t().library.kinds[props.save.kind]} · {props.save.source.name}
+      <Show when={pageLabel(props.save)}>
+        {(page) => <span class={styles['wide-only']}> · {page()}</span>}
       </Show>
     </>
   );
@@ -209,6 +220,7 @@ function SaveRow(props: { save: Save }) {
 }
 
 function SaveCard(props: { save: Save }) {
+  const pageLabel = usePageLabel();
   return (
     <A href={`/library/${props.save.id}`} class={styles.card} data-save={props.save.id}>
       <Switch>
@@ -228,7 +240,9 @@ function SaveCard(props: { save: Save }) {
         </Match>
         <Match when={props.save.clip === 'image'}>
           <span class={styles['card-image']} aria-hidden="true">
-            <ImageIcon />
+            <Show when={props.save.imageUrl} fallback={<ImageIcon />}>
+              {(src) => <img class={styles['card-picture']} src={src()} alt="" loading="lazy" />}
+            </Show>
           </span>
           <span class={styles['card-title']}>{props.save.text}</span>
         </Match>
@@ -236,8 +250,8 @@ function SaveCard(props: { save: Save }) {
       <span class={styles['card-meta']}>
         <KindIcon save={props.save} />
         <span class={styles['card-source']}>
-          {props.save.source}
-          <Show when={props.save.page}> · {props.save.page}</Show>
+          {props.save.source.name}
+          <Show when={pageLabel(props.save)}>{(page) => ` · ${page()}`}</Show>
         </span>
       </span>
     </A>

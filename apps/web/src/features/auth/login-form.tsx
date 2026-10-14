@@ -17,7 +17,12 @@ const loginSchema = v.object({
   password: v.pipe(v.string(), v.nonEmpty('passwordRequired' satisfies ErrorKey)),
 });
 
-export function LoginForm() {
+export type LoginFormProps = {
+  /** Fills in the username until the user types, e.g. after a password reset. */
+  username?: string;
+};
+
+export function LoginForm(props: LoginFormProps) {
   const { t } = useI18n();
   const logIn = useAction(loginAction);
   // Why signing in failed: the request's error.
@@ -29,9 +34,15 @@ export function LoginForm() {
     const offline = error instanceof ApiError && error.status === 0;
     return t().auth.errors[offline ? 'networkError' : 'requestFailed'];
   };
+  // Ours, with a link to reset the password, instead of ari-api's message.
+  const wrongCredentials = () => {
+    const error = failure();
+    return error instanceof ApiError && error.code === 'INVALID_CREDENTIALS';
+  };
   let formElement!: HTMLFormElement;
   const form = createForm(() => ({
-    defaultValues: { username: '', password: '' },
+    // A changed default fills an untouched form in.
+    defaultValues: { username: props.username ?? '', password: '' },
     // Errors show after the first submit, then follow what the user types.
     validationLogic: revalidateLogic(),
     validators: { onDynamic: loginSchema },
@@ -65,7 +76,13 @@ export function LoginForm() {
     >
       <h1 class={styles.title}>{t().auth.login.title}</h1>
       <Show when={failure()}>
-        <Alert>{failureMessage()}</Alert>
+        <Alert>
+          <Show when={wrongCredentials()} fallback={failureMessage()}>
+            {t().auth.login.wrongCredentials.before}
+            <A href="/forgot-password">{t().auth.login.wrongCredentials.link}</A>
+            {t().auth.login.wrongCredentials.after}
+          </Show>
+        </Alert>
       </Show>
       <form.Field name="username">
         {(field) => (

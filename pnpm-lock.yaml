@@ -92,9 +92,15 @@ importers:
 
   apps/extension:
     dependencies:
+      '@ari/types':
+        specifier: workspace:*
+        version: link:../../shared/types
       '@ari/ui-kit':
         specifier: workspace:*
         version: link:../../shared/ui-kit
+      '@ari/utils':
+        specifier: workspace:*
+        version: link:../../shared/utils
       solid-js:
         specifier: 'catalog:'
         version: 1.9.15

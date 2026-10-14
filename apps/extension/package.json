@@ -14,7 +14,9 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@ari/types": "workspace:*",
     "@ari/ui-kit": "workspace:*",
+    "@ari/utils": "workspace:*",
     "solid-js": "catalog:"
   },
   "devDependencies": {

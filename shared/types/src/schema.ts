@@ -64,6 +64,50 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/saves': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The Library, newest first
+     * @description Keyset paging: send nextCursor back as cursor for the next page. It is left out on the last page. The first page is 40 saves unless limit says otherwise.
+     */
+    get: operations['list'];
+    put?: never;
+    /**
+     * Save a highlight or a table clip
+     * @description The source is found by its address, or created the first time: saving from the same page again reuses it. An image clip goes in the multipart variant below.
+     */
+    post: operations['createWithImage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/me/extension-code': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * A code that signs the browser extension in
+     * @description For the signed-in website, which hands the code to the extension in the same browser. It works once, within 60 seconds.
+     */
+    post: operations['extensionCode'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me/email/resend': {
     parameters: {
       query?: never;
@@ -169,6 +213,128 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/auth/extension/token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Swap the website's code for the extension's tokens
+     * @description Starts the extension's own session, as the user who asked for the code. It lasts while the extension refreshes at least every 30 days, or until it signs out.
+     */
+    post: operations['connectExtension'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/extension/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Replace the extension's tokens using its refresh token */
+    post: operations['refreshExtension'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/extension/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sign the extension out: end its session */
+    post: operations['logoutExtension'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/extension/code': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * A code that signs the browser extension in as another account
+     * @description For the website's extension sign-in page: the extension can use another account than the website, whose cookies stay as they are. The code works once, within 60 seconds.
+     */
+    post: operations['extensionCodeForAccount'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/saves/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * One save, with its source and tags
+     * @description For a page that shows a single save, such as the Library's reading view.
+     */
+    get: operations['get'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete a save
+     * @description An image clip's picture is deleted too.
+     */
+    delete: operations['delete'];
+    options?: never;
+    head?: never;
+    /**
+     * Change a save's color, comment or tags
+     * @description A field that is left out stays as it is.
+     */
+    patch: operations['update'];
+    trace?: never;
+  };
+  '/api/v1/saves/facets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * What the Library's filters offer
+     * @description Counts for the type tabs (among the saves that match the filters) and the tag, color and source choices (over the whole Library).
+     */
+    get: operations['facets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/auth/username-available': {
     parameters: {
       query?: never;
@@ -231,6 +397,103 @@ export interface components {
        */
       email: string;
     };
+    CreateSaveRequest: {
+      /**
+       * @description HIGHLIGHT or CLIP; IMPORT is only made by importing a file
+       * @enum {string}
+       */
+      kind: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+      /**
+       * @description Required for a HIGHLIGHT, not allowed for a CLIP
+       * @enum {string}
+       */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /**
+       * @description Required for a CLIP, not allowed for a HIGHLIGHT
+       * @enum {string}
+       */
+      clipType?: 'TABLE' | 'IMAGE';
+      /**
+       * @description The marked words, or a clip's caption
+       * @example In late spring a colony splits in two.
+       */
+      text: string;
+      /** @description A TABLE clip's table as Markdown, and only for it */
+      contentMd?: string;
+      /**
+       * @description Left out or empty when there is none
+       * @example Opening line
+       */
+      comment?: string;
+      /**
+       * @description The heading above it on the page
+       * @example Why swarms split
+       */
+      section?: string;
+      /** @description Up to 10 tags; names that differ only in case are one tag */
+      tags?: string[];
+      source: components['schemas']['SourceRequest'];
+    };
+    SourceRequest: {
+      /**
+       * @description http or https address of the page; the #fragment is dropped, so a text-fragment jump link may be sent as it is
+       * @example https://meadowquarterly.example/honeybees-new-home
+       */
+      url: string;
+      /**
+       * @description The site's name
+       * @example Meadow Quarterly
+       */
+      name: string;
+      /**
+       * @description The page's title
+       * @example How Honeybees Choose a New Home
+       */
+      title: string;
+      /**
+       * @description Left out when the page names none
+       * @example J. Arden
+       */
+      author?: string;
+    };
+    SaveResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      kind?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+      /** @enum {string} */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /** @enum {string} */
+      clipType?: 'TABLE' | 'IMAGE';
+      text?: string;
+      contentMd?: string;
+      imageUrl?: string;
+      comment?: string;
+      section?: string;
+      /** Format: int32 */
+      pageNumber?: number;
+      /** @description Alphabetical */
+      tags?: string[];
+      source?: components['schemas']['SourceResponse'];
+      /**
+       * Format: date-time
+       * @description When it was saved; the Library groups by day
+       */
+      createdAt?: string;
+    };
+    SourceResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      kind?: 'WEBSITE' | 'FILE';
+      name?: string;
+      title?: string;
+      author?: string;
+      url?: string;
+    };
+    ExtensionCodeResponse: {
+      code?: string;
+    };
     VerifyEmailRequest: {
       /** @description The code from the link in the email */
       code: string;
@@ -260,6 +523,67 @@ export interface components {
       username: string;
       /** @example i<3you@* */
       password: string;
+    };
+    ExtensionCodeRequest: {
+      /** @description The code the signed-in website handed to the extension */
+      code: string;
+    };
+    ExtensionTokensResponse: {
+      accessToken?: string;
+      refreshToken?: string;
+    };
+    ExtensionRefreshRequest: {
+      /** @description The extension's current refresh token */
+      refreshToken: string;
+    };
+    UpdateSaveRequest: {
+      /**
+       * @description Not allowed for a clip
+       * @enum {string}
+       */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      comment?: string;
+      /** @description Replaces all tags: up to 10, names that differ only in case are one tag */
+      tags?: string[];
+    };
+    PageResponseSaveResponse: {
+      items?: components['schemas']['SaveResponse'][];
+      nextCursor?: string;
+    };
+    ColorFacet: {
+      /** @enum {string} */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /** Format: int32 */
+      count?: number;
+    };
+    FacetsResponse: {
+      /**
+       * Format: int32
+       * @description Saves of every type that match the filters
+       */
+      total?: number;
+      types?: components['schemas']['TypeCount'][];
+      tags?: components['schemas']['TagFacet'][];
+      colors?: components['schemas']['ColorFacet'][];
+      sources?: components['schemas']['SourceFacet'][];
+    };
+    SourceFacet: {
+      /** Format: uuid */
+      id?: string;
+      name?: string;
+      /** Format: int32 */
+      count?: number;
+    };
+    TagFacet: {
+      name?: string;
+      /** Format: int32 */
+      count?: number;
+    };
+    TypeCount: {
+      /** @enum {string} */
+      kind?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+      /** Format: int32 */
+      count?: number;
     };
     UsernameAvailabilityResponse: {
       username?: string;
@@ -518,6 +842,141 @@ export interface operations {
       };
     };
   };
+  list: {
+    parameters: {
+      query?: {
+        /** @description The type tab; left out for all */
+        type?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+        /** @description Tag names, in any case */
+        tag?: string[];
+        color?: ('YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE')[];
+        /** @description Source ids */
+        source?: string[];
+        /** @description nextCursor of the page before; left out for the first page */
+        cursor?: string;
+        /** @description Page size, 40 when left out */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of saves */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSaveResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED or INVALID_CURSOR */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSaveResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSaveResponse'];
+        };
+      };
+    };
+  };
+  createWithImage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': {
+          save: components['schemas']['CreateSaveRequest'];
+          /** Format: binary */
+          image: string;
+        };
+        'application/json': components['schemas']['CreateSaveRequest'];
+      };
+    };
+    responses: {
+      /** @description The save, with its source */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED, INVALID_SAVE (what the kind needs is missing or not allowed) or INVALID_URL */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description FILE_TOO_LARGE: over 2 MB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+    };
+  };
+  extensionCode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The code */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionCodeResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionCodeResponse'];
+        };
+      };
+    };
+  };
   resendVerification: {
     parameters: {
       query?: never;
@@ -722,6 +1181,325 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['MeResponse'];
+        };
+      };
+    };
+  };
+  connectExtension: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExtensionCodeRequest'];
+      };
+    };
+    responses: {
+      /** @description The extension's tokens */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+      /** @description INVALID_CODE: unknown, expired or used code */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+    };
+  };
+  refreshExtension: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExtensionRefreshRequest'];
+      };
+    };
+    responses: {
+      /** @description A new pair; the old refresh token is used up */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED: sign the extension in again */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionTokensResponse'];
+        };
+      };
+    };
+  };
+  logoutExtension: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExtensionRefreshRequest'];
+      };
+    };
+    responses: {
+      /** @description Signed out */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  extensionCodeForAccount: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginRequest'];
+      };
+    };
+    responses: {
+      /** @description The code; no cookies are set */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionCodeResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionCodeResponse'];
+        };
+      };
+      /** @description INVALID_CREDENTIALS */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ExtensionCodeResponse'];
+        };
+      };
+    };
+  };
+  get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The save */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+    };
+  };
+  delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateSaveRequest'];
+      };
+    };
+    responses: {
+      /** @description The updated save */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED, or INVALID_SAVE: a clip has no color */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+    };
+  };
+  facets: {
+    parameters: {
+      query?: {
+        /** @description The type tab; left out for all */
+        type?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+        /** @description Tag names, in any case */
+        tag?: string[];
+        color?: ('YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE')[];
+        /** @description Source ids */
+        source?: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The counts */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['FacetsResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['FacetsResponse'];
         };
       };
     };

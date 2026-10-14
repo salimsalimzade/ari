@@ -1,5 +1,13 @@
-export { checkUsername, login, logout, register, verifyEmail } from './auth';
+export {
+  checkUsername,
+  createExtensionCode,
+  login,
+  logout,
+  register,
+  verifyEmail,
+} from './auth';
 export { ApiError, type Problem, refreshSession } from './client';
+export { deleteSave, fetchSave, fetchSaveFacets, listSaves, updateSave } from './saves';
 export {
   changeEmail,
   changePhoto,

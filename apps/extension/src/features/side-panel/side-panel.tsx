@@ -1,6 +1,5 @@
 import { Button, Kbd, Logo, Switch } from '@ari/ui-kit';
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
-import { browser } from 'wxt/browser';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import { plural, t } from '~/i18n/i18n';
 import {
   CheckIcon,
@@ -9,173 +8,146 @@ import {
   CopyIcon,
   ExternalIcon,
   EyeIcon,
+  PanelIcon,
+  PanelLeftIcon,
   ScissorsIcon,
 } from '~/icons';
 import { modKey } from '~/keys';
-import { sendToTab } from '~/messages';
-import { sidebar } from '~/sidebar';
-import { websiteUrl } from '~/website';
-import { showOnPage } from '../saves/settings';
-import type { PageSaves, Save } from '../saves/store';
-import { tabPage } from '../saves/tab-page';
+import { type PanelSide, panelSide, showOnPage } from '../saves/settings';
+import type { Save, Source } from '../saves/store';
 import { copyText, inOrder } from './copy-text';
 import styles from './side-panel.module.scss';
 
-type Tab = { id?: number; url?: string; title?: string };
+// A save longer than this shows its start, up to a word, with Show more.
+const shortLength = 250;
 
-/** The sidebar beside a page: what was saved from it. A new save shows up ringed at once. */
-export function SidePanel() {
-  const [tab, setTab] = createSignal<Tab>();
-  const [saved, setSaved] = createSignal<PageSaves | null>(null);
+/**
+ * Beside the page, on the right until the user moves it: what was saved from the page. A save
+ * that arrives while it is open shows up ringed; a click finds it on the page. PageUi draws it, so
+ * it follows the page's saves without asking anyone.
+ */
+export function SidePanel(props: {
+  source: Source;
+  saves: Save[];
+  side: PanelSide;
+  /** Whether highlights are marked on the page (Show on page). */
+  visible: boolean;
+  onFocus: (save: Save) => void;
+  onRemove: (save: Save) => void;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  let panel!: HTMLElement;
   const [active, setActive] = createSignal<string | null>(null);
-  const [visible, setVisible] = createSignal(true);
   const [copied, setCopied] = createSignal(false);
+  const saves = () => inOrder(props.saves);
 
-  const url = () => tab()?.url;
-  const page = createMemo(() => tabPage(url()));
-  const saves = () => inOrder(saved()?.saves ?? []);
-
-  // The active tab of this window, as it changes.
-  onMount(async () => {
-    const { id: windowId } = await browser.windows.getCurrent();
-    const refresh = async () => {
-      const [current] = await browser.tabs.query({ active: true, windowId });
-      setTab(current);
-    };
-    const onActivated = (info: { windowId: number }) => {
-      if (info.windowId === windowId) void refresh();
-    };
-    const onUpdated = (
-      _id: number,
-      change: { url?: string; title?: string },
-      updated: Tab & { active?: boolean; windowId?: number },
-    ) => {
-      if (updated.active && updated.windowId === windowId && (change.url || change.title)) {
-        setTab(updated);
-      }
-    };
-    browser.tabs.onActivated.addListener(onActivated);
-    browser.tabs.onUpdated.addListener(onUpdated);
-    onCleanup(() => {
-      browser.tabs.onActivated.removeListener(onActivated);
-      browser.tabs.onUpdated.removeListener(onUpdated);
-    });
-    void refresh();
-
-    void showOnPage.getValue().then(setVisible);
-    onCleanup(showOnPage.watch((value) => setVisible(value)));
-  });
-
-  // The page's saves; the newest one that arrives while the panel is open becomes active.
+  // The newest save that arrives while the panel is open becomes active.
+  let known: Set<string> | undefined;
   createEffect(() => {
-    const current = page();
-    setSaved(null);
-    setActive(null);
-    if (!current) return;
-    let known: Set<string> | undefined;
-    const show = (next: PageSaves | null, arrived: boolean) => {
-      const ids = next?.saves.map((save) => save.id) ?? [];
-      const added = arrived && known ? ids.filter((id) => !known?.has(id)) : [];
-      known = new Set(ids);
-      setSaved(next);
-      if (added.length) setActive(added[added.length - 1]);
-    };
-    void current.store.get().then((next) => show(next, false));
-    onCleanup(current.store.watch((next) => show(next, true)));
+    const ids = props.saves.map((save) => save.id);
+    const added = known ? ids.filter((id) => !known?.has(id)) : [];
+    known = new Set(ids);
+    if (added.length) setActive(added[added.length - 1]);
   });
 
   const focus = (save: Save) => {
     setActive(save.id);
-    const id = tab()?.id;
-    if (id !== undefined) void sendToTab(id, { type: 'focus-save', id: save.id }).catch(() => {});
+    props.onFocus(save);
   };
 
   const copyAll = async () => {
-    const current = saved();
-    if (!current) return;
-    await navigator.clipboard.writeText(copyText(current));
+    await writeClipboard(copyText({ source: props.source, saves: props.saves }), panel);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const moveLabel = () => (props.side === 'right' ? t.panel.moveLeft : t.panel.moveRight);
   const [hintBefore, hintAfter] = t.panel.hint.split('{keys}');
 
   return (
-    <main class={styles.panel}>
+    <aside ref={panel} class={styles.panel} data-side={props.side} aria-label={t.panel.title}>
       <header class={styles.head}>
         <Logo size={20} />
         <h1 class={styles.title}>{t.panel.title}</h1>
+        <span class={styles.move}>
+          <Button
+            variant="ghost"
+            iconOnly
+            icon={props.side === 'right' ? <PanelLeftIcon /> : <PanelIcon />}
+            aria-label={moveLabel()}
+            onClick={() => void panelSide.setValue(props.side === 'right' ? 'left' : 'right')}
+          />
+          <span class={styles.tip} aria-hidden="true">
+            {moveLabel()}
+          </span>
+        </span>
         <Button
           variant="ghost"
           iconOnly
           icon={<CloseIcon />}
           aria-label={t.panel.close}
-          class={styles.close}
-          onClick={() => void sidebar.close()}
+          onClick={() => props.onClose()}
         />
       </header>
+      <div class={styles.page}>
+        <span class={styles['page-title']}>{props.source.title}</span>
+        <span class={styles['page-meta']}>
+          {props.source.siteName} · {plural(props.saves.length, t.counts.saves)}
+        </span>
+      </div>
+      <Switch
+        icon={<EyeIcon />}
+        label={t.panel.showOnPage}
+        checked={props.visible}
+        onChange={(value) => void showOnPage.setValue(value)}
+      />
       <Show
-        when={page()}
-        fallback={<Empty title={t.panel.unsupportedTitle} text={t.panel.unsupportedText} />}
+        when={saves().length}
+        fallback={
+          <div class={styles.empty}>
+            <span class={styles['empty-title']}>{t.panel.emptyTitle}</span>
+            <span class={styles['empty-text']}>{t.panel.emptyText}</span>
+          </div>
+        }
       >
-        <div class={styles.page}>
-          <span class={styles['page-title']}>{saved()?.source.title ?? tab()?.title}</span>
-          <Show when={saved()}>
-            {(current) => (
-              <span class={styles['page-meta']}>
-                {current().source.siteName} · {plural(current().saves.length, t.counts.saves)}
-              </span>
+        <ul class={styles.list}>
+          <For each={saves()}>
+            {(save) => (
+              <SaveCard
+                save={save}
+                active={active() === save.id}
+                onFocus={() => focus(save)}
+                onRemove={() => props.onRemove(save)}
+              />
             )}
-          </Show>
-        </div>
-        <Switch
-          icon={<EyeIcon />}
-          label={t.panel.showOnPage}
-          checked={visible()}
-          onChange={(value) => void showOnPage.setValue(value)}
-        />
-        <Show
-          when={saves().length}
-          fallback={<Empty title={t.panel.emptyTitle} text={t.panel.emptyText} />}
-        >
-          <ul class={styles.list}>
-            <For each={saves()}>
-              {(save) => (
-                <SaveCard
-                  save={save}
-                  active={active() === save.id}
-                  onFocus={() => focus(save)}
-                  onRemove={() => void page()?.store.remove([save.id])}
-                />
-              )}
-            </For>
-          </ul>
-        </Show>
-        <p class={styles.hint}>
-          {hintBefore}
-          <Kbd>{modKey}</Kbd>
-          <Kbd>C</Kbd>
-          {hintAfter}
-        </p>
-        <div class={styles.actions}>
-          <Button
-            icon={copied() ? <CheckIcon /> : <CopyIcon />}
-            disabled={!saves().length}
-            onClick={() => void copyAll()}
-          >
-            {copied() ? t.panel.copied : t.panel.copyAll}
-          </Button>
-          <Button
-            variant="primary"
-            class={styles.grow}
-            iconAfter={<ExternalIcon />}
-            onClick={() => void browser.tabs.create({ url: websiteUrl('library') })}
-          >
-            {t.panel.openInAri}
-          </Button>
-        </div>
+          </For>
+        </ul>
       </Show>
-    </main>
+      <p class={styles.hint}>
+        {hintBefore}
+        <Kbd>{modKey}</Kbd>
+        <Kbd>C</Kbd>
+        {hintAfter}
+      </p>
+      <div class={styles.actions}>
+        <Button
+          icon={copied() ? <CheckIcon /> : <CopyIcon />}
+          disabled={!saves().length}
+          onClick={() => void copyAll()}
+        >
+          {copied() ? t.panel.copied : t.panel.copyAll}
+        </Button>
+        <Button
+          variant="primary"
+          class={styles.grow}
+          iconAfter={<ExternalIcon />}
+          onClick={() => props.onOpen()}
+        >
+          {t.panel.openInAri}
+        </Button>
+      </div>
+    </aside>
   );
 }
 
@@ -190,6 +162,9 @@ function SaveCard(props: {
     if (props.active) card.scrollIntoView({ block: 'nearest' });
   });
   const isClip = () => props.save.kind === 'CLIP';
+  const [expanded, setExpanded] = createSignal(false);
+  const long = () => props.save.text.length > shortLength;
+  const text = () => (long() && !expanded() ? shortened(props.save.text) : props.save.text);
 
   return (
     <li ref={card} class={styles.card} data-active={props.active ? '' : undefined}>
@@ -208,20 +183,30 @@ function SaveCard(props: {
               <ScissorsIcon />
             </span>
           </Show>
-          <span class={styles.text}>{props.save.text}</span>
+          <span class={styles.text}>{text()}</span>
         </span>
         <Show when={props.save.clipType === 'IMAGE' && props.save.imageUrl}>
           {(src) => <img class={styles.image} src={src()} alt="" />}
         </Show>
-        <Show when={props.save.comment}>
-          {(comment) => (
-            <span class={styles['card-comment']}>
-              <CommentIcon />
-              {comment()}
-            </span>
-          )}
-        </Show>
       </button>
+      <Show when={long()}>
+        <button
+          type="button"
+          class={styles.more}
+          aria-expanded={expanded()}
+          onClick={() => setExpanded(!expanded())}
+        >
+          {expanded() ? t.panel.showLess : t.panel.showMore}
+        </button>
+      </Show>
+      <Show when={props.save.comment}>
+        {(comment) => (
+          <span class={styles['card-comment']}>
+            <CommentIcon />
+            {comment()}
+          </span>
+        )}
+      </Show>
       <Show when={props.active}>
         <button
           type="button"
@@ -237,11 +222,26 @@ function SaveCard(props: {
   );
 }
 
-function Empty(props: { title: string; text: string }) {
-  return (
-    <div class={styles.empty}>
-      <span class={styles['empty-title']}>{props.title}</span>
-      <span class={styles['empty-text']}>{props.text}</span>
-    </div>
-  );
+/** A long save's start, cut at a word, with an ellipsis. */
+function shortened(text: string) {
+  const start = text.slice(0, shortLength);
+  return `${start.slice(0, start.lastIndexOf(' ')).replace(/[,.;:]$/, '')}…`;
+}
+
+/**
+ * Copies `text`. An http:// page has no navigator.clipboard, so a field inside Ari's own UI
+ * (`within`) copies it there: the page's copy listener ignores what happens in Ari's UI.
+ */
+async function writeClipboard(text: string, within: HTMLElement) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.className = styles.offscreen;
+    within.append(field);
+    field.select();
+    document.execCommand('copy');
+    field.remove();
+  }
 }

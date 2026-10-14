@@ -21,7 +21,7 @@ import {
   TrashIcon,
 } from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
-import type { Save } from '~/features/library/sample';
+import { type Save, usePageLabel } from '~/features/library/saves';
 import { BackIcon, NotesIcon } from '~/features/shell/icons';
 import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
@@ -72,6 +72,7 @@ function Editor(props: { note: Note }) {
   const format = useFormat();
   const notes = useNotes();
   const library = useLibrary();
+  const pageLabel = usePageLabel();
   const navigate = useNavigate();
   const listId = createUniqueId();
   // Each block's textarea or quote, to move the caret between them.
@@ -141,7 +142,7 @@ function Editor(props: { note: Note }) {
     for (const save of library.saves()) {
       if (save.kind === 'clip' || seen.has(save.text)) continue;
       seen.add(save.text);
-      const text = `${save.text} ${save.source}`.toLowerCase();
+      const text = `${save.text} ${save.source.name}`.toLowerCase();
       if (search.every((word) => text.includes(word))) found.push(save);
       if (found.length === pickCount) break;
     }
@@ -272,7 +273,7 @@ function Editor(props: { note: Note }) {
     blocks().flatMap((block): NotePart[] => {
       if (block.kind === 'text') return [{ kind: 'text', text: block.text }];
       const save = notes.saveOf(block.saveId);
-      return save ? [{ kind: 'quote', save, source: library.sourceOf(save.source) }] : [];
+      return save ? [{ kind: 'quote', save, source: save.source, page: pageLabel(save) }] : [];
     });
 
   const copy = async () => {
@@ -431,7 +432,7 @@ function Editor(props: { note: Note }) {
               <span class={styles['pick-text']}>
                 <span class={styles['pick-quote']}>{save.text}</span>
                 <span class={styles['pick-source']}>
-                  {save.source}
+                  {save.source.name}
                   <Show when={quoted().has(save.text)}>
                     <span class={styles['in-note']}>· {t().notes.inNote}</span>
                   </Show>
@@ -452,7 +453,7 @@ function Editor(props: { note: Note }) {
     return (
       <Show when={notes.saveOf(block.saveId)}>
         {(save) => {
-          const source = () => library.sourceOf(save().source);
+          const source = () => save().source;
           return (
             <figure
               ref={(figure) => fields.set(block.id, figure)}
@@ -470,7 +471,7 @@ function Editor(props: { note: Note }) {
                 <Show when={source().url} fallback={<FileIcon />}>
                   <GlobeIcon />
                 </Show>
-                {[source().name, source().title, save().page].filter(Boolean).join(' · ')}
+                {[source().name, source().title, pageLabel(save())].filter(Boolean).join(' · ')}
               </figcaption>
               <button
                 type="button"

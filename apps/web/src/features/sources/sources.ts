@@ -2,7 +2,7 @@ import { type HighlightColor, highlightColors } from '@ari/ui-kit';
 import { isThisYear } from 'date-fns';
 import { createMemo } from 'solid-js';
 import { useLibrary } from '~/features/library/library-store';
-import type { Save, Source } from '~/features/library/sample';
+import type { Save, Source } from '~/features/library/saves';
 import { useNotes } from '~/features/notes/notes-store';
 import { useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
@@ -11,8 +11,8 @@ export type SourceKind = 'website' | 'file';
 
 /** A website or file, with the saves made from it. */
 export type SourceSummary = {
-  /** Its part of the address: /sources/meadow-quarterly. */
-  slug: string;
+  /** ari-api's id for it, its part of the address: /sources/{id}. */
+  id: string;
   source: Source;
   kind: SourceKind;
   /** Newest first. */
@@ -24,15 +24,6 @@ export type SourceSummary = {
   /** Some of its saves are quoted in a note. */
   quoted: boolean;
 };
-
-/** "meadow-quarterly" for "Meadow Quarterly". Stands in for the id ari-api will give a source. */
-export const sourceSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'source';
 
 /** A file's type from its name, e.g. "PDF"; undefined without an extension. */
 export const fileType = (name: string) =>
@@ -66,7 +57,10 @@ export function spotUrl(url: string, text: string) {
   return `${url.split('#')[0]}#:~:text=${fragment}`;
 }
 
-/** The Library's saves by source, the one saved from most recently first. */
+/**
+ * The saves this page knows by source, the one saved from most recently first. ari-api has no
+ * sources endpoint yet, so a source shows only once one of its saves is loaded.
+ */
 export function useSources() {
   const library = useLibrary();
   const notes = useNotes();
@@ -85,17 +79,17 @@ export function useSources() {
     // The saves are newest first, so the sources come out in the order they were last saved from.
     const groups = new Map<string, Save[]>();
     for (const save of library.saves()) {
-      const saves = groups.get(save.source);
+      const saves = groups.get(save.source.id);
       if (saves) saves.push(save);
-      else groups.set(save.source, [save]);
+      else groups.set(save.source.id, [save]);
     }
-    return [...groups].map(([name, saves]): SourceSummary => {
-      const source = library.sourceOf(name);
+    return [...groups].map(([id, saves]): SourceSummary => {
+      const source = saves[0].source;
       const used = new Set(saves.map((save) => save.color));
       return {
-        slug: sourceSlug(name),
+        id,
         source,
-        kind: source.url ? 'website' : 'file',
+        kind: source.kind,
         saves,
         colors: highlightColors.filter((color) => used.has(color)),
         latest: saves.find((save) => save.color),
@@ -106,7 +100,7 @@ export function useSources() {
 
   return {
     list,
-    find: (slug: string) => list().find((summary) => summary.slug === slug),
+    find: (id: string) => list().find((summary) => summary.id === id),
     isQuoted: (saveId: string) => quotedIds().has(saveId),
   };
 }

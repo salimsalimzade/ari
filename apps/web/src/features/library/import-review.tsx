@@ -14,9 +14,9 @@ import { MobileHeader } from '~/features/shell/mobile-header';
 import { fill, plural, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { CheckIcon, MessageIcon } from './icons';
+import type { ImportFile, ImportMark, MarkType } from './imports';
 import styles from './imports.module.scss';
 import { useLibrary } from './library-store';
-import type { ImportFile, ImportMark, MarkType } from './sample';
 
 const markTypes: MarkType[] = ['highlight', 'underline', 'drawn', 'handwritten', 'strike', 'note'];
 

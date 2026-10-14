@@ -10,8 +10,8 @@ import {
   TextField,
 } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
-import { A, useNavigate } from '@solidjs/router';
-import { createSignal, Match, Show, Switch } from 'solid-js';
+import { A, createAsync, revalidate, useNavigate } from '@solidjs/router';
+import { createEffect, createSignal, For, Match, Show, Switch } from 'solid-js';
 import { useNotes } from '~/features/notes/notes-store';
 import { BackIcon, ChevronRightIcon, NotesIcon } from '~/features/shell/icons';
 import { fill, useFormat } from '~/i18n/format';
@@ -24,20 +24,30 @@ import {
   ImageIcon,
   MessageIcon,
   PlusIcon,
+  RetryIcon,
   TrashIcon,
 } from './icons';
 import { useLibrary } from './library-store';
+import { getSave } from './queries';
 import styles from './reading.module.scss';
-import type { Save } from './sample';
+import { type Save, usePageLabel } from './saves';
 
-/** /library/:id: one save, large, with its source and what can be done with it. */
+/**
+ * /library/:id: one save, large, with its source and what can be done with it. A save the Library
+ * has loaded shows at once; any other comes from ari-api.
+ */
 export function ReadingView(props: { id: string }) {
   const { t } = useI18n();
   const library = useLibrary();
-  const save = () => library.saves().find((item) => item.id === props.id);
+  const fetched = createAsync(() => getSave(props.id), { deferStream: true });
+  const known = () => library.saves().find((item) => item.id === props.id);
+  // A save deleted here stays until the page moves on: its own Delete goes to the next one.
+  const save = () => {
+    const found = known() ?? fetched();
+    return found && found !== 'failed' ? library.withChanges(found) : found;
+  };
   return (
-    <Show
-      when={save()}
+    <Switch
       fallback={
         <div class={styles.missing}>
           <Title>{t().library.pageTitle}</Title>
@@ -49,8 +59,18 @@ export function ReadingView(props: { id: string }) {
         </div>
       }
     >
-      {(save) => <Reading save={save()} />}
-    </Show>
+      <Match when={save() === 'failed'}>
+        <div role="alert" class={styles.missing}>
+          <Title>{t().library.pageTitle}</Title>
+          <h1 class={styles['missing-title']}>{t().reading.loadFailed}</h1>
+          <p class={styles['missing-text']}>{t().library.loadFailedText}</p>
+          <Button icon={<RetryIcon />} onClick={() => revalidate(getSave.keyFor(props.id))}>
+            {t().library.retry}
+          </Button>
+        </div>
+      </Match>
+      <Match when={save()}>{(found) => <Reading save={found() as Save} />}</Match>
+    </Switch>
   );
 }
 
@@ -60,23 +80,28 @@ function Reading(props: { save: Save }) {
   const library = useLibrary();
   const notes = useNotes();
   const navigate = useNavigate();
+  const pageLabel = usePageLabel();
   const [confirming, setConfirming] = createSignal(false);
 
-  // Previous and next follow the Library's filters, while this save is among what they show.
-  const list = () =>
-    library.filtered().some((save) => save.id === props.save.id)
-      ? library.filtered()
-      : library.saves();
+  // Previous and next go through the Library's list as filtered, while this save is in it.
+  const list = () => library.loaded();
   const index = () => list().findIndex((save) => save.id === props.save.id);
-  const previous = () => list()[index() - 1];
-  const next = () => list()[index() + 1];
-  const source = () => library.sourceOf(props.save.source);
+  const inList = () => index() !== -1;
+  const previous = () => (inList() ? list()[index() - 1] : undefined);
+  const next = () => (inList() ? list()[index() + 1] : undefined);
+  // At the last save loaded, the next page loads, so Next has somewhere to go.
+  createEffect(() => {
+    if (inList() && !next() && library.hasMore() && !library.loadingMore()) void library.loadMore();
+  });
+  const source = () => props.save.source;
   // "meadowquarterly.example/honeybees-new-home", without the https://.
   const address = () => source().url?.replace(/^https?:\/\//, '');
   const host = () => address()?.split('/')[0];
 
   const copy = async () => {
-    const where = [source().author, source().title, props.save.page].filter(Boolean).join(', ');
+    const where = [source().author, source().title, pageLabel(props.save)]
+      .filter(Boolean)
+      .join(', ');
     await navigator.clipboard.writeText(`“${props.save.text}” (${where})`);
     library.showToast({ text: t().reading.copied });
   };
@@ -116,12 +141,14 @@ function Reading(props: { save: Save }) {
     />
   );
 
+  // Away first, then the delete, so this view never shows a save that is gone.
   const remove = () => {
+    const id = props.save.id;
     const after = next() ?? previous();
-    library.deleteSave(props.save.id);
     setConfirming(false);
-    library.showToast({ text: t().reading.deleted });
     navigate(after ? `/library/${after.id}` : '/library', { replace: true });
+    library.deleteSave(id);
+    library.showToast({ text: t().reading.deleted });
   };
 
   return (
@@ -149,12 +176,16 @@ function Reading(props: { save: Save }) {
           <Button href="/library" icon={<BackIcon />}>
             {t().reading.back}
           </Button>
-          <span class={styles.position}>
-            {fill(t().reading.position, {
-              n: format.number(index() + 1),
-              total: format.number(list().length),
-            })}
-          </span>
+          <Show when={inList()}>
+            <span class={styles.position}>
+              {fill(t().reading.position, {
+                n: format.number(index() + 1),
+                total: format.number(
+                  Math.max(library.counts()[library.filters.type], list().length),
+                ),
+              })}
+            </span>
+          </Show>
           <Show
             when={previous()}
             fallback={
@@ -205,6 +236,22 @@ function Reading(props: { save: Save }) {
                   {props.save.text}
                 </HighlightMark>
               </p>
+            </Match>
+            <Match when={props.save.clip === 'image' && props.save.imageUrl}>
+              {(src) => (
+                <>
+                  <img class={styles.picture} src={src()} alt={props.save.text} />
+                  <h1 class={styles['clip-title']}>{props.save.text}</h1>
+                </>
+              )}
+            </Match>
+            <Match when={props.save.clip === 'table' && props.save.contentMd}>
+              {(markdown) => (
+                <>
+                  <h1 class={styles['clip-title']}>{props.save.text}</h1>
+                  <MarkdownTable markdown={markdown()} />
+                </>
+              )}
             </Match>
             <Match when={props.save.kind === 'clip'}>
               <div class={styles.clip} data-clip={props.save.clip} aria-hidden="true">
@@ -324,7 +371,42 @@ function Reading(props: { save: Save }) {
   );
 }
 
-// A clipped table, drawn as its rows.
+/** A table clip's table, from the Markdown ari-api keeps: a header row, then its rows. */
+function MarkdownTable(props: { markdown: string }) {
+  const rows = () =>
+    props.markdown
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('|') && !/^\|[\s:|-]+\|$/.test(line))
+      .map((line) =>
+        line
+          .slice(1, line.endsWith('|') ? -1 : undefined)
+          .split(/(?<!\\)\|/)
+          .map((cell) => cell.trim().replace(/\\\|/g, '|')),
+      );
+  return (
+    <div class={styles['table-wrap']}>
+      <table class={styles['clip-table']}>
+        <thead>
+          <tr>
+            <For each={rows()[0] ?? []}>{(cell) => <th>{cell}</th>}</For>
+          </tr>
+        </thead>
+        <tbody>
+          <For each={rows().slice(1)}>
+            {(row) => (
+              <tr>
+                <For each={row}>{(cell) => <td>{cell}</td>}</For>
+              </tr>
+            )}
+          </For>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// A clipped table without its Markdown, drawn as its rows.
 function ClipTable() {
   return (
     <span class={styles.table}>
