@@ -7,7 +7,7 @@ import type {
   UpdateSaveRequest,
   UpdateSaveResponse,
 } from '@ari/types';
-import { request } from './client';
+import { request, searchOf } from './client';
 
 /** The signed-in user's saves, newest first, a page at a time (send `nextCursor` back). */
 export function listSaves(query: ListSavesQuery = {}) {
@@ -34,16 +34,4 @@ export function updateSave(id: string, body: UpdateSaveRequest) {
 
 export function deleteSave(id: string) {
   return request<void>(`/api/v1/saves/${encodeURIComponent(id)}`, { method: 'DELETE' });
-}
-
-/** "?type=CLIP&tag=a&tag=b": arrays repeat their name, and empty values are left out. */
-function searchOf(query: Record<string, string | number | string[] | undefined>) {
-  const search = new URLSearchParams();
-  for (const [name, value] of Object.entries(query)) {
-    for (const item of Array.isArray(value) ? value : [value]) {
-      if (item !== undefined && item !== '') search.append(name, String(item));
-    }
-  }
-  const text = search.toString();
-  return text ? `?${text}` : '';
 }

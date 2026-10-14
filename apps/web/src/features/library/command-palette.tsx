@@ -5,18 +5,24 @@ import {
   createSignal,
   For,
   type JSX,
+  on,
   onCleanup,
   onMount,
   Show,
 } from 'solid-js';
+import type { NoteSummary } from '~/features/notes/notes';
 import { useNoteMeta } from '~/features/notes/notes-list';
 import { useNotes } from '~/features/notes/notes-store';
+import { searchNotes } from '~/features/notes/queries';
 import { NotesIcon } from '~/features/shell/icons';
+import { searchSources } from '~/features/sources/queries';
+import type { SourceSummary } from '~/features/sources/sources';
 import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { ArrowRightIcon, CloseIcon, GlobeIcon, SearchIcon, TagIcon, UploadIcon } from './icons';
 import { useLibrary } from './library-store';
 import styles from './palette.module.scss';
+import { searchSaves } from './queries';
 import { SaveBadge } from './save-badge';
 import { type Save, usePageLabel } from './saves';
 
@@ -29,6 +35,9 @@ type Result = {
   run: () => void;
 };
 type Group = { label: string; count?: string; results: Result[] };
+
+// How long a search waits for more typing before it asks ari-api.
+const searchDelay = 250;
 
 // The part of `text` around the first match, so the match shows even in a long quote.
 function excerpt(text: string, query: string, max: number) {
@@ -71,6 +80,31 @@ export function CommandPalette() {
   const [active, setActive] = createSignal(0);
   const search = () => query().trim().toLowerCase();
 
+  // What ari-api found for a search: saves, sources and notes, each undefined when its request
+  // failed. Until it answers, what this page has loaded stands in.
+  const [searched, setSearched] = createSignal<{
+    q: string;
+    saves?: { saves: Save[]; total: number };
+    sources?: { sources: SourceSummary[]; more: boolean };
+    notes?: NoteSummary[];
+  }>();
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(
+    on(search, (q) => {
+      clearTimeout(searchTimer);
+      if (!q) return;
+      searchTimer = setTimeout(async () => {
+        const [saves, sources, found] = await Promise.all([
+          searchSaves(q),
+          searchSources(q),
+          searchNotes(q),
+        ]);
+        if (search() === q) setSearched({ q, saves, sources, notes: found });
+      }, searchDelay);
+    }),
+  );
+  onCleanup(() => clearTimeout(searchTimer));
+
   const close = () => library.setPaletteOpen(false);
   const go = (path: string) => {
     close();
@@ -81,17 +115,21 @@ export function CommandPalette() {
     const q = search();
     const result: Group[] = [];
 
-    // A few saves: the newest without a query, else the first matches (each text once).
+    // A few saves: the newest without a query, else the first matches (each text once): ari-api's
+    // once it has answered, the loaded ones' until then.
+    const answers = searched()?.q === q ? searched() : undefined;
+    const answer = answers?.saves;
     const found: Save[] = [];
     const seen = new Set<string>();
     let total = 0;
-    for (const save of library.saves()) {
+    for (const save of answer ? answer.saves.map(library.withChanges) : library.saves()) {
       const matches =
         !q ||
+        !!answer ||
         save.text.toLowerCase().includes(q) ||
         save.source.name.toLowerCase().includes(q) ||
         save.tags.some((tag) => tag.includes(q));
-      if (!matches) continue;
+      if (!matches || library.isDeleted(save.id)) continue;
       total++;
       if (!seen.has(save.text) && found.length < (q ? 4 : 3)) {
         seen.add(save.text);
@@ -99,6 +137,7 @@ export function CommandPalette() {
       }
       if (!q && found.length === 3) break;
     }
+    if (answer) total = answer.total;
     if (found.length)
       result.push({
         label: q ? t().palette.saves : t().palette.recent,
@@ -116,21 +155,43 @@ export function CommandPalette() {
           },
         })),
       });
+    if (q && total > found.length)
+      result.push({
+        label: t().palette.allResultsLabel,
+        results: [
+          {
+            text: fill(t().palette.allResults, { q: query().trim(), n: format.number(total) }),
+            badge: () => (
+              <IconBadge>
+                <SearchIcon />
+              </IconBadge>
+            ),
+            run: () => {
+              library.search(query());
+              go('/library');
+            },
+          },
+        ],
+      });
 
     if (q) {
-      // Every source in the Library, by its name, or its title when the page knows it.
+      // ari-api's sources by name, title or author; until it answers, the Library's by name, or by
+      // title when the page knows it.
       const titles = new Map(library.saves().map((save) => [save.source.id, save.source.title]));
-      const sources = library
-        .facetOptions('sources')
-        .filter((source) =>
-          [source.name ?? '', titles.get(source.value) ?? ''].some((text) =>
-            text.toLowerCase().includes(q),
-          ),
-        );
+      const found = answers?.sources;
+      const sources = found
+        ? found.sources.map((summary) => ({ value: summary.source.id, name: summary.source.name }))
+        : library
+            .facetOptions('sources')
+            .filter((source) =>
+              [source.name ?? '', titles.get(source.value) ?? ''].some((text) =>
+                text.toLowerCase().includes(q),
+              ),
+            );
       if (sources.length)
         result.push({
           label: t().palette.sources,
-          count: String(sources.length),
+          count: `${format.number(sources.length)}${found?.more ? '+' : ''}`,
           results: sources.slice(0, 3).map((source) => ({
             text: source.name ?? '',
             sub: t().palette.showSource,
@@ -145,9 +206,14 @@ export function CommandPalette() {
     }
 
     if (q) {
-      const found = notes
-        .list()
-        .filter((note) => (note.title || t().notes.untitledNote).toLowerCase().includes(q));
+      // ari-api's notes by title and writing, as this page has them now; until it answers, the
+      // titles of the notes here.
+      const byId = new Map(notes.list().map((note) => [note.id, note]));
+      const found = answers?.notes
+        ? answers.notes.flatMap((note) => byId.get(note.id) ?? [])
+        : notes
+            .list()
+            .filter((note) => (note.title || t().notes.untitledNote).toLowerCase().includes(q));
       if (found.length)
         result.push({
           label: t().palette.notes,

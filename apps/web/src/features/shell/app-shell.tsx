@@ -8,11 +8,11 @@ import { GlobeIcon, UploadIcon } from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
 import { LibraryToast } from '~/features/library/library-toast';
 import { useNotes } from '~/features/notes/notes-store';
-import { useSources } from '~/features/sources/sources';
 import { useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { LanguageSelect } from '~/i18n/language-select';
 import styles from './app-shell.module.scss';
+import { ConnectionBanner } from './connection-banner';
 import { LibraryIcon, NotesIcon, SettingsIcon } from './icons';
 
 /**
@@ -25,7 +25,6 @@ export function AppShell(props: { children: JSX.Element }) {
   const format = useFormat();
   const library = useLibrary();
   const notes = useNotes();
-  const sources = useSources();
   const location = useLocation();
   const ready = () => library.files.filter((file) => file.status === 'ready').length;
   // The sidebar opens the newest note; any note page counts as Notes.
@@ -62,7 +61,9 @@ export function AppShell(props: { children: JSX.Element }) {
           <A href="/sources" class={styles.link} activeClass={styles.active} end={false}>
             <GlobeIcon />
             <span class={styles['link-label']}>{t().nav.sources}</span>
-            <span class={styles['link-count']}>{format.number(sources.list().length)}</span>
+            <span class={styles['link-count']}>
+              {format.number(library.facetOptions('sources').length)}
+            </span>
           </A>
           <A href="/imports" class={styles.link} activeClass={styles.active} end={false}>
             <UploadIcon />
@@ -90,7 +91,12 @@ export function AppShell(props: { children: JSX.Element }) {
           </ErrorBoundary>
         </div>
       </aside>
-      <main class={styles.main}>{props.children}</main>
+      <main class={styles.main}>
+        <Suspense>
+          <ConnectionBanner />
+        </Suspense>
+        {props.children}
+      </main>
       <nav class={styles.tabs} aria-label={t().nav.label}>
         <A href="/library" class={styles.tab} activeClass={styles.active} end={false}>
           <span class={styles['tab-icon']}>

@@ -166,11 +166,10 @@ one whose email isn't confirmed yet (`EMAIL_NOT_CONFIRMED`); `/reset-password?co
 `getPasswordReset` query while the server renders (checking never uses the code up), then takes the
 new password, or shows expired, used, invalid or a retry; on save it goes to `/login` with the
 username in the history state, which fills the form in and shows "Password updated". `LoginForm`
-answers `INVALID_CREDENTIALS` with its own alert linking to `/forgot-password`. ari-api has no
-reset endpoints yet, so `features/auth/password-reset.ts` holds timed stand-ins in their shape
-(sequences §11; asking for `no-account`, `no-email` or `unconfirmed-email`, and `?code=expired`,
-`used`, `invalid` or `failed`, shows each state); swap them for
-`@ari/data-access` calls once the types are generated. Sign-in is username and password
+answers `INVALID_CREDENTIALS` with its own alert linking to `/forgot-password`. The reset goes
+through ari-api (sequences §11: `requestPasswordReset`, `checkPasswordReset`, `resetPassword`, all
+with `refresh: false`); `resetPasswordAction` revalidates nothing, so the used link isn't checked
+again before the page moves on to `/login`. Sign-in is username and password
 only: register sends `username`, `password`, `fullName` and `birthDate` (ISO; the picker's
 `dd.MM.yyyy` is converted on submit), and the username follows ari-api's rule (3 to 30 letters,
 digits, underscores or dots). Google (F9) comes later. The signed-in pages live in the
@@ -203,9 +202,13 @@ The queries answer `failed` instead of throwing, so the list shows its error sta
 while search and the sidebar go on. `/library/:id` shows a loaded save at once, or `getSave`
 (`GET /saves/{id}`; null is not found); previous / next go through the loaded list, loading the next
 page at its end. Clips show their picture (`imageUrl`, signed for an hour) or their table (from
-`contentMd`). The sidebar's Library count is `getMe`'s `savesCount`. Search, Sources and the notes'
-quote picker look through the saves loaded so far (the newest page, plus the filtered pages) until
-ari-api has search (F10) and sources. Imports are still stand-ins (`imports.ts`: a timed upload and
+`contentMd`). The sidebar's Library count is `getMe`'s `savesCount`. Search goes through ari-api's
+`q` (F10, sequences §4): the palette asks `searchSaves` 250 ms after the typing stops (the saves
+loaded so far stand in until it answers) and offers "All N results", which puts the search in the
+Library's filters (`filters.q`, a chip there, counted by the facets). In the same round the
+palette's Sources and Notes groups ask `searchSources` (name, title, author) and `searchNotes`
+(title and writing); the notes' "/" quote picker asks `searchSaves` too. Each shows what the page
+has loaded until ari-api answers. Imports are still stand-ins (`imports.ts`: a timed upload and
 reading that finds the same example marks); saving a review adds its marks to this visit's Library
 only (`isNew`), since ari-api doesn't import files yet. The reading view's Add to note quotes the
 save in one of the newest notes or in a new one. `features/notes` (from the design's "Ari Notes") has `/notes` (the notes beside the open note on
@@ -215,15 +218,30 @@ over an invisible copy of its text, so it grows; hydration leaves textareas empt
 its own. A paragraph starting with "/" lists saved highlights to quote (arrow keys, Enter, Escape),
 and ⋯ (ui-kit `Menu`) adds a quote, copies as text, exports Markdown or PDF (the print dialog),
 duplicates or deletes. Quotes keep a `saveId`, so they follow the save's color and leave with it.
-Also UI only: `notes-store.tsx` starts from the design's two example notes in `sample.ts`, text
-only (their quotes were of the old example library).
-`features/sources` (from the design's "Ari Sources") has no state of its own: `useSources()` groups
-the saves the Library has loaded by their source's id. `/sources` is a card per website or file (latest saved from first,
-All / Websites / Files tabs; its search opens the palette, whose sources open their page), and
-`/sources/:id` (ari-api's source id) lists the source's loaded saves in
-page order (by page for files, the order they were saved for websites) or newest first, more on
-scroll, each with "Open at this spot" (a text-fragment link) on websites, beside "About this source"
-(above the saves under 1024px, left out on phones). `/settings` (`features/settings`, from the design's "Ari Settings")
+The notes come from ari-api (`features/notes/queries.ts`, sequences §13): `notes-store.tsx` (set up
+by the `(app)` layout) renders `getNotes` (the list, on every signed-in page, for the sidebar, the
+palette and Add to note) and `/notes/:id` renders `getNote` (each quote with its save, so quotes of
+saves the Library hasn't loaded show too). A note opened in the editor becomes a draft (made by an
+effect once it is on the screen, so no field is made again under the caret): changes show at once,
+and the whole note goes to ari-api (`saveNoteAction`, `PUT`) once the typing stops (700 ms), when
+the tab is hidden, or at once for Add to note; one save at a time per note, the newest draft each
+time. The status shows Saving…, Not saved · Try again, or when it was saved. New note, Add to note's
+new note and Duplicate `POST` first and then open the note; a delete shows at once and comes back
+with a toast when ari-api refuses it. Block ids are made in the page (`notes.ts`'s `toNote` uses
+their places, so the server's render matches); ari-api keys blocks by note and position.
+`features/sources` (from the design's "Ari Sources") reads ari-api's sources
+(`features/sources/queries.ts`, sequences §12) and keeps no state of its own. `/sources` is a card
+per website or file with saves (`getSourcePage`, 40, latest saved from first; All / Websites / Files
+tabs counted by `getSourceCounts`, a tab change in `startTransition`; its search opens the palette,
+whose sources open their page), and `/sources/:id` (ari-api's source id) shows `getSource` (counts
+per kind, colors, the newest highlight, first and latest save; null is not found) with its saves
+from `getSourceSaves` (`GET /saves?source=&order=PAGE`: by page for files, the order they were saved
+for websites) or newest first, each with "Open at this spot" (a text-fragment link) on websites,
+beside "About this source" (above the saves under 1024px, left out on phones). Both load more on
+scroll through `createPagedList` (`paged-list.ts`). Each source carries the notes quoting it (a card's
+"In a note", "Quoted in"); a save's own "In a note" comes from the notes list's `saveIds`
+(`quoted.ts`). The sidebar's Sources count is how many sources the
+Library's facets list. Changing or deleting a save marks the Sources queries stale. `/settings` (`features/settings`, from the design's "Ari Settings")
 has Account, Plan and billing, Shortcuts, Export and Connected apps (the design's Highlight colors
 section was left out); on wide
 screens they sit in a column beside the open section, with Log out under them (wrapping rows of
@@ -315,11 +333,14 @@ TextField's `prefix` and Select's `block` for the account page, SegmentedControl
 Dialog's `sheet` and Avatar's `md` for the settings sections, `Popover`, Button's `newTab` and
 ColorPicker's `names` for the Library, `Menu` for Notes, and `Switch`, `Kbd` and Logo's `sm`
 wordmark for the extension); `types` has the
-generated schema and the auth, users and saves types (with the email calls' bodies, the
+generated schema and the auth, users, saves, sources and notes types (with the email calls' bodies, the
 extension's sign-in, and the saves it sends); `utils` has the OpenAPI type helpers and the extension bridge's messages; `data-access` has the API client (`request`, `ApiError`, the shared refresh,
-`refreshSession` for the middleware; a `FormData` body goes as multipart), the auth calls
+`refreshSession` for the middleware; a `FormData` body goes as multipart; `searchOf` for query
+strings), the auth calls
 (`verifyEmail` among them, with `refresh: false`, and `createExtensionCode`), `fetchMe` and the account calls (profile,
-photo, email), with Vitest tests. Its `Problem` type is written by
+photo, email), the saves calls, the sources calls (`listSources`, `fetchSourceCounts`,
+`fetchSource`) and the notes calls (`listNotes`, `createNote`, `fetchNote`, `replaceNote`,
+`deleteNote`), and the password reset calls, with Vitest tests. Its `Problem` type is written by
 hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
 fixes that. Create the rest when an issue needs it.
 

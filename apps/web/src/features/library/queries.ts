@@ -10,14 +10,25 @@ import type { ListSavesQuery, UpdateSaveRequest } from '@ari/types';
 import type { HighlightColor } from '@ari/ui-kit';
 import { action, json, query } from '@solidjs/router';
 import { getMe } from '~/features/auth/queries';
+import { getNote, getNotes } from '~/features/notes/queries';
+import {
+  getSource,
+  getSourceCounts,
+  getSourcePage,
+  getSourceSaves,
+} from '~/features/sources/queries';
 import { type Facets, type Save, type SaveKind, toFacets, toSave } from './saves';
 
-/** What the Library shows: a type, and any of the tags, colors and sources (ids) picked. */
+/**
+ * What the Library shows: a type, any of the tags, colors and sources (ids) picked, and a search
+ * (empty for none).
+ */
 export type SaveFilter = {
   type: 'all' | SaveKind;
   tags: string[];
   colors: HighlightColor[];
   sources: string[];
+  q: string;
 };
 
 function toQuery(filter: SaveFilter): ListSavesQuery {
@@ -26,6 +37,7 @@ function toQuery(filter: SaveFilter): ListSavesQuery {
     tag: filter.tags,
     color: filter.colors.map((color) => color.toUpperCase() as Uppercase<HighlightColor>),
     source: filter.sources,
+    q: filter.q.trim() || undefined,
   };
 }
 
@@ -55,6 +67,17 @@ export const getSaveFacets = query(async (filter: SaveFilter): Promise<Facets | 
   }
 }, 'save-facets');
 
+/**
+ * The first page of saves a search finds, and how many it finds in all; undefined when ari-api
+ * failed. The page is the Library's own for that search, so opening it there needs no request.
+ */
+export async function searchSaves(q: string) {
+  const filter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [], q };
+  const [page, facets] = await Promise.all([getSavePage(filter), getSaveFacets(filter)]);
+  if (page.failed) return undefined;
+  return { saves: page.saves, total: facets?.counts.all ?? page.saves.length };
+}
+
 /** One save; null when there is no such save or it is someone else's, `failed` on an error. */
 export const getSave = query(async (id: string): Promise<Save | null | 'failed'> => {
   try {
@@ -66,12 +89,16 @@ export const getSave = query(async (id: string): Promise<Save | null | 'failed'>
   }
 }, 'save');
 
-// The actions refresh the counts they change, not the pages of saves the Library has loaded.
+// The actions refresh the counts they change, not the pages of saves the Library has loaded. The
+// Sources pages sum the saves up, so theirs load again when they are next shown.
+const sourceKeys = [getSourcePage.key, getSource.key, getSourceSaves.key];
 
 /** Changes a save's color, comment or tags; returns it as ari-api has it now. */
 export const changeSaveAction = action(
   async (id: string, change: UpdateSaveRequest) =>
-    json(toSave(await updateSave(id, change)), { revalidate: getSaveFacets.key }),
+    json(toSave(await updateSave(id, change)), {
+      revalidate: [getSaveFacets.key, ...sourceKeys],
+    }),
   'change-save',
 );
 
@@ -82,5 +109,16 @@ export const deleteSaveAction = action(async (id: string) => {
   } catch (error) {
     if (!(error instanceof ApiError && error.status === 404)) throw error;
   }
-  return json(undefined, { revalidate: [getSaveFacets.key, getMe.key, getSave.keyFor(id)] });
+  return json(undefined, {
+    revalidate: [
+      getSaveFacets.key,
+      getMe.key,
+      getSave.keyFor(id),
+      getSourceCounts.key,
+      ...sourceKeys,
+      // Its quotes go with it.
+      getNotes.key,
+      getNote.key,
+    ],
+  });
 }, 'delete-save');

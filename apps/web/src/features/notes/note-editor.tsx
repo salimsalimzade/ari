@@ -1,16 +1,19 @@
 import { Button, Dialog, HighlightMark, Menu, type MenuItem } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
-import { A, useNavigate } from '@solidjs/router';
+import { A, createAsync, revalidate, useNavigate } from '@solidjs/router';
 import {
   createEffect,
   createMemo,
   createSignal,
   createUniqueId,
   For,
+  Match,
   on,
   onCleanup,
   onMount,
   Show,
+  Switch,
+  startTransition,
 } from 'solid-js';
 import {
   AlertIcon,
@@ -18,9 +21,11 @@ import {
   CopyIcon,
   FileIcon,
   GlobeIcon,
+  RetryIcon,
   TrashIcon,
 } from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
+import { searchSaves } from '~/features/library/queries';
 import { type Save, usePageLabel } from '~/features/library/saves';
 import { BackIcon, NotesIcon } from '~/features/shell/icons';
 import { fill, useFormat } from '~/i18n/format';
@@ -28,25 +33,58 @@ import { useI18n } from '~/i18n/i18n';
 import { LanguageSelect } from '~/i18n/language-select';
 import { DownloadIcon, MoreIcon, QuoteIcon } from './icons';
 import { download, fileName, type NotePart, noteAsMarkdown, noteAsText } from './note-text';
+import type { Block, Note } from './notes';
 import styles from './notes.module.scss';
 import { useNotes } from './notes-store';
-import type { Block, Note } from './sample';
+import { getNote } from './queries';
 
 type TextBlock = Extract<Block, { kind: 'text' }>;
 type QuoteBlock = Extract<Block, { kind: 'quote' }>;
 
 // How many saved highlights the "/" menu offers at once.
 const pickCount = 6;
+// How long the "/" menu waits for more typing before it asks ari-api.
+const searchDelay = 250;
 // Phones show one note at a time, so a deleted note goes back to the list there.
 const phoneQuery = '(max-width: 720px)';
 
 /** /notes/:id: one note, paragraphs of writing with saved quotes between them. */
 export function NoteEditor(props: { id: string }) {
+  const { t } = useI18n();
   const notes = useNotes();
+  const fetched = createAsync(() => getNote(props.id), { deferStream: true });
+  const found = () => {
+    const note = fetched();
+    return note && note !== 'failed' ? note : undefined;
+  };
+  // The editor changes a draft of the note. Making it once the note is on the screen, before
+  // anything is typed, keeps each paragraph's field from being made again under the caret.
+  createEffect(() => {
+    const note = found();
+    if (note) notes.track(note);
+  });
   return (
-    <Show when={notes.find(props.id)} keyed fallback={<NoteMissing />}>
-      {(note) => <Editor note={note} />}
-    </Show>
+    <Switch fallback={<NoteMissing />}>
+      <Match when={fetched() === 'failed'}>
+        <div role="alert" class={styles.missing}>
+          <Title>{t().notes.pageTitle}</Title>
+          <span class={styles['error-icon']}>
+            <AlertIcon />
+          </span>
+          <h1 class={styles['state-title']}>{t().notes.noteFailed}</h1>
+          <p class={styles['state-text']}>{t().library.loadFailedText}</p>
+          <Button
+            icon={<RetryIcon />}
+            onClick={() => startTransition(() => revalidate(getNote.keyFor(props.id)))}
+          >
+            {t().library.retry}
+          </Button>
+        </div>
+      </Match>
+      <Match when={found()} keyed>
+        {(note) => <Editor note={notes.open(note)} />}
+      </Match>
+    </Switch>
   );
 }
 
@@ -92,7 +130,9 @@ function Editor(props: { note: Note }) {
 
   const id = () => props.note.id;
   const blocks = () => notes.blocksOf(props.note);
-  const fresh = () => !props.note.editedAt;
+  // Nothing changed since it was started.
+  const fresh = () => props.note.updatedAt.getTime() === props.note.createdAt.getTime();
+  const saveState = () => notes.saveState(id());
   const title = () => props.note.title.trim() || t().notes.untitledNote;
   const neighbor = (blockId: string, step: -1 | 1) => {
     const list = blocks();
@@ -133,17 +173,34 @@ function Editor(props: { note: Note }) {
       );
     return list.length && command(list[0]) ? list.slice(1) : list;
   });
+  // What ari-api found for the words after "/"; until it answers, the saves this page has loaded
+  // stand in.
+  const [searched, setSearched] = createSignal<{ q: string; saves: Save[] }>();
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(
+    on(words, (list) => {
+      clearTimeout(searchTimer);
+      const q = list.join(' ');
+      if (!q) return;
+      searchTimer = setTimeout(async () => {
+        const found = await searchSaves(q);
+        if (found && words().join(' ') === q) setSearched({ q, saves: found.saves });
+      }, searchDelay);
+    }),
+  );
+  onCleanup(() => clearTimeout(searchTimer));
   // The newest matching highlights, each text once (clips have no text to quote).
   const picks = createMemo(() => {
     if (!slashBlock()) return [];
     const search = words();
+    const answer = searched()?.q === search.join(' ') ? searched() : undefined;
     const seen = new Set<string>();
     const found: Save[] = [];
-    for (const save of library.saves()) {
-      if (save.kind === 'clip' || seen.has(save.text)) continue;
+    for (const save of answer ? answer.saves.map(library.withChanges) : library.saves()) {
+      if (save.kind === 'clip' || seen.has(save.text) || library.isDeleted(save.id)) continue;
       seen.add(save.text);
       const text = `${save.text} ${save.source.name}`.toLowerCase();
-      if (search.every((word) => text.includes(word))) found.push(save);
+      if (answer || search.every((word) => text.includes(word))) found.push(save);
       if (found.length === pickCount) break;
     }
     return found;
@@ -153,7 +210,7 @@ function Editor(props: { note: Note }) {
   const optionId = (index: number) => `${listId}-${index}`;
 
   const insert = (blockId: string, save: Save) =>
-    focus(notes.insertQuote(id(), blockId, save.id), 'start');
+    focus(notes.insertQuote(id(), blockId, save), 'start');
 
   // — Keys —
 
@@ -272,7 +329,7 @@ function Editor(props: { note: Note }) {
   const parts = () =>
     blocks().flatMap((block): NotePart[] => {
       if (block.kind === 'text') return [{ kind: 'text', text: block.text }];
-      const save = notes.saveOf(block.saveId);
+      const save = notes.saveOf(props.note, block.saveId);
       return save ? [{ kind: 'quote', save, source: save.source, page: pageLabel(save) }] : [];
     });
 
@@ -280,8 +337,8 @@ function Editor(props: { note: Note }) {
     await navigator.clipboard.writeText(noteAsText(title(), parts()));
     library.showToast({ text: t().notes.copied });
   };
-  const duplicate = () => {
-    const copied = notes.duplicate(id(), fill(t().notes.copyTitle, { title: title() }));
+  const duplicate = async () => {
+    const copied = await notes.duplicate(props.note, fill(t().notes.copyTitle, { title: title() }));
     if (!copied) return;
     library.showToast({ text: t().notes.duplicated });
     navigate(`/notes/${copied}`);
@@ -451,7 +508,7 @@ function Editor(props: { note: Note }) {
   const renderQuote = (block: QuoteBlock) => {
     onCleanup(() => fields.delete(block.id));
     return (
-      <Show when={notes.saveOf(block.saveId)}>
+      <Show when={notes.saveOf(props.note, block.saveId)}>
         {(save) => {
           const source = () => save().source;
           return (
@@ -496,7 +553,15 @@ function Editor(props: { note: Note }) {
         <A href="/notes" class={styles['icon-link']} aria-label={t().notes.back}>
           <BackIcon />
         </A>
-        <span class={styles.status}>{fresh() ? t().notes.newShort : t().notes.saved}</span>
+        <span class={styles.status}>
+          {saveState() === 'saving'
+            ? t().notes.saving
+            : saveState() === 'failed'
+              ? t().notes.notSaved
+              : fresh()
+                ? t().notes.newShort
+                : t().notes.saved}
+        </span>
         <span class={styles['phone-actions']}>
           <LanguageSelect />
           {actionsMenu()}
@@ -504,12 +569,21 @@ function Editor(props: { note: Note }) {
       </header>
       <div class={styles.panel}>
         <div class={styles.bar}>
-          <span class={styles.status}>
-            {fresh()
-              ? t().notes.newStatus
-              : fill(t().notes.savedStatus, {
-                  when: format.ago(props.note.editedAt ?? props.note.createdAt, notes.now()),
-                })}
+          <span class={styles.status} role="status">
+            <Switch
+              fallback={fill(t().notes.savedStatus, {
+                when: format.ago(props.note.updatedAt, notes.now()),
+              })}
+            >
+              <Match when={saveState() === 'saving'}>{t().notes.saving}</Match>
+              <Match when={saveState() === 'failed'}>
+                {t().notes.notSaved} ·{' '}
+                <button type="button" class={styles.retry} onClick={() => notes.retry(id())}>
+                  {t().library.retry}
+                </button>
+              </Match>
+              <Match when={fresh()}>{t().notes.newStatus}</Match>
+            </Switch>
           </span>
           {actionsMenu()}
         </div>

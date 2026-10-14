@@ -336,6 +336,11 @@
   background: var(--ari-state-empty-bg);
   color: var(--ari-state-empty-icon);
 
+  &[data-tone='error'] {
+    background: var(--ari-state-error-bg);
+    color: var(--ari-state-error-icon);
+  }
+
   svg {
     @include stroke-icon(22px);
   }
@@ -364,6 +369,81 @@
   @include mobile {
     min-height: var(--ari-control-height-lg);
   }
+}
+
+// — More on scroll —
+
+// Stand-ins while the next page loads: cards on the shelf, rows on a source's page.
+.skeleton {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: var(--ari-radius-lg);
+  background: var(--ari-bg-surface);
+
+  &[data-shape='card'] {
+    min-height: 220px;
+  }
+
+  @include mobile {
+    padding: 18px;
+    border-radius: 24px;
+
+    &[data-shape='card'] {
+      min-height: 160px;
+    }
+  }
+}
+
+.bone {
+  display: block;
+  height: 12px;
+  border-radius: var(--ari-radius-pill);
+  background: var(--ari-skeleton);
+  animation: pulse 1.4s ease-in-out infinite;
+
+  &[data-shape='badge'] {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  &[data-shape='short'] {
+    width: 40%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.end-note {
+  padding: 8px 0 28px;
+  font-size: 13px;
+  color: var(--ari-text-secondary);
+
+  @include mobile {
+    padding: 8px 20px 28px;
+  }
+}
+
+// "Try again" inside a line of text.
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ari-text-link);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 // — One source —

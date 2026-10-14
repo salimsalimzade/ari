@@ -106,8 +106,14 @@ export const az: Dictionary = {
     ctaMonthly: 'ayda $5',
     ctaYearly: 'ildə $48',
   },
+  connection: {
+    title: 'Ari ilə əlaqə yoxdur.',
+    text: 'Gördükləriniz köhnə ola bilər, dəyişikliklər isə əlaqə bərpa olunana qədər saxlanılmaya bilər. Yenidən yoxlanılır…',
+    retry: 'Yenidən cəhd et',
+  },
   marketing: {
     pageTitle: 'Ari · Oxuduğunuzu mənbəyi ilə saxlayın',
+
     nav: {
       label: 'Sayt',
       how: 'Necə işləyir',
@@ -708,6 +714,13 @@ export const az: Dictionary = {
     pick: 'Qeyd seçin və ya yenisinə başlayın.',
     notFound: 'Bu qeyd Qeydlərinizdə yoxdur',
     notFoundText: 'Silinmiş ola bilər və ya link səhvdir.',
+    saving: 'Yadda saxlanılır…',
+    notSaved: 'Yadda saxlanılmayıb',
+    loadFailed: 'Qeydləriniz yüklənmədi',
+    noteFailed: 'Bu qeyd yüklənmədi',
+    createFailed: 'Qeyd yaradılmadı. Yenidən cəhd edin.',
+    deleteFailed: 'Qeyd silinmədi.',
+    addFailed: 'Sitat qeydə əlavə edilmədi.',
   },
   sources: {
     pageTitle: 'Mənbələr · Ari',
@@ -749,9 +762,16 @@ export const az: Dictionary = {
     address: 'Ünvan',
     notFound: 'Bu mənbə Kitabxananızda yoxdur',
     notFoundText: 'Onun saxlanılanları silinmiş ola bilər və ya link səhvdir.',
+    loadFailed: 'Mənbələriniz yüklənmədi',
+    sourceFailed: 'Bu mənbə yüklənmədi',
+    savesFailed: 'Onun saxlanılanları yüklənmədi.',
+    loadingMore: 'Daha çox mənbə yüklənir',
+    moreFailed: 'Daha çox mənbə yüklənmədi.',
   },
   palette: {
     label: 'Axtarış və əmrlər',
+    allResultsLabel: 'Kitabxanada',
+    allResults: '“{q}” üçün bütün {n} nəticə',
     placeholder: 'Axtarın və ya əmr yazın',
     recent: 'Son saxlananlar',
     saves: 'Saxlananlar',

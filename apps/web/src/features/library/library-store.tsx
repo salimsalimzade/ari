@@ -57,7 +57,7 @@ export type Toast = {
   source?: string;
 };
 
-const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [] };
+const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [], q: '' };
 const noCounts: Facets['counts'] = { all: 0, highlight: 0, clip: 0, import: 0 };
 
 const isBusy = (file: ImportFile) => file.status === 'uploading' || file.status === 'reading';
@@ -65,12 +65,14 @@ const megabytesOf = (files: ImportFile[]) => files.reduce((sum, file) => sum + f
 
 // Values worked out from others: memos in the browser, plain functions on the server, where a
 // memo is worked out once, before the Library has loaded.
-const derive = <T,>(fn: () => T) => (isServer ? fn : createMemo(fn));
+export const derive = <T,>(fn: () => T) => (isServer ? fn : createMemo(fn));
 
 /** Whether a save matches the filters, for the ones this page made (imports) and no page has. */
 function matches(save: Save, filter: SaveFilter) {
   const tags = filter.tags.map((tag) => tag.toLowerCase());
+  const q = filter.q.trim().toLowerCase();
   return (
+    (!q || save.text.toLowerCase().includes(q)) &&
     (filter.type === 'all' || save.kind === filter.type) &&
     (!tags.length || save.tags.some((tag) => tags.includes(tag.toLowerCase()))) &&
     (!filter.colors.length || (!!save.color && filter.colors.includes(save.color))) &&
@@ -104,6 +106,7 @@ function createLibrary(openFilePicker: () => void) {
       tags: [...filters.tags],
       colors: [...filters.colors],
       sources: [...filters.sources],
+      q: filters.q,
     }),
   );
   const [view, setView] = createSignal<LibraryView>('list');
@@ -329,6 +332,8 @@ function createLibrary(openFilePicker: () => void) {
     /** How many saves the Library has, from the signed-in user. */
     total: () => me()?.savesCount ?? 0,
     withChanges,
+    /** Deleted during this visit; ari-api has it gone, or is getting there. */
+    isDeleted: (id: string) => deleted().has(id),
     /** A source's name from the saves known, or the filters' choices. */
     sourceName: (id: string) =>
       saves().find((save) => save.source.id === id)?.source.name ??
@@ -374,8 +379,9 @@ function createLibrary(openFilePicker: () => void) {
     failed: () => !!first()?.failed,
     /** Loads the first page again after it failed. */
     reload: () => startTransition(() => revalidate([getSavePage.key, getSaveFacets.key])),
-    /** Whether tags, colors or sources are picked. */
-    narrowed: () => !!(filters.tags.length || filters.colors.length || filters.sources.length),
+    /** Whether tags, colors or sources are picked, or a search is on. */
+    narrowed: () =>
+      !!(filters.tags.length || filters.colors.length || filters.sources.length || filters.q),
     counts: () => facets()?.counts ?? noCounts,
     facetOptions: (facet: Facet) => facets()?.[facet] ?? [],
     /** The saves loaded for the filters, newest first. */
@@ -398,8 +404,11 @@ function createLibrary(openFilePicker: () => void) {
           values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
         ),
       ),
-    /** Tags, colors and sources; the type tab stays. */
+    /** Tags, colors, sources and the search; the type tab stays. */
     clearFacets: () => setAllFilters({ type: filters.type }),
+    /** Shows only what a search finds, through ari-api. */
+    search: (q: string) => setAllFilters({ q: q.trim() }),
+    clearSearch: () => refilter(() => setFilters('q', '')),
     clearFilters: () => setAllFilters({}),
     /** Shows only the saves from a source, by its id. */
     showSource: (source: string) => setAllFilters({ sources: [source] }),

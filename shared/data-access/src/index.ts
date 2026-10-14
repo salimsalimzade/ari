@@ -1,13 +1,18 @@
 export {
+  checkPasswordReset,
   checkUsername,
   createExtensionCode,
   login,
   logout,
   register,
+  requestPasswordReset,
+  resetPassword,
   verifyEmail,
 } from './auth';
 export { ApiError, type Problem, refreshSession } from './client';
+export { createNote, deleteNote, fetchNote, listNotes, replaceNote } from './notes';
 export { deleteSave, fetchSave, fetchSaveFacets, listSaves, updateSave } from './saves';
+export { fetchSource, fetchSourceCounts, listSources } from './sources';
 export {
   changeEmail,
   changePhoto,

@@ -103,8 +103,14 @@ export const en = {
     ctaMonthly: '$5 a month',
     ctaYearly: '$48 a year',
   },
+  connection: {
+    title: 'Can’t reach Ari right now.',
+    text: 'What you see may be out of date, and changes may not save until it’s back. Trying again…',
+    retry: 'Try again',
+  },
   marketing: {
     pageTitle: 'Ari · Keep what you read, with its source',
+
     nav: {
       label: 'Site',
       how: 'How it works',
@@ -703,6 +709,13 @@ export const en = {
     pick: 'Pick a note, or start a new one.',
     notFound: 'This note isn’t in your Notes',
     notFoundText: 'It may have been deleted, or the link is wrong.',
+    saving: 'Saving…',
+    notSaved: 'Not saved',
+    loadFailed: 'Your notes didn’t load',
+    noteFailed: 'This note didn’t load',
+    createFailed: 'The note wasn’t created. Try again.',
+    deleteFailed: 'The note wasn’t deleted.',
+    addFailed: 'The quote wasn’t added to the note.',
   },
   sources: {
     pageTitle: 'Sources · Ari',
@@ -746,9 +759,17 @@ export const en = {
     address: 'Address',
     notFound: 'This source isn’t in your Library',
     notFoundText: 'Its saves may have been deleted, or the link is wrong.',
+    loadFailed: 'Your sources didn’t load',
+    sourceFailed: 'This source didn’t load',
+    savesFailed: 'Its saves didn’t load.',
+    loadingMore: 'Loading more sources',
+    moreFailed: 'More sources didn’t load.',
   },
   palette: {
     label: 'Search and commands',
+    allResultsLabel: 'In Library',
+    // Opens the Library with only what the search finds: "All 12 results for “swarm”".
+    allResults: 'All {n} results for “{q}”',
     placeholder: 'Search or type a command',
     recent: 'Recent',
     saves: 'Saves',

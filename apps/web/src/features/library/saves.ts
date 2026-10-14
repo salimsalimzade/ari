@@ -51,6 +51,18 @@ export function usePageLabel() {
   return (save: Save) => (save.page ? fill(t().library.page, { n: save.page }) : undefined);
 }
 
+/** A source as ari-api sends it, alone or with a save. */
+export function toSource(response: NonNullable<SaveResponse['source']>): Source {
+  return {
+    id: response.id ?? '',
+    kind: response.kind === 'FILE' ? 'file' : 'website',
+    name: response.name ?? '',
+    title: response.title ?? response.name ?? '',
+    author: response.author,
+    url: response.url,
+  };
+}
+
 /** A save as ari-api sends it, in the shape the pages use. */
 export function toSave(response: SaveResponse): Save {
   return {
@@ -64,14 +76,7 @@ export function toSave(response: SaveResponse): Save {
     tags: response.tags ?? [],
     comment: response.comment ?? '',
     savedAt: new Date(response.createdAt ?? 0),
-    source: {
-      id: response.source?.id ?? '',
-      kind: response.source?.kind === 'FILE' ? 'file' : 'website',
-      name: response.source?.name ?? '',
-      title: response.source?.title ?? response.source?.name ?? '',
-      author: response.source?.author,
-      url: response.source?.url,
-    },
+    source: toSource(response.source ?? {}),
     page: response.pageNumber,
     section: response.section,
   };

@@ -113,8 +113,8 @@ function Reading(props: { save: Save }) {
       .map((note) => ({
         label: note.title.trim() || t().notes.untitledNote,
         icon: <NotesIcon />,
-        onSelect: () => {
-          notes.appendQuote(note.id, props.save.id);
+        onSelect: async () => {
+          if (!(await notes.appendQuote(note.id, props.save))) return;
           library.showToast({
             text: fill(t().reading.addedToNote, {
               title: note.title.trim() || t().notes.untitledNote,
@@ -126,7 +126,10 @@ function Reading(props: { save: Save }) {
       {
         label: t().notes.newNote,
         icon: <PlusIcon />,
-        onSelect: () => navigate(`/notes/${notes.create([props.save.id])}`),
+        onSelect: async () => {
+          const id = await notes.create([props.save]);
+          if (id) navigate(`/notes/${id}`);
+        },
       },
     ],
   ];

@@ -11,33 +11,25 @@ import { ProfilePhoto } from './profile-photo';
 
 /** The Account section: photo, profile and email, with its loading and error states. */
 export function AccountSettings() {
-  const { t } = useI18n();
   const me = createAsync(() => getMe(), { deferStream: true });
 
   return (
     <ErrorBoundary
       fallback={(_, reset) => (
-        <section class={styles.card} data-state="error">
-          <span class={styles['state-icon']}>
-            <AlertIcon />
-          </span>
-          <h2 class={styles['state-title']}>{t().account.loadFailed}</h2>
-          <p class={styles['state-text']}>{t().account.loadFailedText}</p>
-          <Button
-            icon={<RetryIcon />}
-            class={styles['state-retry']}
-            onClick={async () => {
-              await revalidate(getMe.key);
-              reset();
-            }}
-          >
-            {t().account.retry}
-          </Button>
-        </section>
+        <LoadFailed
+          onRetry={async () => {
+            await revalidate(getMe.key);
+            reset();
+          }}
+        />
       )}
     >
       <Suspense fallback={<AccountSkeleton />}>
-        <Show when={me()}>
+        <Show
+          when={me()}
+          // ari-api couldn't be reached.
+          fallback={<LoadFailed onRetry={() => revalidate(getMe.key)} />}
+        >
           {(user) => (
             <>
               <ProfilePhoto
@@ -51,6 +43,27 @@ export function AccountSettings() {
         </Show>
       </Suspense>
     </ErrorBoundary>
+  );
+}
+
+// The account didn't load: ari-api couldn't be reached, or answered with an error.
+function LoadFailed(props: { onRetry: () => Promise<unknown> }) {
+  const { t } = useI18n();
+  return (
+    <section class={styles.card} data-state="error" role="alert">
+      <span class={styles['state-icon']}>
+        <AlertIcon />
+      </span>
+      <h2 class={styles['state-title']}>{t().account.loadFailed}</h2>
+      <p class={styles['state-text']}>{t().account.loadFailedText}</p>
+      <Button
+        icon={<RetryIcon />}
+        class={styles['state-retry']}
+        onClick={() => void props.onRetry()}
+      >
+        {t().account.retry}
+      </Button>
+    </section>
   );
 }
 

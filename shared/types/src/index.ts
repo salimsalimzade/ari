@@ -6,12 +6,23 @@ export type {
   LoginError,
   LoginRequest,
   LoginResponse,
+  PasswordResetCheckRequest,
+  PasswordResetCheckResponse,
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
   RegisterError,
   RegisterRequest,
   RegisterResponse,
   UsernameAvailabilityResponse,
   VerifyEmailRequest,
 } from './auth';
+export type {
+  ListNotesQuery,
+  NoteListResponse,
+  NoteRequest,
+  NoteResponse,
+  NoteSummaryResponse,
+} from './notes';
 export type {
   CreateSaveError,
   CreateSaveRequest,
@@ -24,6 +35,12 @@ export type {
   UpdateSaveRequest,
   UpdateSaveResponse,
 } from './saves';
+export type {
+  ListSourcesQuery,
+  SourceCountsResponse,
+  SourcePageResponse,
+  SourceSummaryResponse,
+} from './sources';
 export type {
   ChangeEmailRequest,
   ChangeEmailResponse,

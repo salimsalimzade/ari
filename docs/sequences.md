@@ -15,6 +15,8 @@ The rules the UI relies on are in [architecture.md](architecture.md).
 9. [Add and verify an email](#9-add-and-verify-an-email)
 10. [Profile and photo](#10-profile-and-photo)
 11. [Reset a forgotten password](#11-reset-a-forgotten-password)
+12. [Sources](#12-sources)
+13. [Notes](#13-notes)
 
 ## 1. Register or sign in (F1)
 
@@ -124,8 +126,14 @@ sequenceDiagram
   page. ari-api can't start a page at a date, so the month jump loads pages until it gets there.
 - A failed request is the query's `failed` answer, not a thrown error: the list shows "Your library
   didn't load" with Try again, while the sidebar and search go on.
-- Search (`q`, F10) and a sources endpoint come later; until then search, Sources and the notes'
-  quote picker look through the saves the page has loaded.
+- Search (`q`, F10) is a filter like the others: `GET /saves?q=` and `/saves/facets?q=`. A save
+  matches when the words start words of its text, comment or section, or of its source's name,
+  title or author, or when the whole search is part of its text; accents and case don't count. The
+  palette asks for the first page and the counts 250 ms after the typing stops, showing the loaded
+  saves meanwhile; "All N results" puts the search in the Library's filters, where that page is
+  cached already. In the same round it asks `GET /sources?q=` (name, title, author) and
+  `GET /notes?q=` (title and writing) for its Sources and Notes groups. The notes' "/" quote
+  picker searches saves the same way. Sources has endpoints of its own (section 12).
 
 ## 5. Save and delete a highlight, free limit (F3, F4)
 
@@ -352,9 +360,8 @@ sequenceDiagram
 
 ## 11. Reset a forgotten password
 
-ari-api doesn't have these endpoints yet: the website calls timed stand-ins
-(`features/auth/password-reset.ts`) with this shape, which become `@ari/data-access` calls once
-ari-api has them and the types are generated.
+The website calls them through `@ari/data-access` (`requestPasswordReset`, `checkPasswordReset`,
+`resetPassword`), never refreshing on a 401: the user is signed out, and a 401 is a bad link.
 
 ```mermaid
 sequenceDiagram
@@ -401,3 +408,88 @@ sequenceDiagram
   on opening it.
 - `/login` gets the username in the history state rather than the address, so it never lands in a
   bookmark or a shared link; the page reads it once mounted, as the server never sees that state.
+- Saving the new password ends every session of the account, the website's and the extension's.
+  The save revalidates no query, so the page doesn't check the now used link again before it moves
+  on to `/login`.
+- Limits: 20 requests an hour from one address, and the account's emails (reset and verify links
+  together) 1 a minute, 5 a day; both answer `RATE_LIMITED`.
+
+## 12. Sources
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant W as ari server
+  participant A as ari-api
+  B->>W: GET /sources (cookies)
+  par The cards
+    W->>A: GET /api/v1/sources
+    A-->>W: 200 PageResponse (each source with its counts, colors, newest highlight, first and latest save; nextCursor), 40, latest saved from first
+  and The tabs
+    W->>A: GET /api/v1/sources/counts
+    A-->>W: 200 total and per kind
+  end
+  W-->>B: Streamed HTML with the data in it
+  B->>A: GET /api/v1/sources?cursor=... (the end of the cards in view)
+  B->>A: GET /api/v1/sources?kind=FILE (the Files tab; the cards stay until it answers)
+  B->>W: GET /sources/{id}
+  par The source
+    W->>A: GET /api/v1/sources/{id}
+    A-->>W: 200 the source with what is saved from it, or 404 NOT_FOUND
+  and Its saves
+    W->>A: GET /api/v1/saves?source={id}&order=PAGE
+    A-->>W: 200 PageResponse, in page order
+  end
+  W-->>B: Streamed HTML
+  B->>A: GET /api/v1/saves?source={id} (Newest first), then &cursor=... as the end comes into view
+```
+
+- `features/sources/queries.ts` holds the queries (`getSourcePage`, `getSourceCounts`,
+  `getSource`, `getSourceSaves`). Like the Library's, they answer `failed` instead of throwing, so
+  the page shows its error state with Try again. `getSource` answers null for a 404 (or a 400, an
+  id ari-api could not have made): the "isn't in your Library" page.
+- A source whose saves were all deleted leaves the list. Changing or deleting a save marks the
+  Sources queries stale, so they load again the next time a Sources page shows.
+- The sidebar's Sources count is how many sources the Library's facets list (they count over the
+  whole Library and refresh after every change); the page's tabs use `/sources/counts`.
+- Each source comes with the notes quoting its saves (the card's "In a note", "Quoted in"); a save's
+  own "In a note" comes from the notes list's `saveIds` (section 13).
+
+## 13. Notes
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant W as ari server
+  participant A as ari-api
+  B->>W: GET /notes/{id} (cookies)
+  par The list, on every signed-in page
+    W->>A: GET /api/v1/notes
+    A-->>W: 200 every note (title, saveIds, empty, createdAt, updatedAt), the one changed most recently first
+  and The open note
+    W->>A: GET /api/v1/notes/{id}
+    A-->>W: 200 the note's blocks, each quote with its save, or 404 NOT_FOUND
+  end
+  W-->>B: Streamed HTML with the data in it
+  B->>B: Hydrate, then make the note's draft
+  B->>A: POST /api/v1/notes (New note, Add to note's new note, Duplicate)
+  A-->>B: 201 the note, then GET /api/v1/notes again
+  B->>B: Typing changes the draft at once: "Saving…"
+  B->>A: PUT /api/v1/notes/{id} (title and every block), 700 ms after the typing stops
+  A-->>B: 200, "Saved", or "Not saved · Try again"
+  B->>A: DELETE /api/v1/notes/{id}
+  A-->>B: 204, then GET /api/v1/notes again
+```
+
+- `features/notes/queries.ts` holds the queries (`getNotes`, `getNote`) and the actions
+  (`createNoteAction`, `saveNoteAction`, `deleteNoteAction`). The queries answer `failed` instead of
+  throwing, so the page shows its error state with Try again; `getNote` answers null for a 404 (or
+  a 400): the "isn't in your Notes" page.
+- The page keeps a draft of each note it opened and sends the whole note, which replaces what
+  ari-api had. A note's saves go one at a time, each with the newest draft, so an older one never
+  lands last. A hidden tab saves at once; Add to note to an existing note loads it (when it isn't
+  open), quotes the save at its end and saves at once.
+- A quote is a save's id; ari-api answers each with the save as it is now, and the page shows the
+  Library's copy when it has one (with this visit's color and comment changes). A save deleted here
+  leaves the note's quotes, and deleting it marks the notes queries stale.
+- Changing a note's quotes marks the Sources queries stale, as they show the notes quoting them.

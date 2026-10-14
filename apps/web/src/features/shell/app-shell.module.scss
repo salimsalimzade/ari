@@ -131,6 +131,45 @@
   }
 }
 
+// While ari-api can't be reached: a bar over the page, with Try again.
+.offline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 16px 32px 0;
+  padding: 10px 14px;
+  border-radius: var(--ari-radius-md);
+  background: var(--ari-state-error-bg);
+  font-size: 13px;
+
+  @include mobile {
+    margin: 8px 16px 0;
+  }
+}
+
+.offline-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.offline-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ari-text-link);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  svg {
+    @include stroke-icon(14px);
+  }
+}
+
 .tabs {
   display: none;
 

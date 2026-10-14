@@ -2,6 +2,10 @@ import type {
   ExtensionCodeResponse,
   LoginRequest,
   LoginResponse,
+  PasswordResetCheckRequest,
+  PasswordResetCheckResponse,
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
   RegisterRequest,
   RegisterResponse,
   UsernameAvailabilityResponse,
@@ -43,4 +47,32 @@ export function checkUsername(username: string) {
 /** Public: the link may be opened signed out, and its 401 means a bad link, not a lost session. */
 export function verifyEmail(body: VerifyEmailRequest) {
   return request<void>('/api/v1/auth/verify-email', { method: 'POST', body, refresh: false });
+}
+
+// A forgotten password is public: the user is signed out, and a 401 means a bad link.
+
+/**
+ * Emails a reset link to the account with this username or verified email. Its errors say why
+ * none was sent: ACCOUNT_NOT_FOUND, NO_EMAIL, EMAIL_NOT_CONFIRMED or RATE_LIMITED.
+ */
+export function requestPasswordReset(body: PasswordResetRequest) {
+  return request<void>('/api/v1/auth/password-reset', { method: 'POST', body, refresh: false });
+}
+
+/** Whose password a reset link changes; checking never uses the link up. */
+export function checkPasswordReset(body: PasswordResetCheckRequest) {
+  return request<PasswordResetCheckResponse>('/api/v1/auth/password-reset/check', {
+    method: 'POST',
+    body,
+    refresh: false,
+  });
+}
+
+/** Sets the new password and uses the link up; every session of the account ends. */
+export function resetPassword(body: PasswordResetConfirmRequest) {
+  return request<void>('/api/v1/auth/password-reset/confirm', {
+    method: 'POST',
+    body,
+    refresh: false,
+  });
 }

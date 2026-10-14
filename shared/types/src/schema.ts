@@ -4,6 +4,31 @@
  */
 
 export interface paths {
+  '/api/v1/notes/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One note, with its blocks and the saves it quotes */
+    get: operations['get'];
+    /**
+     * Save a note as it is now
+     * @description The website saves as you type: the title and every block replace what was there, in one transaction.
+     */
+    put: operations['replace'];
+    post?: never;
+    /**
+     * Delete a note
+     * @description The saves it quotes stay in the Library.
+     */
+    delete: operations['delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me': {
     parameters: {
       query?: never;
@@ -73,7 +98,7 @@ export interface paths {
     };
     /**
      * The Library, newest first
-     * @description Keyset paging: send nextCursor back as cursor for the next page. It is left out on the last page. The first page is 40 saves unless limit says otherwise.
+     * @description Keyset paging: send nextCursor back as cursor for the next page. It is left out on the last page. The first page is 40 saves unless limit says otherwise. With order=PAGE and a source, a source's saves come in page order instead, as its page on the website lists them.
      */
     get: operations['list'];
     put?: never;
@@ -82,6 +107,30 @@ export interface paths {
      * @description The source is found by its address, or created the first time: saving from the same page again reuses it. An image clip goes in the multipart variant below.
      */
     post: operations['createWithImage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/notes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The Notes page, the note changed most recently first
+     * @description Every note, or those a search (q) finds, without its text: the title, the saves it quotes and its times.
+     */
+    get: operations['list_1'];
+    put?: never;
+    /**
+     * Start a note
+     * @description Empty, with quotes (Add to note), or a copy of another note's blocks (Duplicate).
+     */
+    post: operations['create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -173,6 +222,66 @@ export interface paths {
     put?: never;
     /** Replace both cookies using the ari_refresh cookie */
     post: operations['refresh'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/password-reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Email a link to reset a forgotten password
+     * @description Public. Takes a username, or an account's verified email, and emails a link to that account's verified email, in the language of the ari_lang cookie. The link works once, for 30 minutes. The answer says why no link was sent, so it tells whether an account exists; at most 20 requests an hour come from one address.
+     */
+    post: operations['requestPasswordReset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/password-reset/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set a new password with a reset link
+     * @description Public. Uses the link up and ends every session of the account, the website's and the extension's; the user signs in again with the new password.
+     */
+    post: operations['resetPassword'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/password-reset/check': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Whose password a reset link changes
+     * @description Public. Checking never uses the link up, so the reset page can check while it renders.
+     */
+    post: operations['checkPasswordReset'];
     delete?: never;
     options?: never;
     head?: never;
@@ -298,14 +407,14 @@ export interface paths {
      * One save, with its source and tags
      * @description For a page that shows a single save, such as the Library's reading view.
      */
-    get: operations['get'];
+    get: operations['get_1'];
     put?: never;
     post?: never;
     /**
      * Delete a save
      * @description An image clip's picture is deleted too.
      */
-    delete: operations['delete'];
+    delete: operations['delete_1'];
     options?: never;
     head?: never;
     /**
@@ -313,6 +422,66 @@ export interface paths {
      * @description A field that is left out stays as it is.
      */
     patch: operations['update'];
+    trace?: never;
+  };
+  '/api/v1/sources': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The Sources page, the source saved from most recently first
+     * @description Keyset paging, as in the Library: send nextCursor back as cursor for the next page. It is left out on the last page. The first page is 40 sources unless limit says otherwise. A source's saves come from GET /api/v1/saves?source={id}.
+     */
+    get: operations['list_2'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/sources/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * One source, with what is saved from it
+     * @description For a source's own page. Its saves, in page order, come from GET /api/v1/saves?source={id}&order=PAGE.
+     */
+    get: operations['get_2'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/sources/counts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * How many sources there are, of each kind
+     * @description The counts of the Sources page's kind tabs.
+     */
+    get: operations['counts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/v1/saves/facets': {
@@ -359,6 +528,83 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    NoteBlockRequest: {
+      /** @enum {string} */
+      kind: 'TEXT' | 'QUOTE';
+      /** @description TEXT only; empty for a blank paragraph */
+      text?: string;
+      /**
+       * Format: uuid
+       * @description QUOTE only: one of the user's saves
+       */
+      saveId?: string;
+    };
+    NoteRequest: {
+      /**
+       * @description Trimmed; empty or left out until the note is named
+       * @example Swarm decisions
+       */
+      title?: string;
+      /** @description Paragraphs and quotes, in order */
+      blocks: components['schemas']['NoteBlockRequest'][];
+    };
+    NoteBlockResponse: {
+      /** @enum {string} */
+      kind?: 'TEXT' | 'QUOTE';
+      /** @description TEXT only */
+      text?: string;
+      /** @description QUOTE only */
+      save?: components['schemas']['SaveResponse'];
+    };
+    NoteResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @description Empty until the note is named */
+      title?: string;
+      blocks?: components['schemas']['NoteBlockResponse'][];
+      /** Format: date-time */
+      createdAt?: string;
+      /**
+       * Format: date-time
+       * @description The last edit; the same as createdAt until the first one
+       */
+      updatedAt?: string;
+    };
+    SaveResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      kind?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
+      /** @enum {string} */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+      /** @enum {string} */
+      clipType?: 'TABLE' | 'IMAGE';
+      text?: string;
+      contentMd?: string;
+      imageUrl?: string;
+      comment?: string;
+      section?: string;
+      /** Format: int32 */
+      pageNumber?: number;
+      /** @description Alphabetical */
+      tags?: string[];
+      source?: components['schemas']['SourceResponse'];
+      /**
+       * Format: date-time
+       * @description When it was saved; the Library groups by day
+       */
+      createdAt?: string;
+    };
+    SourceResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      kind?: 'WEBSITE' | 'FILE';
+      name?: string;
+      title?: string;
+      author?: string;
+      url?: string;
+    };
     ProfileRequest: {
       /**
        * @description 3 to 30 letters, digits, underscores or dots; stored in lowercase
@@ -456,41 +702,6 @@ export interface components {
        */
       author?: string;
     };
-    SaveResponse: {
-      /** Format: uuid */
-      id?: string;
-      /** @enum {string} */
-      kind?: 'HIGHLIGHT' | 'CLIP' | 'IMPORT';
-      /** @enum {string} */
-      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
-      /** @enum {string} */
-      clipType?: 'TABLE' | 'IMAGE';
-      text?: string;
-      contentMd?: string;
-      imageUrl?: string;
-      comment?: string;
-      section?: string;
-      /** Format: int32 */
-      pageNumber?: number;
-      /** @description Alphabetical */
-      tags?: string[];
-      source?: components['schemas']['SourceResponse'];
-      /**
-       * Format: date-time
-       * @description When it was saved; the Library groups by day
-       */
-      createdAt?: string;
-    };
-    SourceResponse: {
-      /** Format: uuid */
-      id?: string;
-      /** @enum {string} */
-      kind?: 'WEBSITE' | 'FILE';
-      name?: string;
-      title?: string;
-      author?: string;
-      url?: string;
-    };
     ExtensionCodeResponse: {
       code?: string;
     };
@@ -517,6 +728,30 @@ export interface components {
        * @example 1815-12-10
        */
       birthDate: string;
+    };
+    PasswordResetRequest: {
+      /**
+       * @description A username, or an account's verified email
+       * @example ada.lovelace
+       */
+      login: string;
+    };
+    PasswordResetConfirmRequest: {
+      /** @description The code from the link in the email */
+      code: string;
+      /**
+       * @description The new password: 8 characters to 72 bytes, as at sign-up
+       * @example correct horse
+       */
+      password: string;
+    };
+    PasswordResetCheckRequest: {
+      /** @description The code from the link in the email */
+      code: string;
+    };
+    PasswordResetCheckResponse: {
+      /** @example ada.lovelace */
+      username?: string;
     };
     LoginRequest: {
       /** @example adalovelace */
@@ -545,6 +780,77 @@ export interface components {
       comment?: string;
       /** @description Replaces all tags: up to 10, names that differ only in case are one tag */
       tags?: string[];
+    };
+    LatestHighlight: {
+      text?: string;
+      /** @enum {string} */
+      color?: 'YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE';
+    };
+    PageResponseSourceSummaryResponse: {
+      items?: components['schemas']['SourceSummaryResponse'][];
+      nextCursor?: string;
+    };
+    QuotingNote: {
+      /** Format: uuid */
+      id?: string;
+      /** @description Empty until the note is named */
+      title?: string;
+      /** Format: int32 */
+      quotesCount?: number;
+    };
+    SourceSummaryResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @enum {string} */
+      kind?: 'WEBSITE' | 'FILE';
+      /** @description The site's name, or the file's */
+      name?: string;
+      title?: string;
+      author?: string;
+      url?: string;
+      /**
+       * Format: int32
+       * @description Every save from it
+       */
+      savesCount?: number;
+      /** Format: int32 */
+      highlightsCount?: number;
+      /** Format: int32 */
+      clipsCount?: number;
+      /**
+       * Format: int32
+       * @description Highlights saved from an imported file
+       */
+      importsCount?: number;
+      /** @description The colors its saves use, most used first */
+      colors?: ('YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE')[];
+      latestHighlight?: components['schemas']['LatestHighlight'];
+      /** @description The notes quoting its saves, the one changed most recently first */
+      notes?: components['schemas']['QuotingNote'][];
+      /**
+       * Format: date-time
+       * @description When the first save from it was made
+       */
+      firstSavedAt?: string;
+      /**
+       * Format: date-time
+       * @description When the latest save from it was made; the list is in this order
+       */
+      lastSavedAt?: string;
+    };
+    KindCount: {
+      /** @enum {string} */
+      kind?: 'WEBSITE' | 'FILE';
+      /** Format: int32 */
+      count?: number;
+    };
+    SourceCountsResponse: {
+      /**
+       * Format: int32
+       * @description Sources of every kind
+       */
+      total?: number;
+      kinds?: components['schemas']['KindCount'][];
     };
     PageResponseSaveResponse: {
       items?: components['schemas']['SaveResponse'][];
@@ -585,6 +891,23 @@ export interface components {
       /** Format: int32 */
       count?: number;
     };
+    NoteSummaryResponse: {
+      /** Format: uuid */
+      id?: string;
+      /** @description Empty until the note is named */
+      title?: string;
+      /** @description The saves it quotes, in order */
+      saveIds?: string[];
+      /** @description No title, no quote and no paragraph with anything in it */
+      empty?: boolean;
+      /** Format: date-time */
+      createdAt?: string;
+      /**
+       * Format: date-time
+       * @description The last edit; the list is in this order
+       */
+      updatedAt?: string;
+    };
     UsernameAvailabilityResponse: {
       username?: string;
       available?: boolean;
@@ -598,6 +921,133 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The note */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+    };
+  };
+  replace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NoteRequest'];
+      };
+    };
+    responses: {
+      /** @description The note as saved */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED or INVALID_NOTE */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+    };
+  };
+  delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NOT_FOUND, or it is someone else's */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   me: {
     parameters: {
       query?: never;
@@ -852,7 +1302,11 @@ export interface operations {
         color?: ('YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE')[];
         /** @description Source ids */
         source?: string[];
-        /** @description nextCursor of the page before; left out for the first page */
+        /** @description Search: words that start words of a save's text, comment or section, or of its source's name, title or author; or part of its text. Accents and case don't count */
+        q?: string;
+        /** @description NEWEST (newest first) when left out. PAGE: where they are in their source, by page number for a file, then in the order they were saved */
+        order?: 'NEWEST' | 'PAGE';
+        /** @description nextCursor of the page before, in the same order; left out for the first page */
         cursor?: string;
         /** @description Page size, 40 when left out */
         limit?: number;
@@ -872,7 +1326,7 @@ export interface operations {
           '*/*': components['schemas']['PageResponseSaveResponse'];
         };
       };
-      /** @description VALIDATION_FAILED or INVALID_CURSOR */
+      /** @description VALIDATION_FAILED, or INVALID_CURSOR (also a cursor of the other order) */
       400: {
         headers: {
           [name: string]: unknown;
@@ -944,6 +1398,89 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['SaveResponse'];
+        };
+      };
+    };
+  };
+  list_1: {
+    parameters: {
+      query?: {
+        /** @description Search: words that start words of a note's title or paragraphs, or part of them. Accents and case don't count; left out for every note */
+        q?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The notes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteSummaryResponse'][];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteSummaryResponse'][];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteSummaryResponse'][];
+        };
+      };
+    };
+  };
+  create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NoteRequest'];
+      };
+    };
+    responses: {
+      /** @description The note */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED or INVALID_NOTE */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['NoteResponse'];
         };
       };
     };
@@ -1131,6 +1668,150 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  requestPasswordReset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordResetRequest'];
+      };
+    };
+    responses: {
+      /** @description The link is on its way */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ACCOUNT_NOT_FOUND: no account has that username or verified email */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description NO_EMAIL: the account has no email; EMAIL_NOT_CONFIRMED: its email (or the one given) still waits for its verify link */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description RATE_LIMITED: over 20 requests an hour from this address, or the account's 1 email a minute, 5 a day */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  resetPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordResetConfirmRequest'];
+      };
+    };
+    responses: {
+      /** @description The password is changed */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_CODE: an unknown link */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CODE_EXPIRED: over 30 minutes old; CODE_USED: it changed a password already */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  checkPasswordReset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PasswordResetCheckRequest'];
+      };
+    };
+    responses: {
+      /** @description The link works, for this username */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PasswordResetCheckResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PasswordResetCheckResponse'];
+        };
+      };
+      /** @description INVALID_CODE: an unknown link */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PasswordResetCheckResponse'];
+        };
+      };
+      /** @description CODE_EXPIRED: over 30 minutes old; CODE_USED: it changed a password already */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PasswordResetCheckResponse'];
+        };
       };
     };
   };
@@ -1340,7 +2021,7 @@ export interface operations {
       };
     };
   };
-  get: {
+  get_1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1380,7 +2061,7 @@ export interface operations {
       };
     };
   };
-  delete: {
+  delete_1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1467,6 +2148,122 @@ export interface operations {
       };
     };
   };
+  list_2: {
+    parameters: {
+      query?: {
+        /** @description The kind tab; left out for all */
+        kind?: 'WEBSITE' | 'FILE';
+        /** @description Search: words that start words of a source's name, title or author. Accents and case don't count */
+        q?: string;
+        /** @description nextCursor of the page before; left out for the first page */
+        cursor?: string;
+        /** @description Page size, 40 when left out */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of sources */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSourceSummaryResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED or INVALID_CURSOR */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSourceSummaryResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['PageResponseSourceSummaryResponse'];
+        };
+      };
+    };
+  };
+  get_2: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The source */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SourceSummaryResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SourceSummaryResponse'];
+        };
+      };
+      /** @description NOT_FOUND: no such source, someone else's, or nothing is saved from it any more */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SourceSummaryResponse'];
+        };
+      };
+    };
+  };
+  counts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The counts */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SourceCountsResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['SourceCountsResponse'];
+        };
+      };
+    };
+  };
   facets: {
     parameters: {
       query?: {
@@ -1477,6 +2274,8 @@ export interface operations {
         color?: ('YELLOW' | 'GREEN' | 'BLUE' | 'PINK' | 'PURPLE')[];
         /** @description Source ids */
         source?: string[];
+        /** @description Search, as for the list */
+        q?: string;
       };
       header?: never;
       path?: never;

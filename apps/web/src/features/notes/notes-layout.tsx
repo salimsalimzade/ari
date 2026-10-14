@@ -2,6 +2,7 @@ import { Button } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
 import { useLocation } from '@solidjs/router';
 import { type JSX, Show } from 'solid-js';
+import { AlertIcon } from '~/features/library/icons';
 import { NotesIcon } from '~/features/shell/icons';
 import { MobileHeader } from '~/features/shell/mobile-header';
 import { useI18n } from '~/i18n/i18n';
@@ -18,7 +19,7 @@ export function NotesLayout(props: { children: JSX.Element }) {
   const location = useLocation();
   const isIndex = () => location.pathname.replace(/\/$/, '') === '/notes';
   return (
-    <Show when={notes.list().length} fallback={<NotesEmpty />}>
+    <Show when={notes.list().length} fallback={notes.failed() ? <NotesFailed /> : <NotesEmpty />}>
       <div class={styles.layout} data-index={isIndex() ? '' : undefined}>
         <Show when={isIndex()}>
           <MobileHeader />
@@ -40,6 +41,28 @@ export function NotesHome() {
         <NotesIcon />
       </span>
       <p class={styles['state-text']}>{t().notes.pick}</p>
+    </div>
+  );
+}
+
+function NotesFailed() {
+  const { t } = useI18n();
+  const notes = useNotes();
+  return (
+    <div class={styles.empty}>
+      <Title>{t().notes.pageTitle}</Title>
+      <MobileHeader />
+      <h2 class={styles['empty-heading']}>{t().notes.title}</h2>
+      <div role="alert" class={styles.state}>
+        <span class={styles['error-icon']}>
+          <AlertIcon />
+        </span>
+        <h3 class={styles['state-title']}>{t().notes.loadFailed}</h3>
+        <p class={styles['state-text']}>{t().library.loadFailedText}</p>
+        <Button class={styles['state-action']} onClick={notes.reload}>
+          {t().library.retry}
+        </Button>
+      </div>
     </div>
   );
 }

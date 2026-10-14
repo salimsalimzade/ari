@@ -8,45 +8,39 @@ import {
   Tag,
 } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
-import { A, useNavigate } from '@solidjs/router';
+import { A, createAsync, revalidate, useNavigate } from '@solidjs/router';
+import { createSignal, For, Match, Show, Switch, startTransition } from 'solid-js';
 import {
-  createEffect,
-  createMemo,
-  createSignal,
-  For,
-  Match,
-  on,
-  onCleanup,
-  onMount,
-  Show,
-  Switch,
-} from 'solid-js';
-import { CopyIcon, ExternalIcon, MessageIcon, ScissorsIcon } from '~/features/library/icons';
+  CopyIcon,
+  ExternalIcon,
+  MessageIcon,
+  RetryIcon,
+  ScissorsIcon,
+} from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
+import type { SavePage } from '~/features/library/queries';
 import { type Save, usePageLabel } from '~/features/library/saves';
 import { MoreIcon } from '~/features/notes/icons';
-import { useNotes } from '~/features/notes/notes-store';
 import { BackIcon, LibraryIcon, NotesIcon } from '~/features/shell/icons';
 import { MobileHeader } from '~/features/shell/mobile-header';
 import { fill, plural, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
 import { ColorDots } from './color-dots';
-import { type SourceSummary, spotUrl, useKindLabel, useSaveDate, useSources } from './sources';
+import { createPagedList } from './paged-list';
+import { getSource, getSourceSaves, type SaveOrder } from './queries';
+import { useQuoted } from './quoted';
+import { type SourceSummary, spotUrl, useKindLabel, useSaveDate } from './sources';
 import styles from './sources.module.scss';
 
-type Order = 'page' | 'newest';
-
-// Saves on the page at first, and how many more each time the end comes into view.
-const pageSize = 30;
-const pageNumber = (save: Save) => save.page ?? 0;
-
-/** /sources/:id: one website or file, with every save from it the page has loaded. */
+/** /sources/:id: one website or file, with its saves a page at a time. */
 export function SourcePage(props: { id: string }) {
   const { t } = useI18n();
-  const sources = useSources();
+  const [order, setOrder] = createSignal<SaveOrder>('page');
+  // Both at once, so the server asks ari-api for them side by side.
+  const summary = createAsync(() => getSource(props.id), { deferStream: true });
+  const first = createAsync(() => getSourceSaves(props.id, order()), { deferStream: true });
   return (
-    <Show
-      when={sources.find(props.id)}
+    <Switch
       fallback={
         <div class={styles.missing}>
           <Title>{t().sources.pageTitle}</Title>
@@ -58,74 +52,72 @@ export function SourcePage(props: { id: string }) {
         </div>
       }
     >
-      {(summary) => <SourceView summary={summary()} isQuoted={sources.isQuoted} />}
-    </Show>
+      <Match when={summary() === 'failed'}>
+        <div role="alert" class={styles.missing}>
+          <Title>{t().sources.pageTitle}</Title>
+          <h1 class={styles['missing-title']}>{t().sources.sourceFailed}</h1>
+          <p class={styles['missing-text']}>{t().library.loadFailedText}</p>
+          <Button
+            icon={<RetryIcon />}
+            onClick={() =>
+              startTransition(() => revalidate([getSource.keyFor(props.id), getSourceSaves.key]))
+            }
+          >
+            {t().library.retry}
+          </Button>
+        </div>
+      </Match>
+      <Match when={summary()}>
+        {(found) => (
+          <SourceView
+            summary={found() as SourceSummary}
+            first={first}
+            order={order()}
+            // The saves stay until ari-api has answered in the new order.
+            setOrder={(next) => startTransition(() => setOrder(next))}
+          />
+        )}
+      </Match>
+    </Switch>
   );
 }
 
-function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) => boolean }) {
+function SourceView(props: {
+  summary: SourceSummary;
+  first: () => SavePage | undefined;
+  order: SaveOrder;
+  setOrder: (order: SaveOrder) => void;
+}) {
   const { t } = useI18n();
   const format = useFormat();
   const library = useLibrary();
-  const notes = useNotes();
   const navigate = useNavigate();
   const kindLabel = useKindLabel();
-  const [order, setOrder] = createSignal<Order>('page');
-  const [shown, setShown] = createSignal(pageSize);
-  let sentinel!: HTMLDivElement;
-
+  const quoted = useQuoted();
   const source = () => props.summary.source;
-  const saves = () => props.summary.saves;
+  const list = createPagedList({
+    first: () => props.first(),
+    items: (page) => page.saves,
+    next: (cursor) => getSourceSaves(source().id, props.order, cursor),
+  });
   const savedCount = () =>
-    fill(plural(saves().length, t().library.count), { n: format.number(saves().length) });
+    fill(plural(props.summary.saves, t().library.count), {
+      n: format.number(props.summary.saves),
+    });
   // "meadowquarterly.example/honeybees-new-home", without the https://.
   const address = () => source().url?.replace(/^https?:\/\//, '');
-
-  // Files go by page. Websites have no positions yet, so their saves keep the order they were
-  // made in, which is usually the order they were read in.
-  const ordered = createMemo(() =>
-    order() === 'newest'
-      ? saves()
-      : [...saves()].reverse().sort((a, b) => pageNumber(a) - pageNumber(b)),
-  );
-  createEffect(on([() => props.summary.id, order], () => setShown(pageSize), { defer: true }));
-
-  // More saves while the end of the list is in view. Observing again after each step checks
-  // whether the end is still in view, e.g. on a tall screen.
-  onMount(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || shown() >= ordered().length) return;
-        setShown((count) => count + pageSize);
-        requestAnimationFrame(() => {
-          observer.unobserve(sentinel);
-          observer.observe(sentinel);
-        });
-      },
-      { rootMargin: '0px 0px 240px 0px' },
-    );
-    observer.observe(sentinel);
-    onCleanup(() => observer.disconnect());
-  });
+  // This visit's color and comment changes, which ari-api has or is getting.
+  const saves = () => list.items().map(library.withChanges);
 
   const savedKinds = () =>
     (['highlight', 'clip', 'import'] as const)
       .flatMap((kind) => {
-        const count = saves().filter((save) => save.kind === kind).length;
+        const count = props.summary.kinds[kind];
         return count
           ? [fill(plural(count, t().sources.savedKinds[kind]), { n: format.number(count) })]
           : [];
       })
       .join(', ');
-  // The notes quoting this source, with how many of its saves each one quotes.
-  const quotedIn = () =>
-    notes
-      .list()
-      .map((note) => ({
-        note,
-        count: notes.quotesOf(note).filter((save) => save.source.id === source().id).length,
-      }))
-      .filter((item) => item.count);
 
   const copyAddress = async () => {
     const url = source().url;
@@ -188,20 +180,18 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
         <SourceAvatar
           initial={source().name.charAt(0).toUpperCase()}
           size="xl"
-          class={`${styles['hero-avatar']} ${props.summary.kind === 'file' ? styles['file-avatar'] : ''}`}
+          class={`${styles['hero-avatar']} ${source().kind === 'file' ? styles['file-avatar'] : ''}`}
         />
         <p class={styles.kicker}>
           <span class={styles['kicker-name']}>{source().name}</span>
-          <span class={styles['wide-only']}> · {kindLabel(props.summary)}</span>
+          <span class={styles['wide-only']}> · {kindLabel(source())}</span>
           <span class={styles['phone-only']}>{savedCount()}</span>
         </p>
         <h1 class={styles['hero-title']}>{source().title}</h1>
         <p class={styles.byline}>
           {[
             source().author,
-            fill(t().sources.firstSaved, {
-              date: format.date(saves()[saves().length - 1].savedAt),
-            }),
+            fill(t().sources.firstSaved, { date: format.date(props.summary.firstSavedAt) }),
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -220,17 +210,17 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
         <section class={styles.saves} aria-labelledby="source-saves">
           <div class={styles['saves-head']}>
             <h2 id="source-saves" class={styles['saves-count']}>
-              {fill(plural(saves().length, t().sources.saves), {
-                n: format.number(saves().length),
+              {fill(plural(props.summary.saves, t().sources.saves), {
+                n: format.number(props.summary.saves),
               })}
             </h2>
-            <Show when={saves().length > 1}>
+            <Show when={props.summary.saves > 1}>
               <SegmentedControl
                 size="sm"
                 class={styles.order}
                 label={t().sources.order}
-                value={order()}
-                onChange={(value) => setOrder(value as Order)}
+                value={props.order}
+                onChange={(value) => props.setOrder(value as SaveOrder)}
                 options={(['page', 'newest'] as const).map((value) => ({
                   value,
                   label: t().sources.orders[value],
@@ -238,16 +228,48 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
               />
             </Show>
           </div>
+          <Show when={list.failed()}>
+            <p role="alert" class={styles['end-note']}>
+              {t().sources.savesFailed}{' '}
+              <button
+                type="button"
+                class={styles['text-button']}
+                onClick={() => startTransition(() => revalidate(getSourceSaves.key))}
+              >
+                {t().library.retry}
+              </button>
+            </p>
+          </Show>
           <ol class={styles['save-list']}>
-            <For each={ordered().slice(0, shown())}>
+            <For each={saves()}>
               {(save) => (
                 <li>
-                  <SaveItem save={save} url={source().url} quoted={props.isQuoted(save.id)} />
+                  <SaveItem save={save} url={source().url} quoted={quoted(save.id)} />
                 </li>
               )}
             </For>
           </ol>
-          <div ref={sentinel} />
+          <Show when={list.loadingMore()}>
+            <div role="status" aria-label={t().library.loadingMore}>
+              <For each={[1, 2]}>
+                {() => (
+                  <span class={styles.skeleton} aria-hidden="true">
+                    <span class={styles.bone} data-shape="short" />
+                    <span class={styles.bone} />
+                  </span>
+                )}
+              </For>
+            </div>
+          </Show>
+          <Show when={list.loadFailed()}>
+            <p role="alert" class={styles['end-note']}>
+              {t().library.moreFailed}{' '}
+              <button type="button" class={styles['text-button']} onClick={list.loadMore}>
+                {t().library.retry}
+              </button>
+            </p>
+          </Show>
+          <div ref={list.sentinel} />
         </section>
         <aside class={styles.about} aria-labelledby="source-about">
           <h2 id="source-about" class={styles['about-title']}>
@@ -266,17 +288,17 @@ function SourceView(props: { summary: SourceSummary; isQuoted: (saveId: string) 
                 </dd>
               </div>
             </Show>
-            <Show when={quotedIn().length}>
+            <Show when={props.summary.notes.length}>
               <div class={styles.fact}>
                 <dt class={styles['fact-label']}>{t().sources.quotedIn}</dt>
                 <dd class={styles['note-links']}>
-                  <For each={quotedIn()}>
-                    {(item) => (
-                      <A href={`/notes/${item.note.id}`} class={styles['note-link']}>
+                  <For each={props.summary.notes}>
+                    {(note) => (
+                      <A href={`/notes/${note.id}`} class={styles['note-link']}>
                         <NotesIcon />
                         {fill(t().sources.quotedNote, {
-                          title: item.note.title.trim() || t().notes.untitledNote,
-                          n: format.number(item.count),
+                          title: note.title.trim() || t().notes.untitledNote,
+                          n: format.number(note.quotes),
                         })}
                       </A>
                     )}

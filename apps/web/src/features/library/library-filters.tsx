@@ -100,15 +100,29 @@ export function LibraryFilters() {
               </button>
             )}
           </For>
-          <Show when={chips().length}>
+          <Show when={chips().length || library.filters.q}>
             <button type="button" class={styles.clear} onClick={library.clearFacets}>
               {t().library.clear}
             </button>
           </Show>
         </div>
       </div>
-      <Show when={chips().length}>
+      <Show when={chips().length || library.filters.q}>
         <div class={styles.chips}>
+          <Show when={library.filters.q}>
+            {(q) => (
+              <button
+                type="button"
+                class={styles.chip}
+                aria-label={fill(t().library.removeFilter, { name: `“${q()}”` })}
+                onClick={library.clearSearch}
+              >
+                <SearchIcon />
+                {`“${q()}”`}
+                <CloseIcon />
+              </button>
+            )}
+          </Show>
           <For each={chips()}>
             {(chip) => (
               <button
