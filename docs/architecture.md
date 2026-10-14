@@ -182,7 +182,8 @@ Extension rules:
 - Pages and the extension's parts talk through the typed messages in `src/messages.ts`; only the
   background captures the screen, opens tabs and calls `ari-api`.
 - The website and the extension talk only on the website's own origin, through `window.postMessage`
-  and `@ari/utils`' `BridgeMessage`: who is signed in, a sign-in code, and logging out. By default
+  and `@ari/utils`' `BridgeMessage`: who is signed in, a sign-in code, and logging out. That is all
+  the extension does there: Ari's own pages get no toolbar, side panel or clipping. By default
   signing in or out on the website does the same for the extension in that browser; an account
   signed in with its password in the popup stays until the extension logs out. After its own Sign
   out, the website's codes no longer sign it in: only an account's password in the popup does.

@@ -23,7 +23,7 @@ import {
 } from '~/icons';
 import { copyLabel, shortcutLabel } from '~/keys';
 import { type Message, type SaveSelectionResult, sendToBackground, sendToTab } from '~/messages';
-import { type WebsitePage, websiteUrl } from '~/website';
+import { isAriWebsite, type WebsitePage, websiteUrl } from '~/website';
 import {
   type Account,
   addAccountNext,
@@ -108,9 +108,10 @@ export function Popup() {
       : undefined;
   };
 
+  // A website Ari saves on: not the browser's own pages, local files or Ari's website.
   const site = () => {
     const url = tab()?.url;
-    return isWebsite(url) ? new URL(url).hostname : undefined;
+    return isWebsite(url) && !isAriWebsite(url) ? new URL(url).hostname : undefined;
   };
   const shortcut = (name: string) => {
     const keys = commands().find((command) => command.name === name)?.shortcut;
@@ -133,7 +134,7 @@ export function Popup() {
   // A website's page opens it itself (a page loaded before Ari can't); the welcome tab is Ari's own.
   const openPanel = () => {
     const current = tab();
-    if (isWebsite(current?.url)) return void ask({ type: 'open-panel' });
+    if (site()) return void ask({ type: 'open-panel' });
     void sendToBackground({ type: 'set-panel', open: true, windowId: current?.windowId }).then(() =>
       window.close(),
     );
@@ -221,15 +222,20 @@ export function Popup() {
           <div class={styles['page-text']}>
             <span class={styles['page-label']}>{t.popup.thisPage}</span>
             <span class={styles['page-count']}>
-              <Show when={tabPage(tab()?.url)} fallback={t.popup.unsupported}>
+              <Show
+                when={tabPage(tab()?.url)}
+                fallback={isAriWebsite(tab()?.url) ? t.popup.ariWebsite : t.popup.unsupported}
+              >
                 {counts(saved(), user()?.id)}
               </Show>
             </span>
           </div>
-          <button type="button" class={styles['panel-link']} onClick={openPanel}>
-            {t.popup.sidePanel}
-            <ChevronRightIcon />
-          </button>
+          <Show when={tabPage(tab()?.url)}>
+            <button type="button" class={styles['panel-link']} onClick={openPanel}>
+              {t.popup.sidePanel}
+              <ChevronRightIcon />
+            </button>
+          </Show>
         </section>
       </Match>
     </Choose>

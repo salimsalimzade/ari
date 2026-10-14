@@ -418,13 +418,18 @@ function createLibrary(openFilePicker: () => void) {
       restart();
       setFrom(month && endOfMonth(month));
     },
-    /** Shows the list from a save's day, with the save tinted. */
-    reveal: (save: Save) => {
-      setAllFilters({});
-      setView('list');
-      setFrom(endOfDay(save.savedAt));
-      setPicked(save.id);
-    },
+    /**
+     * Shows the list from a save's day, with the save tinted. All in one transition: a
+     * transition runs a moment later, so a restart in its own would undo the day and the tint.
+     */
+    reveal: (save: Save) =>
+      startTransition(() => {
+        setFilters({ ...noFilter });
+        restart();
+        setView('list');
+        setFrom(endOfDay(save.savedAt));
+        setPicked(save.id);
+      }),
 
     files,
     space,

@@ -498,6 +498,8 @@ export const en = {
     backToNewest: 'Back to newest saves',
     jumpTo: 'Jump to',
     jumpToMonth: 'Jump to month',
+    // After the months loaded so far: goes on to older saves.
+    earlier: 'Earlier',
     loadingMore: 'Loading more saves',
     endFiltered: 'That’s every save that matches.',
     endAll: 'That’s everything. These were your first saves.',
@@ -732,6 +734,8 @@ export const en = {
     imported: 'Imported {date}',
     inNote: 'In a note',
     noneOfKind: 'No sources of this kind yet.',
+    noMatch: 'No sources match “{q}”.',
+    clearSearch: 'Clear search',
     emptyTitle: 'No sources yet',
     emptyText: 'Every website or file you save from gets its own page here.',
     emptyAction: 'Go to Library',

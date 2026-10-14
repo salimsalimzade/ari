@@ -1,7 +1,6 @@
 import { bridgeMessage, postBridgeMessage } from '@ari/utils';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { sendToBackground } from '~/messages';
-import { websiteOrigin } from '~/website';
 import { account, expired, followsWebsite, loggedOut, websiteAccount } from './session';
 
 /**
@@ -12,7 +11,6 @@ import { account, expired, followsWebsite, loggedOut, websiteAccount } from './s
  * @ari/utils' extension-bridge).
  */
 export function followWebsiteSignIn(ctx: ContentScriptContext) {
-  if (location.origin !== websiteOrigin) return;
   ctx.addEventListener(window, 'message', async (event) => {
     const message = bridgeMessage(event, 'website');
     if (message?.type === 'signed-in') {

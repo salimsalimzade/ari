@@ -1,9 +1,8 @@
 import { Button, HighlightMark, SegmentedControl, SourceAvatar, Tag } from '@ari/ui-kit';
 import { Title } from '@solidjs/meta';
 import { A, createAsync, revalidate } from '@solidjs/router';
-import { createSignal, For, Match, Show, Switch, startTransition } from 'solid-js';
-import { AlertIcon, GlobeIcon, SearchIcon } from '~/features/library/icons';
-import { useAppleKeyboard } from '~/features/library/keyboard';
+import { createSignal, For, Match, onCleanup, Show, Switch, startTransition } from 'solid-js';
+import { AlertIcon, CloseIcon, GlobeIcon, SearchIcon } from '~/features/library/icons';
 import { useLibrary } from '~/features/library/library-store';
 import { NotesIcon } from '~/features/shell/icons';
 import { MobileHeader } from '~/features/shell/mobile-header';
@@ -17,15 +16,26 @@ import styles from './sources.module.scss';
 
 type KindFilter = 'all' | SourceKind;
 
-/** /sources: a card for every website and file in the Library, the latest saved from first. */
+// How long the search waits for more typing before it asks ari-api.
+const searchDelay = 250;
+
+/**
+ * /sources: a card for every website and file in the Library, the latest saved from first. Its
+ * search looks through the sources only (name, title, author); ⌘K / Ctrl K searches everything.
+ */
 export function SourcesPage() {
   const { t } = useI18n();
   const format = useFormat();
   const library = useLibrary();
-  const apple = useAppleKeyboard();
   const [kind, setKind] = createSignal<KindFilter>('all');
+  // What is typed in the search, and what the cards are searched for once the typing stops.
+  const [typed, setTyped] = createSignal('');
+  const [q, setQ] = createSignal('');
+  // Phones show the search field once the header's search button opens it.
+  const [searchOpen, setSearchOpen] = createSignal(false);
+  let field: HTMLInputElement | undefined;
   const counts = createAsync(() => getSourceCounts(), { deferStream: true });
-  const first = createAsync(() => getSourcePage(kind()), { deferStream: true });
+  const first = createAsync(() => getSourcePage(kind(), q()), { deferStream: true });
 
   const total = () => counts()?.all ?? 0;
   const failed = () => !!counts()?.failed || !!first()?.failed;
@@ -34,12 +44,28 @@ export function SourcesPage() {
       fill(plural(total(), t().sources.count), { n: format.number(total()) }),
       fill(plural(library.total(), t().sources.saves), { n: format.number(library.total()) }),
     ].join(' · ');
+
+  // The cards stay until ari-api has answered for the new search.
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  const search = (text: string, now = false) => {
+    setTyped(text);
+    clearTimeout(searchTimer);
+    const run = () => startTransition(() => setQ(text.trim()));
+    if (now) run();
+    else searchTimer = setTimeout(run, searchDelay);
+  };
+  onCleanup(() => clearTimeout(searchTimer));
+
   const searchButton = () => (
     <button
       type="button"
       class={styles['icon-button']}
       aria-label={t().sources.search}
-      onClick={() => library.setPaletteOpen(true)}
+      aria-expanded={searchOpen()}
+      onClick={() => {
+        setSearchOpen(true);
+        field?.focus();
+      }}
     >
       <SearchIcon />
     </button>
@@ -53,11 +79,37 @@ export function SourcesPage() {
         <h1 class={styles.title}>{t().sources.title}</h1>
         <Show when={total()}>
           <p class={styles.count}>{count()}</p>
-          <button type="button" class={styles.search} onClick={() => library.setPaletteOpen(true)}>
+          <label class={styles.search} data-open={searchOpen() || typed() ? '' : undefined}>
             <SearchIcon />
-            <span class={styles['search-text']}>{t().sources.search}</span>
-            <kbd class={styles.kbd}>{apple() ? '⌘K' : 'Ctrl K'}</kbd>
-          </button>
+            <input
+              ref={field}
+              type="search"
+              class={styles['search-input']}
+              placeholder={t().sources.search}
+              aria-label={t().sources.search}
+              value={typed()}
+              onInput={(event) => search(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Escape' || !typed()) return;
+                event.preventDefault();
+                search('', true);
+              }}
+              onBlur={() => setSearchOpen(false)}
+            />
+            <Show when={typed()}>
+              <button
+                type="button"
+                class={styles['search-clear']}
+                aria-label={t().sources.clearSearch}
+                title={t().sources.clearSearch}
+                // Keeps focus in the field, so it stays open on phones.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => search('', true)}
+              >
+                <CloseIcon />
+              </button>
+            </Show>
+          </label>
         </Show>
       </header>
       <Switch>
@@ -105,7 +157,11 @@ export function SourcesPage() {
               }),
             }))}
           />
-          <SourceGrid first={first} next={(cursor) => getSourcePage(kind(), cursor)} />
+          <SourceGrid
+            first={first}
+            next={(cursor) => getSourcePage(kind(), q(), cursor)}
+            empty={q() ? fill(t().sources.noMatch, { q: q() }) : t().sources.noneOfKind}
+          />
         </Match>
       </Switch>
     </div>
@@ -116,6 +172,8 @@ export function SourcesPage() {
 function SourceGrid(props: {
   first: () => SourcePage | undefined;
   next: (cursor: string) => Promise<SourcePage>;
+  /** What shows when there are no cards. */
+  empty: string;
 }) {
   const { t } = useI18n();
   const list = createPagedList({
@@ -126,10 +184,7 @@ function SourceGrid(props: {
 
   return (
     <>
-      <Show
-        when={list.items().length}
-        fallback={<p class={styles.none}>{t().sources.noneOfKind}</p>}
-      >
+      <Show when={list.items().length} fallback={<p class={styles.none}>{props.empty}</p>}>
         <ul class={styles.grid}>
           <For each={list.items()}>
             {(summary) => (

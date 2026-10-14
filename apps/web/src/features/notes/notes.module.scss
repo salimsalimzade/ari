@@ -269,6 +269,26 @@
     gap: 14px;
     padding: 8px 22px 32px;
   }
+
+  // It has focus only while whole blocks are picked, which shows on them.
+  &:focus {
+    outline: none;
+  }
+
+  &[data-picking] {
+    user-select: none;
+  }
+}
+
+// Picked whole, to copy, cut or delete together.
+.paragraph[data-picked],
+.quote[data-picked] {
+  background: var(--ari-text-selection);
+  box-shadow: 0 0 0 6px var(--ari-text-selection);
+}
+
+.paragraph[data-picked] {
+  border-radius: 2px;
 }
 
 // A textarea over an invisible copy of its text: the copy sizes it, so it grows line by line.
@@ -284,19 +304,24 @@
     overflow-wrap: anywhere;
   }
 
-  // While the "/" menu is open the command shows as a tinted token.
-  &[data-slash] {
-    width: fit-content;
-    max-width: 100%;
-    padding: 0 4px;
-    border-radius: 6px;
-    background: var(--ari-terracotta-100);
-    color: var(--ari-terracotta-800);
+}
 
-    > .input {
-      padding: 0 4px;
-    }
-  }
+// A copy of a paragraph behind its field while the "/" menu is open: only the command shows, as
+// a tinted token, and the menu goes under its line.
+.backdrop {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.token {
+  border-radius: 4px;
+  background: var(--ari-terracotta-200);
+  box-shadow: 0 0 0 3px var(--ari-terracotta-200);
+  color: transparent;
 }
 
 .input {

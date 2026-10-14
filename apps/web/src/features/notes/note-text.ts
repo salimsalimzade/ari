@@ -14,14 +14,17 @@ const citation = (part: Extract<NotePart, { kind: 'quote' }>) =>
 
 const join = (blocks: string[]) => blocks.filter((block) => block.trim()).join('\n\n');
 
+const partAsText = (part: NotePart) =>
+  part.kind === 'text' ? part.text : `“${part.save.text}” (${citation(part)})`;
+
 /** The note as plain text: the title, then each paragraph and “quote” (citation). */
 export function noteAsText(title: string, parts: NotePart[]) {
-  return join([
-    title,
-    ...parts.map((part) =>
-      part.kind === 'text' ? part.text : `“${part.save.text}” (${citation(part)})`,
-    ),
-  ]);
+  return join([title, ...parts.map(partAsText)]);
+}
+
+/** Some of a note's paragraphs and quotes as plain text, as they are copied. */
+export function partsAsText(parts: NotePart[]) {
+  return join(parts.map(partAsText));
 }
 
 /** The note as Markdown: quotes become blockquotes, with a link to their source when it has one. */

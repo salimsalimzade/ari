@@ -92,6 +92,7 @@
   }
 }
 
+// The sources' own search; it looks through the sources only.
 .search {
   display: flex;
   align-items: center;
@@ -99,8 +100,7 @@
   width: 340px;
   height: 48px;
   margin-left: auto;
-  padding: 0 9px 0 18px;
-  border: 0;
+  padding: 0 6px 0 18px;
   border-radius: var(--ari-radius-pill);
   background: var(--ari-bg-surface);
   color: var(--ari-neutral-800);
@@ -112,11 +112,11 @@
     background: color-mix(in srgb, var(--ari-text-primary) 7%, var(--ari-bg-surface));
   }
 
-  &:active {
-    background: color-mix(in srgb, var(--ari-text-primary) 14%, var(--ari-bg-surface));
+  &:focus-within {
+    box-shadow: 0 0 0 2px var(--ari-border-focus);
   }
 
-  svg {
+  > svg {
     @include stroke-icon(var(--ari-icon));
   }
 
@@ -124,24 +124,60 @@
     width: 240px;
   }
 
+  // Phones open it from the header's search button.
   @include mobile {
     display: none;
+
+    &[data-open] {
+      display: flex;
+      align-self: stretch;
+      width: auto;
+      margin: 10px 0 0 -4px;
+    }
   }
 }
 
-.search-text {
+.search-input {
   flex: 1;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ari-text-primary);
+  font: inherit;
+  outline: none;
+
+  &::placeholder {
+    color: var(--ari-neutral-800);
+  }
+
+  // The field has its own clear button.
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
 }
 
-.kbd {
-  padding: 0 9px 0 4px;
+.search-clear {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--ari-text-secondary);
-  font: 600 15px / 1 var(--ari-font-body);
-  letter-spacing: 0.06em;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ari-bg-canvas);
+  }
+
+  svg {
+    @include stroke-icon;
+  }
 }
 
 .kinds {
@@ -168,8 +204,10 @@
   padding: 0;
   list-style: none;
 
+  // A card never widens its column: a long word in it (a file path) breaks instead.
   > li {
     display: flex;
+    min-width: 0;
   }
 
   @include mobile {

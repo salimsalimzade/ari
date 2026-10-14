@@ -89,6 +89,7 @@ export const az: Dictionary = {
     account: '{name} kimi daxil olmusunuz',
     thisPage: 'Bu səhifə',
     unsupported: 'Ari bu səhifədə saxlaya bilmir',
+    ariWebsite: 'Ari öz səhifələrini saxlamır',
     nothingSaved: 'Hələ heç nə saxlanmayıb',
     sidePanel: 'Yan panel',
     saveSelection: 'Seçimi saxla',

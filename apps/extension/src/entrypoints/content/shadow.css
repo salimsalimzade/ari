@@ -8,6 +8,8 @@
   --ari-font-heading: "Ari Figtree", system-ui, sans-serif;
   --ari-font-body: "Ari Figtree", system-ui, sans-serif;
   color-scheme: light;
+  /* A word too long for its line (a file path, an address) breaks rather than spilling out. */
+  overflow-wrap: break-word;
 }
 
 *,

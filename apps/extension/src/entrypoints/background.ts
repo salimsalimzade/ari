@@ -17,7 +17,7 @@ import { panelWindows } from '~/features/saves/settings';
 import { syncRetry, waitingSaves } from '~/features/saves/store';
 import { syncSaves } from '~/features/saves/sync';
 import { type Message, sendToTab } from '~/messages';
-import { websiteOrigin, websiteUrl } from '~/website';
+import { isAriWebsite, websiteOrigin, websiteUrl } from '~/website';
 
 // The badge on the Ari icon: how many saves are kept only in this browser, terracotta while
 // signed out (they wait for a sign-in), gray while ari-api can't be reached (they wait for a retry).
@@ -118,6 +118,8 @@ export default defineBackground(() => {
 
   browser.commands.onCommand.addListener(async (command) => {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    // Ari's own website has no side panel or clipping.
+    if (isAriWebsite(tab?.url)) return;
     if (command === 'toggle-panel') void setPanel(tab?.windowId, 'toggle');
     // A browser page, or one loaded before Ari, has no content script to answer.
     if (command === 'clip-section' && tab?.id !== undefined)

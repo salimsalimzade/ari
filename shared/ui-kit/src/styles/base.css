@@ -38,6 +38,8 @@ body {
   color: var(--ari-text-primary);
   background: var(--ari-bg-canvas);
   -webkit-font-smoothing: antialiased;
+  /* A word too long for its line (a file path, an address) breaks rather than spilling out. */
+  overflow-wrap: break-word;
 }
 
 img,
@@ -54,16 +56,6 @@ button,
 textarea,
 select {
   font: inherit;
-}
-
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  overflow-wrap: break-word;
 }
 
 h1,

@@ -181,8 +181,9 @@ the Library's import pill and the palette), where each page puts its own `Mobile
 back link, plus the language picker and optional `actions`). The shell also holds the ⌘K / Ctrl K
 search palette and the toast. `features/library` (from the design's "Ari Library") has `/library`
 (list or masonry grid by day with sticky headings, type tabs, tag / color / source filters in a
-ui-kit `Popover` or a sheet on phones, a column of months to jump to, or a floating button under
-1024px, and more on scroll), `/library/:id` (the reading view; a full-screen detail on phones:
+ui-kit `Popover` or a sheet on phones, a column of the months the loaded saves are from to jump
+to, with Earlier while older ones are still to load (left out when there is only one month), or a
+floating button under 1024px, and more on scroll), `/library/:id` (the reading view; a full-screen detail on phones:
 color, comment, source, copy with citation, delete), and `/imports` with `/imports/:id` (upload
 space, a drop zone, files ready / in progress / not imported / history, and the review that saves
 ticked marks into the Library). Files can be dropped anywhere on the Library or Imports page, and
@@ -215,8 +216,12 @@ save in one of the newest notes or in a new one. `features/notes` (from the desi
 wide screens, where the sidebar opens the newest note; the list on phones, or the empty state) and
 `/notes/:id`: a title and paragraphs with saved quotes between them. Each paragraph is a textarea
 over an invisible copy of its text, so it grows; hydration leaves textareas empty, so each ref fills
-its own. A paragraph starting with "/" lists saved highlights to quote (arrow keys, Enter, Escape),
-and ⋯ (ui-kit `Menu`) adds a quote, copies as text, exports Markdown or PDF (the print dialog),
+its own. A "/" that starts a paragraph or a word lists saved highlights to quote (arrow keys, Enter,
+Escape; tinted through a copy of the text behind the field), and the quote goes in after the writing
+before it, the writing after it moving to the next paragraph. Whole blocks are picked by dragging
+from one block into another, Shift+↑ / ↓ past a paragraph's end, Shift-click or ⌘A / Ctrl A twice,
+then copied, cut or deleted together; pasting what was copied back in a note brings back its
+blocks, quotes and all. ⋯ (ui-kit `Menu`) adds a quote, copies as text, exports Markdown or PDF (the print dialog),
 duplicates or deletes. Quotes keep a `saveId`, so they follow the save's color and leave with it.
 The notes come from ari-api (`features/notes/queries.ts`, sequences §13): `notes-store.tsx` (set up
 by the `(app)` layout) renders `getNotes` (the list, on every signed-in page, for the sidebar, the
@@ -232,8 +237,9 @@ their places, so the server's render matches); ari-api keys blocks by note and p
 `features/sources` (from the design's "Ari Sources") reads ari-api's sources
 (`features/sources/queries.ts`, sequences §12) and keeps no state of its own. `/sources` is a card
 per website or file with saves (`getSourcePage`, 40, latest saved from first; All / Websites / Files
-tabs counted by `getSourceCounts`, a tab change in `startTransition`; its search opens the palette,
-whose sources open their page), and `/sources/:id` (ari-api's source id) shows `getSource` (counts
+tabs counted by `getSourceCounts`, a tab change in `startTransition`; its own search, a field
+opened from the header on phones, asks `getSourcePage` with `q`, apart from the palette's search of
+everything), and `/sources/:id` (ari-api's source id) shows `getSource` (counts
 per kind, colors, the newest highlight, first and latest save; null is not found) with its saves
 from `getSourceSaves` (`GET /saves?source=&order=PAGE`: by page for files, the order they were saved
 for websites) or newest first, each with "Open at this spot" (a text-fragment link) on websites,
@@ -305,6 +311,7 @@ shaped like ari-api's `CreateSaveRequest`, and the background sends them to the 
 `browser.alarms` backoff (`local:syncRetry`). Pages show only the saves kept here and the
 signed-in account's (`ownSaves`); saves made while signed out go to whoever signs in next. The
 icon's badge counts the waiting saves, terracotta while signed out, gray while retrying. On every website
+but Ari's own (where it only follows the website's sign-in, and the popup and shortcuts do nothing)
 the content script mounts `PageUi` (`features/page/page-ui.tsx`) in a WXT shadow root: the
 selection toolbar (S saves, 1–5 save in a color, C comments, Esc closes; the comment box stays
 under the toolbar and turns `#name` into tags from the library's facets and the recent ones), highlights wrapped in

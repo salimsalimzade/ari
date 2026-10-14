@@ -10,12 +10,16 @@ import { type SourceKind, type SourceSummary, toSourceSummary } from './sources'
 
 export type SourcePage = { sources: SourceSummary[]; nextCursor?: string; failed?: true };
 
-/** One page of the Sources page, the source saved from most recently first. */
+/**
+ * One page of the Sources page, the source saved from most recently first; `q` keeps the sources
+ * whose name, title or author it finds.
+ */
 export const getSourcePage = query(
-  async (kind: 'all' | SourceKind, cursor?: string): Promise<SourcePage> => {
+  async (kind: 'all' | SourceKind, q: string, cursor?: string): Promise<SourcePage> => {
     try {
       const page = await listSources({
         kind: kind === 'all' ? undefined : (kind.toUpperCase() as ListSourcesQuery['kind']),
+        q: q || undefined,
         cursor,
       });
       return { sources: (page.items ?? []).map(toSourceSummary), nextCursor: page.nextCursor };

@@ -291,22 +291,74 @@ function createNotes() {
         if (index >= 0) blocks.splice(index, 1);
       }),
     /**
-     * Swaps the paragraph holding the "/" command for a quote of the save. Returns the paragraph
-     * after the quote, where writing goes on.
+     * Puts a quote of the save in place of the "/" command, `start` to `end` of the paragraph:
+     * the writing before the command stays, the writing after it goes on in a paragraph after the
+     * quote, and a paragraph with nothing else in it becomes the quote. Returns the paragraph after
+     * the quote, where writing goes on.
      */
-    insertQuote: (id: string, blockId: string, save: Save) => {
+    insertQuote: (id: string, blockId: string, save: Save, start: number, end: number) => {
       let after = '';
       edit(id, (note) => {
         const { blocks } = note;
         const index = at(blocks, blockId);
-        if (index < 0) return;
+        const block = textAt(blocks, index);
+        if (!block) return;
         note.quoted[save.id] = save;
-        blocks.splice(index, 1, quoteBlock(save.id));
-        const next = textAt(blocks, index + 1) ?? textBlock();
-        if (next !== blocks[index + 1]) blocks.splice(index + 1, 0, next);
+        const before = block.text.slice(0, start).trimEnd();
+        const rest = block.text.slice(end).trimStart();
+        block.text = before;
+        const quoteAt = before ? index + 1 : index;
+        blocks.splice(quoteAt, before ? 0 : 1, quoteBlock(save.id));
+        const next = rest ? textBlock(rest) : (textAt(blocks, quoteAt + 1) ?? textBlock());
+        if (next !== blocks[quoteAt + 1]) blocks.splice(quoteAt + 1, 0, next);
         after = next.id;
       });
       return after;
+    },
+    /** Takes several blocks out at once, e.g. the ones picked and cut. */
+    removeBlocks: (id: string, blockIds: string[]) =>
+      edit(id, ({ blocks }) => {
+        for (let index = blocks.length - 1; index >= 0; index--)
+          if (blockIds.includes(blocks[index].id)) blocks.splice(index, 1);
+      }),
+    /**
+     * Puts copied blocks (with the saves their quotes show) in a paragraph, in place of `start` to
+     * `end` of it: the writing before joins the first copied paragraph, the writing after the last.
+     * Returns where the caret goes, at the end of what was put in.
+     */
+    pasteBlocks: (
+      id: string,
+      blockId: string,
+      start: number,
+      end: number,
+      pasted: Block[],
+      saves: Save[],
+    ) => {
+      let caret: { blockId: string; at: number } | undefined;
+      edit(id, (note) => {
+        const { blocks } = note;
+        const index = at(blocks, blockId);
+        const block = textAt(blocks, index);
+        if (!block || !pasted.length) return;
+        for (const save of saves) note.quoted[save.id] = save;
+        const before = block.text.slice(0, start);
+        const after = block.text.slice(end);
+        const list = pasted.map((item): Block => ({ ...item, id: newId() }));
+        const first = list[0];
+        if (first.kind === 'text') first.text = before + first.text;
+        else if (before) list.unshift(textBlock(before));
+        const last = list[list.length - 1];
+        if (last.kind === 'text') {
+          caret = { blockId: last.id, at: last.text.length };
+          last.text += after;
+        } else if (after) {
+          const tail = textBlock(after);
+          list.push(tail);
+          caret = { blockId: tail.id, at: 0 };
+        } else caret = { blockId: last.id, at: 0 };
+        blocks.splice(index, 1, ...list);
+      });
+      return caret;
     },
     /**
      * Quotes a save at the end of a note, e.g. from the Library's "Add to note", and saves it at

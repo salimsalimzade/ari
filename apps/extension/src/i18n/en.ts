@@ -90,6 +90,7 @@ export const en = {
     account: 'Signed in as {name}',
     thisPage: 'This page',
     unsupported: 'Ari can’t save on this page',
+    ariWebsite: 'Ari doesn’t save its own pages',
     nothingSaved: 'Nothing saved yet',
     sidePanel: 'Side panel',
     saveSelection: 'Save selection',
