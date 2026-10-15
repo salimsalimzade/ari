@@ -14,6 +14,7 @@ export {
   discardImport,
   dismissImport,
   fetchImport,
+  importPhoto,
   listImports,
   retryImport,
   reviewImport,

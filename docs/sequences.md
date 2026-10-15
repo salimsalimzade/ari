@@ -197,7 +197,28 @@ sequenceDiagram
   review.
 - Everyone has 50 MB of upload space, in files of any size that fit in what is left, until billing
   (F15) gives plans their own; a file read and saved keeps counting.
-- Photos are not imported yet: OCR in the browser comes with F12.
+- Photos (F12) are read in the browser instead, and only what is marked on them goes to ari-api:
+
+```mermaid
+sequenceDiagram
+  participant B as Browser on /imports or /library
+  participant A as ari-api
+  B->>B: Refuse a photo that doesn't fit in the space left; show it as being read
+  B->>B: tesseract.js reads it in English, Azerbaijani and Turkish (files from the site's /ocr/)
+  B->>B: Lines read with little confidence are read again in Russian
+  B->>B: Find the marked words: highlighter, underline, strike, a circle or a margin bracket
+  B->>A: POST /api/v1/imports/photo (fileName, contentType, sizeBytes, marks with type and color)
+  alt Refused
+    A-->>B: 400 VALIDATION_FAILED or NO_SPACE_LEFT, 413 FILE_TOO_LARGE
+  else Kept
+    A-->>B: 201 ImportResponse (READY with its marks, or EMPTY)
+  end
+  B->>A: GET /api/v1/imports/{id}, then the same review as a file's
+```
+
+- The photo never leaves the browser, but its size counts against the upload space like a file's.
+  Several photos dropped at once are read one after another. Marks start ticked as a file's do: a
+  crossed-out one doesn't.
 
 ## 7. Save from the extension (F13)
 

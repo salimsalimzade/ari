@@ -1,6 +1,7 @@
 import type {
   ImportResponse,
   ImportsResponse,
+  PhotoImportRequest,
   ReviewImportRequest,
   ReviewImportResponse,
 } from '@ari/types';
@@ -21,6 +22,14 @@ export function uploadImport(file: File, onProgress?: (sent: number) => void) {
   const body = new FormData();
   body.append('file', file, file.name);
   return upload<ImportResponse>('/api/v1/imports', body, onProgress);
+}
+
+/**
+ * Keeps the marks found on a photo, which the browser read: ari-api answers with the import, READY
+ * with its marks for the same review as a file's, or EMPTY.
+ */
+export function importPhoto(body: PhotoImportRequest) {
+  return request<ImportResponse>('/api/v1/imports/photo', { method: 'POST', body });
 }
 
 /** One import, with its marks once it is READY or SAVED; a 404 is one that isn't theirs. */

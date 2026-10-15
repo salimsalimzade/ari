@@ -6,6 +6,7 @@ import {
   fetchImport,
   fetchSave,
   fetchSaveFacets,
+  importPhoto,
   listImports,
   listSaves,
   retryImport,
@@ -25,6 +26,7 @@ import {
   getSourceSaves,
 } from '~/features/sources/queries';
 import { type ImportFile, type Space, toImportFile, toSpace } from './imports';
+import { photoType, readPhotoMarks } from './photo-ocr';
 import { type Facets, type Save, type SaveKind, toFacets, toSave } from './saves';
 
 /**
@@ -165,6 +167,40 @@ export async function uploadFile(
       NO_SPACE_LEFT: 'noSpace',
     } as const;
     return { rejected: reasons[error.code as keyof typeof reasons] ?? 'failed' };
+  }
+}
+
+/**
+ * Reads a photo here and sends what is marked on it, reporting how far the reading got; ari-api
+ * answers with the import, ready to review (or empty), as a file's would be once read.
+ */
+export async function importPhotoFile(
+  file: File,
+  onProgress: (share: number) => void,
+): Promise<ImportFile | { rejected: NonNullable<ImportFile['rejected']> }> {
+  let marks: Awaited<ReturnType<typeof readPhotoMarks>>;
+  try {
+    marks = await readPhotoMarks(file, onProgress);
+  } catch {
+    return { rejected: 'unreadable' };
+  }
+  try {
+    return toImportFile(
+      await importPhoto({
+        fileName: file.name,
+        contentType: photoType(file),
+        sizeBytes: file.size,
+        marks: marks.map((mark) => ({
+          type: mark.type.toUpperCase() as Uppercase<typeof mark.type>,
+          text: mark.text,
+          color: mark.color,
+        })),
+      }),
+    );
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    const full = error.code === 'NO_SPACE_LEFT' || error.code === 'FILE_TOO_LARGE';
+    return { rejected: full ? 'noSpace' : 'failed' };
   }
 }
 

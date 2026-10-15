@@ -20,6 +20,7 @@ export type {
   ImportMarkResponse,
   ImportResponse,
   ImportsResponse,
+  PhotoImportRequest,
   ReviewImportRequest,
   ReviewImportResponse,
 } from './imports';

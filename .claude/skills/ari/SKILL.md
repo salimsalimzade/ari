@@ -74,7 +74,13 @@ Work is tracked as GitHub issues, one per feature per repo (F0, F1, …), on the
   no `tsserver` for VS Code.
 - **Tests:** Vitest + `@solidjs/testing-library` + `vite-plugin-solid` + jsdom. `vitest.config.ts`
   uses `solid()`, the `~` alias and `conditions: ['development', 'browser']`, and runs `cleanup`
-  after each test.
+  after each test. The web app's tests are plain code so far (the export's files, photo passages)
+  and run in Node; its config inlines every `.jsx` dependency (Kobalte's, through ui-kit) so Vite
+  compiles them.
+- **OCR:** tesseract.js 7 (photo import, F12), with `tesseract.js-core` and
+  `@tesseract.js-data/eng` / `aze` / `tur` / `rus` as dev dependencies that only supply the files
+  it serves.
+  Its postinstall only asks for donations, so `allowBuilds` lists it as false.
 
 Add these with the first code that needs them, without asking: `@solidjs/router`, `@solidjs/meta`
 (then drop the static `<title>` in `entry-server.tsx`), `@types/node` and the test packages. Ask
@@ -210,8 +216,26 @@ Library's filters (`filters.q`, a chip there, counted by the facets). In the sam
 palette's Sources and Notes groups ask `searchSources` (name, title, author) and `searchNotes`
 (title and writing); the notes' "/" quote picker asks `searchSaves` too. Each shows what the page
 has loaded until ari-api answers. Imports come from ari-api (F5, F11, sequences §6): PDF and Word
-(DOCX) files only for now (photos, F12, come later), of any size that fits in the 50 MB of upload
-space everyone has until billing (no per-file limit, no plan check, no Hive upsell). The store keeps the files it is
+(DOCX) files, of any size that fits in the 50 MB of upload
+space everyone has until billing (no per-file limit, no plan check, no Hive upsell). Photos (F12:
+JPEG, PNG, WebP) are read in the browser and show in the list like a file being read (its bar is
+how far the reading got), one photo at a time: `importPhotoFile` (`queries.ts`) runs
+`photo-ocr.ts`'s `readPhotoMarks`, which draws the photo to a canvas (its EXIF turn applied, at
+most 3000px) and reads it with tesseract.js (dynamically imported, LSTM only) in English,
+Azerbaijani and Turkish, then reads again in Russian alone each line read with less than 60
+confidence (read together, the scripts turn into each other's look-alikes). `photo-marks.ts`'s
+`findMarks` (tested on drawn rasters) then finds what is marked, per word: measured against the
+paper's own color, a highlighter's color behind the letters; an ink line through the word's middle
+(strike) or under its baseline (underline); a pen drawing, from the ink's shapes on a grid an eighth
+of a line high, counting only ink outside the words, as a big, mostly empty, not straight shape
+with ink on both sides of the word (a circle or box) or a tall, thin, wobbly one in the margin
+beside lines (a bracket). Printed frames, tables and rules are straight and left out, and their
+edges never count as underlines. Words marked the same way one after another are one mark (a
+highlighter's change of color starts another). `POST /imports/photo` sends the marks with their
+types and colors (#rrggbb, mapped by ari-api like a file's), and the import comes back READY (or
+EMPTY) for the usual review; a photo that can't be read is refused as `unreadable`. `vite.config.ts`'s `ocrFiles` plugin copies tesseract.js's worker, the
+three LSTM cores and the `best_int` language data from node_modules into `public/ocr/`
+(gitignored), so no CDN is used. The store keeps the files it is
 uploading (`uploadFile` over data-access' XHR `upload`, for its progress) or refused (type, no
 space left, or the upload failed) in the page; the rest is `getImports` (on every signed-in page, for the
 sidebar's ready count), asked again every 2 s while a file is queued or being read. `/imports/:id`
@@ -269,9 +293,14 @@ profile form saves with `updateProfileAction` (the picker's `dd.MM.yyyy` sent as
 shows `USERNAME_TAKEN` on the username field. The email section reads `email` and `pendingEmail`
 from `getMe`, adds or changes the address (ari-api emails a verify link; a verified email keeps
 working until the new one is confirmed), resends and removes, and shows `RATE_LIMITED` in the
-dictionaries' words. The other settings sections are UI only: the
+dictionaries' words. Export (`export-data.tsx`) is real and made in the browser:
+`loadExport` (`features/settings/queries.ts`) pages through `listSaves` by type, 100 at a time
+(Highlights take in imported ones; All ticks every part), then fetches each note that isn't empty, and `exportFile` (`export-file.ts`, tested) writes one
+file: Markdown or plain text grouped by source, a CSV row per save and per note (UTF-8 with a byte
+order mark, formula-like cells prefixed with '), or ari-api's own JSON. Its counts come from the
+whole Library's facets and the notes list. The other settings sections are UI only: the
 plan (trial, active, payment failed, canceled; the cancel dialog is a sheet on phones),
-billing, upload space and export stay in the page until ari-api has their
+billing and upload space stay in the page until ari-api has their
 endpoints. Their state lives in `SettingsProvider` (`settings-store.tsx`, with the design's example
 account as `sample`), set up by the settings layout so the list can sum each section up. Dates,
 numbers and sizes in the app go through `src/i18n/format.ts`'s `useFormat()` (date-fns patterns and
@@ -356,7 +385,7 @@ strings), the auth calls
 (`verifyEmail` among them, with `refresh: false`, and `createExtensionCode`), `fetchMe` and the account calls (profile,
 photo, email), the saves calls, the sources calls (`listSources`, `fetchSourceCounts`,
 `fetchSource`) and the notes calls (`listNotes`, `createNote`, `fetchNote`, `replaceNote`,
-`deleteNote`), the imports calls (`listImports`, `uploadImport`, `fetchImport`, `reviewImport`,
+`deleteNote`), the imports calls (`listImports`, `uploadImport`, `importPhoto`, `fetchImport`, `reviewImport`,
 `retryImport`, `dismissImport`, `discardImport`) and the password reset calls, with Vitest tests. Its `Problem` type is written by
 hand because ari-api's OpenAPI declares its error bodies as MeResponse; generate it once ari-api
 fixes that. Create the rest when an issue needs it.

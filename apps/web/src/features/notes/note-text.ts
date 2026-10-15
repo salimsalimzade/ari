@@ -27,15 +27,18 @@ export function partsAsText(parts: NotePart[]) {
   return join(parts.map(partAsText));
 }
 
-/** The note as Markdown: quotes become blockquotes, with a link to their source when it has one. */
-export function noteAsMarkdown(title: string, parts: NotePart[]) {
+/**
+ * The note as Markdown: quotes become blockquotes, with a link to their source when it has one.
+ * The title is a `#` heading, or `##` inside a file holding several notes.
+ */
+export function noteAsMarkdown(title: string, parts: NotePart[], heading = '#') {
   const blocks = parts.map((part) => {
     if (part.kind === 'text') return part.text;
     const where = citation(part);
     const cited = part.source.url ? `[${where}](${part.source.url})` : where;
     return `> ${part.save.text}\n>\n> — ${cited}`;
   });
-  return `${join([`# ${title}`, ...blocks])}\n`;
+  return `${join([`${heading} ${title}`, ...blocks])}\n`;
 }
 
 /** "swarm-decisions-essay-draft": a title as a file name, keeping letters of any language. */
@@ -46,9 +49,9 @@ export function fileName(title: string) {
     .replace(/^-|-$/g, '');
 }
 
-/** Saves text as a file through the browser's download. */
-export function download(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+/** Saves text, or a file made already, through the browser's download. */
+export function download(name: string, text: string | Blob, type?: string) {
+  const url = URL.createObjectURL(typeof text === 'string' ? new Blob([text], { type }) : text);
   const link = document.createElement('a');
   link.href = url;
   link.download = name;

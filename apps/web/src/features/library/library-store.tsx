@@ -18,6 +18,7 @@ import { isServer } from 'solid-js/web';
 import { getMe } from '~/features/auth/queries';
 import { useI18n } from '~/i18n/i18n';
 import { type ImportFile, importAccept, isBusy, isImportable, titleOf, toSpace } from './imports';
+import { isPhoto } from './photo-ocr';
 import {
   changeSaveAction,
   deleteSaveAction,
@@ -25,6 +26,7 @@ import {
   getImports,
   getSaveFacets,
   getSavePage,
+  importPhotoFile,
   retryImportAction,
   type SaveFilter,
   type SavePage,
@@ -61,7 +63,8 @@ export type Toast = {
   source?: string;
 };
 
-const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [], q: '' };
+/** The whole Library: no type, tag, color, source or search picked. */
+export const noFilter: SaveFilter = { type: 'all', tags: [], colors: [], sources: [], q: '' };
 const noCounts: Facets['counts'] = { all: 0, highlight: 0, clip: 0, import: 0 };
 
 const megabytesOf = (files: ImportFile[]) => files.reduce((sum, file) => sum + file.megabytes, 0);
@@ -238,7 +241,10 @@ function createLibrary(openFilePicker: () => void) {
 
   const space = derive((): UploadSpace => {
     const { used, limit } = importList()?.space ?? toSpace();
-    const pending = megabytesOf(uploads.filter((file) => file.status === 'uploading'));
+    // Files this page is uploading, or photos it is reading, which take their space once sent.
+    const pending = megabytesOf(
+      uploads.filter((file) => file.id.startsWith('local-') && file.status !== 'rejected'),
+    );
     const left = Math.max(0, limit - used - pending);
     const tone = left < 0.05 ? 'full' : (used + pending) / limit >= 0.8 ? 'low' : 'ok';
     return { used, pending, left, limit, tone };
@@ -253,17 +259,38 @@ function createLibrary(openFilePicker: () => void) {
     ),
   );
 
-  // While ari-api reads a file, its list is asked again until it's done.
+  // While ari-api reads a file, its list is asked again until it's done. (A photo being read here
+  // isn't in ari-api's list yet.)
   createEffect(() => {
-    if (!files().some((file) => file.status === 'queued' || file.status === 'reading')) return;
+    const listed = importList()?.files ?? [];
+    if (!listed.some((file) => file.status === 'queued' || file.status === 'reading')) return;
     const timer = setInterval(() => void refreshImports(), importPoll);
     onCleanup(() => clearInterval(timer));
   });
 
+  const progressOf = (localId: string) => (share: number) =>
+    setUploads((item) => item.id === localId, 'progress', Math.round(share * 100));
+
   const uploadOne = async (localId: string, file: File) => {
-    const answer = await uploadFile(file, (sent) =>
-      setUploads((item) => item.id === localId, 'progress', Math.round(sent * 100)),
-    ).catch(() => ({ rejected: 'failed' as const }));
+    const answer = await uploadFile(file, progressOf(localId)).catch(() => ({
+      rejected: 'failed' as const,
+    }));
+    settle(localId, answer);
+  };
+
+  // Photos are read one at a time: each reading takes the whole reader.
+  let photos = Promise.resolve();
+  const readOne = (localId: string, file: File) => {
+    photos = photos.then(async () => {
+      const answer = await importPhotoFile(file, progressOf(localId)).catch(() => ({
+        rejected: 'failed' as const,
+      }));
+      settle(localId, answer);
+    });
+  };
+
+  /** ari-api's import takes the place of the file this page sent, or the file shows why not. */
+  const settle = (localId: string, answer: Awaited<ReturnType<typeof uploadFile>>) => {
     if ('rejected' in answer) {
       setUploads((item) => item.id === localId, {
         status: 'rejected',
@@ -296,18 +323,26 @@ function createLibrary(openFilePicker: () => void) {
         found: 0,
         kept: 0,
       };
-      if (!isImportable(file.name)) return { ...base, status: 'rejected', rejected: 'type' };
+      if (!isImportable(file.name) && !isPhoto(file.name))
+        return { ...base, status: 'rejected', rejected: 'type' };
       if (megabytes > left)
         return { ...base, status: 'rejected', rejected: 'noSpace', spaceLeft: left };
       left -= megabytes;
       return base;
     });
+    // A photo is read here, and only what is marked on it goes to ari-api.
+    const photo = (index: number) =>
+      added[index].status === 'uploading' && isPhoto(picked[index].name);
+    const listed = added.map(
+      (entry, index): ImportFile => (photo(index) ? { ...entry, status: 'reading' } : entry),
+    );
     batch(() => {
-      setUploads((current) => [...added, ...current]);
+      setUploads((current) => [...listed, ...current]);
       setTrayHidden(false);
     });
-    added.forEach((entry, index) => {
-      if (entry.status === 'uploading') void uploadOne(entry.id, picked[index]);
+    listed.forEach((entry, index) => {
+      if (photo(index)) readOne(entry.id, picked[index]);
+      else if (entry.status === 'uploading') void uploadOne(entry.id, picked[index]);
     });
   };
 

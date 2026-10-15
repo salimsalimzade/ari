@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ari/data-access": "workspace:*",
@@ -22,10 +23,19 @@
     "date-fns": "catalog:",
     "nitro": "catalog:",
     "solid-js": "catalog:",
+    "tesseract.js": "catalog:",
     "valibot": "catalog:",
     "vite": "catalog:"
   },
   "devDependencies": {
-    "sass": "catalog:"
+    "@tesseract.js-data/aze": "catalog:",
+    "@tesseract.js-data/eng": "catalog:",
+    "@tesseract.js-data/rus": "catalog:",
+    "@tesseract.js-data/tur": "catalog:",
+    "@types/node": "catalog:",
+    "sass": "catalog:",
+    "tesseract.js-core": "catalog:",
+    "vite-plugin-solid": "catalog:",
+    "vitest": "catalog:"
   }
 }

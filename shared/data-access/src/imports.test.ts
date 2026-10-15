@@ -4,6 +4,7 @@ import {
   discardImport,
   dismissImport,
   fetchImport,
+  importPhoto,
   listImports,
   retryImport,
   reviewImport,
@@ -119,6 +120,20 @@ describe('imports', () => {
       status: 400,
       code: 'NO_SPACE_LEFT',
     } satisfies Partial<ApiError>);
+  });
+
+  it('sends the marks found on a photo as JSON', async () => {
+    await importPhoto({
+      fileName: 'page.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: 2048,
+      marks: [{ type: 'UNDERLINE', text: 'A colony splits in two.', color: '#2b4fd8' }],
+    });
+    expect(last()).toMatchObject({
+      path: '/api/v1/imports/photo',
+      method: 'POST',
+      body: '{"fileName":"page.jpg","contentType":"image/jpeg","sizeBytes":2048,"marks":[{"type":"UNDERLINE","text":"A colony splits in two.","color":"#2b4fd8"}]}',
+    });
   });
 
   it('lists, reads, reviews, retries, dismisses and discards', async () => {

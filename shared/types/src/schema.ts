@@ -258,6 +258,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/imports/photo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Import a photo's marks
+     * @description The browser reads the photo (OCR) and finds the words marked on it: highlighted, underlined, crossed out or drawn around with a pen. It sends them, not the photo. The import is READY at once, each mark in its color (mapped to the five as a file's are) and ticked as a file's would be (a crossed-out one isn't), for the same review; EMPTY when none were found. The photo's size counts against the upload space.
+     */
+    post: operations['importPhoto'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/auth/verify-email': {
     parameters: {
       query?: never;
@@ -912,6 +932,42 @@ export interface components {
       createdAt?: string;
       /** @description Only from GET /imports/{id}, once READY or SAVED */
       marks?: components['schemas']['ImportMarkResponse'][];
+    };
+    PhotoImportRequest: {
+      /**
+       * @description The photo's file name
+       * @example page-12.jpg
+       */
+      fileName: string;
+      /**
+       * @description The photo's type
+       * @example image/jpeg
+       */
+      contentType: string;
+      /**
+       * Format: int64
+       * @description The photo's size; it counts against the upload space like a file's
+       */
+      sizeBytes: number;
+      /** @description The marks found, in the photo's order; empty when there are none */
+      marks: components['schemas']['PhotoMarkRequest'][];
+    };
+    PhotoMarkRequest: {
+      /**
+       * @description How the words were marked
+       * @enum {string}
+       */
+      type: 'HIGHLIGHT' | 'UNDERLINE' | 'STRIKE' | 'DRAWN';
+      /**
+       * @description The marked words
+       * @example A colony splits in two.
+       */
+      text: string;
+      /**
+       * @description The marker's or pen's color as #RRGGBB, mapped to the nearest of the five like a file's; black, gray or left out is yellow
+       * @example #F2E25C
+       */
+      color?: string;
     };
     VerifyEmailRequest: {
       /** @description The code from the link in the email */
@@ -2014,6 +2070,57 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  importPhoto: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PhotoImportRequest'];
+      };
+    };
+    responses: {
+      /** @description The import, READY with its marks, or EMPTY */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description VALIDATION_FAILED, or NO_SPACE_LEFT (the upload space is too full) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description UNAUTHORIZED */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
+      };
+      /** @description FILE_TOO_LARGE: over 50 MB, more than the whole upload space */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': components['schemas']['ImportResponse'];
+        };
       };
     };
   };

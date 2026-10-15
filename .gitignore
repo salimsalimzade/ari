@@ -23,3 +23,6 @@ coverage/
 .DS_Store
 .idea/
 .claude/settings.local.json
+
+# Photo import's OCR files, copied from node_modules by vite.config.ts
+apps/web/public/ocr/

@@ -2,10 +2,13 @@ import type { ImportMarkResponse, ImportResponse } from '@ari/types';
 import type { HighlightColor } from '@ari/ui-kit';
 
 // Imports from ari-api (F5, F11, sequences §5): a PDF or Word file is uploaded, read in the
-// background for its marks, then reviewed into the Library.
+// background for its marks, then reviewed into the Library. A photo (F12) is read in the browser
+// instead (photo-ocr.ts): it shows as reading here, and what is marked on it is reviewed the same
+// way.
 
-/** The files Ari imports, by their names; ari-api checks the bytes too. */
-export const importAccept = '.pdf,.docx';
+/** The files Ari imports, by their names; ari-api checks a file's bytes too. */
+export const importAccept = '.pdf,.docx,.jpg,.jpeg,.png,.webp';
+/** Files ari-api reads: PDF and Word. */
 const importable = ['pdf', 'docx'];
 
 export const isImportable = (name: string) =>
@@ -64,8 +67,8 @@ export type ImportFile = {
   savedOn?: Date;
   /** Why reading failed: UNREADABLE, ENCRYPTED or READ_FAILED. */
   error?: string;
-  /** Why it wasn't uploaded. */
-  rejected?: 'type' | 'noSpace' | 'failed';
+  /** Why it wasn't uploaded, or (a photo) couldn't be read here. */
+  rejected?: 'type' | 'noSpace' | 'failed' | 'unreadable';
   /** Megabytes left when it didn't fit. */
   spaceLeft?: number;
   /** Once read, from `getImport` only. */

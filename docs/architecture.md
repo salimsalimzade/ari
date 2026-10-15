@@ -46,6 +46,12 @@ Key decisions:
   after it. Saves made while signed out wait there for the next sign-in.
 - Google sign-in (F9) is a full-page link through `ari-api`, and checkout (F15) is Paddle.js on
   `/settings`. The frontend never talks to the database, queues or file storage.
+- Photos (F12) are read in the browser with tesseract.js, whose worker, WebAssembly core and
+  English, Azerbaijani, Turkish and Russian data the website serves itself from `/ocr/` (no CDN);
+  the page finds the highlighted, underlined, crossed-out and drawn-around words, and only those go
+  to `ari-api` ([sequences §6](sequences.md#6-pdf-or-word-import-f5-f11)).
+- The export (Settings › Export) is made in the browser from `GET /saves` and the notes, as
+  Markdown, plain text, CSV or JSON; `ari-api` has no export endpoint.
 - Local URLs: web `http://localhost:3000`, API `http://localhost:8080`, API base path `/api/v1`.
 
 ## 2. Sign-in and errors the UI relies on
@@ -78,7 +84,7 @@ Errors are RFC 9457 Problem Details with a stable `code`:
 | `UNAUTHORIZED` | 401 | No valid session: refresh once, then go to `/login` |
 | `VALIDATION_FAILED` | 400 | An invalid body, with field errors |
 | `UNSUPPORTED_FILE` | 400 | An imported file that isn't a PDF or Word DOCX by its bytes: "Ari can import PDF and Word (DOCX) files" |
-| `NO_SPACE_LEFT` | 400 | An imported file that doesn't fit in what is left of the 50 MB upload space |
+| `NO_SPACE_LEFT` | 400 | An imported file or photo that doesn't fit in what is left of the 50 MB upload space |
 | `FILE_TOO_LARGE` | 413 | An upload over its limit: 50 MB (the whole upload space) for an imported file, 2 MB for a photo or a clip's image |
 | `INVALID_IMPORT_STATE` | 409 | An import action its status doesn't allow, e.g. a review before the file is read |
 | `LIMIT_REACHED` | 403 | Planned with billing: a save past a plan's limit |

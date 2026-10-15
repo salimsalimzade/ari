@@ -1,35 +1,61 @@
-import { Button, Checkbox } from '@ari/ui-kit';
-import { format as formatDate } from 'date-fns';
-import { For, Match, Switch } from 'solid-js';
+import { Alert, Button, Checkbox } from '@ari/ui-kit';
+import { createAsync } from '@solidjs/router';
+import { For, Match, Show, Switch } from 'solid-js';
+import { noFilter } from '~/features/library/library-store';
+import { getSaveFacets } from '~/features/library/queries';
+import { download } from '~/features/notes/note-text';
+import { useNotes } from '~/features/notes/notes-store';
 import { fill, useFormat } from '~/i18n/format';
 import { useI18n } from '~/i18n/i18n';
+import type { ExportFormat, ExportPart } from './export-file';
 import { DownloadIcon, FileIcon } from './icons';
 import styles from './sections.module.scss';
-import { type ExportFormat, type ExportPart, sample, useSettings } from './settings-store';
+import { useSettings } from './settings-store';
 
-const formats: ExportFormat[] = ['md', 'csv', 'json'];
-const parts: ExportPart[] = ['highlights', 'clips', 'imports', 'notes'];
-const extensions: Record<ExportFormat, string> = { md: '.zip', csv: '.csv', json: '.json' };
+const formats: ExportFormat[] = ['md', 'txt', 'csv', 'json'];
+const parts: ExportPart[] = ['highlights', 'clips', 'notes'];
 
 /**
- * Downloading a copy of everything saved, as Markdown, CSV or JSON. Until ari-api can build the
- * file, the export only shows its progress and the file it would make.
+ * Downloading a copy of everything saved, as Markdown, plain text, CSV or JSON. The page loads the
+ * saves and notes picked from ari-api and makes the file itself.
  */
 export function ExportData() {
   const { t } = useI18n();
   const format = useFormat();
   const settings = useSettings();
-  const saves = () =>
-    parts
-      .filter((part) => part !== 'notes' && settings.exportParts[part])
-      .reduce((total, part) => total + sample.counts[part], 0);
-  const notes = () => (settings.exportParts.notes ? sample.counts.notes : 0);
+  const notesStore = useNotes();
+  // The whole Library's counts, which the Library page shares when it has no filter.
+  const facets = createAsync(() => getSaveFacets(noFilter), { deferStream: true });
+  const counts = (): Record<ExportPart, number> | undefined => {
+    const saves = facets()?.counts;
+    if (!saves) return;
+    return {
+      // Imported highlights are highlights too.
+      highlights: saves.highlight + saves.import,
+      clips: saves.clip,
+      notes: notesStore.list().filter((note) => !note.empty).length,
+    };
+  };
+  const picked = (part: ExportPart) => (settings.exportParts[part] ? (counts()?.[part] ?? 0) : 0);
+  const saves = () => picked('highlights') + picked('clips');
+  const notes = () => picked('notes');
   const exportLabel = () => {
     const values = { saves: format.number(saves()), notes: format.number(notes()) };
     if (saves() && notes()) return fill(t().exportData.exportAll, values);
     if (saves()) return fill(t().exportData.exportSaves, values);
     if (notes()) return fill(t().exportData.exportNotes, values);
     return t().exportData.chooseParts;
+  };
+  const job = settings.exportJob;
+  // Ari's counts may be a little behind, so the bar waits at 99% for the last of it.
+  const percent = () => {
+    const current = job();
+    if (current?.status !== 'loading') return 0;
+    return Math.min(99, Math.round((current.loaded / Math.max(1, saves() + notes())) * 100));
+  };
+  const ready = () => {
+    const current = job();
+    return current?.status === 'ready' ? current : undefined;
   };
 
   return (
@@ -39,7 +65,12 @@ export function ExportData() {
       <span class={styles.overline} id="export-format">
         {t().exportData.format}
       </span>
-      <div class={styles.choices} role="radiogroup" aria-labelledby="export-format">
+      <div
+        class={styles.choices}
+        data-columns="2"
+        role="radiogroup"
+        aria-labelledby="export-format"
+      >
         <For each={formats}>
           {(id) => (
             <label class={styles.choice}>
@@ -61,6 +92,20 @@ export function ExportData() {
       </div>
       <span class={styles.overline}>{t().exportData.include}</span>
       <div class={styles.parts}>
+        <Checkbox
+          class={styles.part}
+          checked={parts.every((part) => settings.exportParts[part])}
+          onChange={settings.toggleAllExportParts}
+        >
+          {t().exportData.all}
+          <Show when={counts()}>
+            {(count) => (
+              <span class={styles['part-count']}>
+                {format.number(parts.reduce((sum, part) => sum + count()[part], 0))}
+              </span>
+            )}
+          </Show>
+        </Checkbox>
         <For each={parts}>
           {(part) => (
             <Checkbox
@@ -69,13 +114,65 @@ export function ExportData() {
               onChange={() => settings.toggleExportPart(part)}
             >
               {t().exportData.parts[part]}
-              <span class={styles['part-count']}>{format.number(sample.counts[part])}</span>
+              <Show when={counts()}>
+                {(count) => (
+                  <span class={styles['part-count']}>{format.number(count()[part])}</span>
+                )}
+              </Show>
             </Checkbox>
           )}
         </For>
       </div>
       <Switch>
-        <Match when={settings.exportProgress() === undefined}>
+        <Match when={job()?.status === 'loading'}>
+          <div class={styles.progress} role="status">
+            <div class={styles['progress-head']}>
+              <span>{t().exportData.preparing}</span>
+              <span>{percent()}%</span>
+            </div>
+            <span class={styles.meter}>
+              <span
+                class={styles['meter-fill']}
+                data-tone="accent"
+                style={{ width: `${percent()}%` }}
+              />
+            </span>
+            <span class={styles.caption}>{t().exportData.stay}</span>
+          </div>
+        </Match>
+        <Match when={ready()}>
+          {(file) => (
+            <div class={styles.row} data-wrap="" data-tone="done">
+              <span class={styles['row-icon']}>
+                <FileIcon />
+              </span>
+              <div class={styles['row-text']}>
+                <span class={styles['row-title']} data-truncate="">
+                  {file().name}
+                </span>
+                <span class={styles['row-sub']}>
+                  {fill(t().exportData.ready, {
+                    size: format.fileSize(file().file.size / 1024 / 1024),
+                  })}
+                </span>
+              </div>
+              <Button
+                variant="primary"
+                icon={<DownloadIcon />}
+                onClick={() => download(file().name, file().file)}
+              >
+                {t().exportData.download}
+              </Button>
+              <Button variant="ghost" onClick={settings.resetExport}>
+                {t().exportData.startOver}
+              </Button>
+            </div>
+          )}
+        </Match>
+        <Match when={true}>
+          <Show when={job()?.status === 'failed'}>
+            <Alert>{t().exportData.failed}</Alert>
+          </Show>
           <div class={styles.buttons}>
             <Button
               variant="primary"
@@ -83,48 +180,7 @@ export function ExportData() {
               disabled={!saves() && !notes()}
               onClick={settings.startExport}
             >
-              {exportLabel()}
-            </Button>
-          </div>
-        </Match>
-        <Match when={(settings.exportProgress() ?? 0) < 100}>
-          <div class={styles.progress} role="status">
-            <div class={styles['progress-head']}>
-              <span>{t().exportData.preparing}</span>
-              <span>{Math.round(settings.exportProgress() ?? 0)}%</span>
-            </div>
-            <span class={styles.meter}>
-              <span
-                class={styles['meter-fill']}
-                data-tone="accent"
-                style={{ width: `${settings.exportProgress()}%` }}
-              />
-            </span>
-            <span class={styles.caption}>{t().exportData.leave}</span>
-          </div>
-        </Match>
-        <Match when={settings.exportProgress() === 100}>
-          <div class={styles.row} data-wrap="" data-tone="done">
-            <span class={styles['row-icon']}>
-              <FileIcon />
-            </span>
-            <div class={styles['row-text']}>
-              <span class={styles['row-title']} data-truncate="">
-                ari-export-{formatDate(new Date(), 'yyyy-MM-dd')}
-                {extensions[settings.exportFormat()]}
-              </span>
-              <span class={styles['row-sub']}>
-                {fill(t().exportData.ready, {
-                  size: format.size(sample.exportMegabytes[settings.exportFormat()]),
-                })}
-              </span>
-            </div>
-            {/* Downloading the file comes with ari-api's export endpoint. */}
-            <Button variant="primary" icon={<DownloadIcon />}>
-              {t().exportData.download}
-            </Button>
-            <Button variant="ghost" onClick={settings.resetExport}>
-              {t().exportData.startOver}
+              {job()?.status === 'failed' ? t().exportData.tryAgain : exportLabel()}
             </Button>
           </div>
         </Match>

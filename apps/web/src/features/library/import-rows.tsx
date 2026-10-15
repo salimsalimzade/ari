@@ -50,6 +50,8 @@ export function useImportText() {
           return t().imports.wrongType;
         case 'noSpace':
           return fill(t().imports.noSpace, { left: megabytes(file.spaceLeft ?? 0) });
+        case 'unreadable':
+          return t().imports.photoUnreadable;
         default:
           return t().imports.uploadFailed;
       }
@@ -58,12 +60,16 @@ export function useImportText() {
 }
 
 /**
- * A file being uploaded or read (or just read), with its progress: the upload's share, then a bar
- * that waits while ari-api reads it.
+ * A file being uploaded or read (or just read), with its progress: the upload's share, or how far
+ * this page has read a photo, then a bar that waits while ari-api reads a file.
  */
 export function ImportProgress(props: { file: ImportFile }) {
   const text = useImportText();
-  const width = () => (props.file.status === 'uploading' ? `${props.file.progress}%` : '100%');
+  // ari-api's files are at 100: only a photo read here moves while it reads.
+  const width = () =>
+    props.file.status === 'uploading' || props.file.status === 'reading'
+      ? `${props.file.progress}%`
+      : '100%';
   return (
     <div class={styles.progress}>
       <FileIcon />
